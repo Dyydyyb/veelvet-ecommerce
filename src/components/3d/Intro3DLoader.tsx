@@ -16,35 +16,35 @@ export function Intro3DLoader({ onFinish }: IntroLoaderProps) {
   const [hasWebGLError, setHasWebGLError] = useState(false);
   const [displayPercent, setDisplayPercent] = useState(0);
 
-  // Minimum 2.5s duration enforcement
+  // Quick minimum duration (700ms instead of 2500ms) for snappy, fast loading
   useEffect(() => {
     const timer = setTimeout(() => {
       setMinTimeElapsed(true);
-    }, 2500);
+    }, 700);
 
     return () => clearTimeout(timer);
   }, []);
 
-  // Smooth number interpolation for percentage
+  // Fast smooth percentage progress
   useEffect(() => {
-    const target = Math.max(progress, minTimeElapsed ? 100 : Math.min(95, Math.floor(displayPercent + 3)));
+    const target = Math.max(progress, minTimeElapsed ? 100 : Math.min(95, Math.floor(displayPercent + 8)));
     const interval = setInterval(() => {
       setDisplayPercent((prev) => {
-        if (prev < target) return prev + 1;
+        if (prev < target) return Math.min(target, prev + 4);
         return prev;
       });
-    }, 20);
+    }, 15);
     return () => clearInterval(interval);
   }, [progress, minTimeElapsed, displayPercent]);
 
-  // When both minTime and loading complete -> trigger burst and curtain
+  // When both minTime and loading complete -> quick burst and curtain opening
   useEffect(() => {
     if (minTimeElapsed && (progress >= 100 || displayPercent >= 100)) {
       setIsFinishing(true);
       const burstTimer = setTimeout(() => {
         setIsCurtainOpen(true);
         if (onFinish) onFinish();
-      }, 700);
+      }, 250);
 
       return () => clearTimeout(burstTimer);
     }
@@ -70,7 +70,7 @@ export function Intro3DLoader({ onFinish }: IntroLoaderProps) {
           <motion.div
             initial={{ x: 0 }}
             exit={{ x: '-100%' }}
-            transition={{ duration: 1.1, ease: [0.77, 0, 0.175, 1] }}
+            transition={{ duration: 0.6, ease: [0.77, 0, 0.175, 1] }}
             className="absolute top-0 left-0 w-1/2 h-full bg-[#F0EDE3] border-r border-[#E8E2D0]/50 shadow-2xl z-10"
           />
 
@@ -78,7 +78,7 @@ export function Intro3DLoader({ onFinish }: IntroLoaderProps) {
           <motion.div
             initial={{ x: 0 }}
             exit={{ x: '100%' }}
-            transition={{ duration: 1.1, ease: [0.77, 0, 0.175, 1] }}
+            transition={{ duration: 0.6, ease: [0.77, 0, 0.175, 1] }}
             className="absolute top-0 right-0 w-1/2 h-full bg-[#F0EDE3] border-l border-[#E8E2D0]/50 shadow-2xl z-10"
           />
 
