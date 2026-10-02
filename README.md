@@ -29,15 +29,24 @@
    - Fallback automático en SVG/CSS si WebGL no está disponible.
    - Elemento 3D interactivo en el Hero del Home y en la página 404.
 
-2. **Micro-interacciones y Animaciones**:
-   - Hero con reveal de texto palabra por palabra con máscara inferior.
-   - Marquee infinito: *"ENVÍO A TODO EL PAÍS • MAYORISTA Y MINORISTA • SHOWROOM EN QUILMES • UNISEX"*.
-   - Cursor personalizado en desktop con aura interactiva.
-   - Tarjetas de producto con cambio de imagen al hacer hover, selector rápido de talle deslizante e incorporación al carrito con animación.
-   - Carrito lateral (drawer) con medidor de envío gratis ($100.000 ARS) y soporte de cupones (`SIMPLEMENTE`, `VEELVET10`, `SHOWROOM`).
+2. **Hero 3D Centrado de Máximo Impacto**:
+   - Logo 3D girando de fondo con posición elevada para enmarcar el titular *"SIMPLEMENTE VEELVET."*.
+   - Toda la información y CTAs perfectamente centrados en pantalla.
+   - Mínima interferencia visual, eliminando cajas fotográficas en el hero para darle protagonismo al 3D.
 
-3. **Páginas y Vistas Completas**:
-   - `/`: **Home** (Hero, Marquee, Categorías, Destacados, Por qué Veelvet, Showroom Quilmes, Instagram, Newsletter).
+3. **Colección Dinámica con Menú Desplegable (Listo para CRM / Backend)**:
+   - Al hacer click o hover sobre **"Colección"** en el Header (y en el acordeón del menú mobile), se despliegan automáticamente todas las categorías gestionables.
+   - Diseñado modularmente para que un futuro backend / CRM pueda inyectar nuevas categorías (ej: *Musculosas, Remeras, Nuevo Drop, Descuentos Final de Temporada, Accesorios*) sin tocar el maquetado.
+   - Cada categoría admite insignias personalizadas (*"BEST SELLER"*, *"DROP ACTIVO"*, *"SALE 20% OFF"*, *"PRÓXIMAMENTE"*).
+
+4. **100% Optimizado para Teléfonos Móviles**:
+   - Cero desbordes horizontales (`overflow-x-hidden`, anchos fluidos y tipografía adaptable).
+   - Menú lateral deslizante con acordeón de categorías integrado.
+   - Tablas de medidas desplazables con indicador táctil.
+   - Checkout con distribución optimizada para pantalla vertical.
+
+5. **Páginas y Vistas Completas**:
+   - `/`: **Home** (Hero 3D centrado, Marquee, Categorías, Destacados, Por qué Veelvet, Showroom Quilmes, Instagram, Newsletter).
    - `/tienda`: **Colección** con filtros dinámicos (categoría, talle S-XL, color, ordenamiento).
    - `/producto/:id`: **Ficha de Producto** con galería con zoom, selectores de talle y color, disparador de tabla de talles y acordeones informativos.
    - `/guia-de-talles`: **Tabla de Medidas** (página y modal) con ilustraciones vectoriales esquemáticas (A, B, C, D) y tablas exactas de Buzo con Cierre y Pantalón.
@@ -51,13 +60,8 @@
 
 ---
 
-## 🚀 Cómo Ejecutar el Proyecto
+## 🚀 Cómo Ejecutar Localmente
 
-### 1. Requisitos
-- Node.js (v18 o superior)
-- npm o pnpm
-
-### 2. Instalación y Ejecución
 ```bash
 # Entrar a la carpeta del proyecto
 cd veelvet-ecommerce
@@ -70,37 +74,52 @@ npm run dev
 
 # Compilar para producción (typecheck + build)
 npm run build
-
-# Previsualizar el build de producción
-npm run preview
 ```
 
 ---
 
-## 🎨 Cómo Personalizar y Reemplazar Contenido
+## ☁️ Deploy en Vercel (Configurado y Listo)
 
-### 1. Reemplazar el Modelo 3D (`logo.glb`)
-- Colocá tu nuevo archivo GLB en:  
-  `public/assets/logo.glb`
-- El componente `src/components/3d/VeelvetModel.tsx` y `Intro3DLoader.tsx` lo cargarán automáticamente. Al utilizar `Center`, el modelo se recentrará sin importar el pivote o el tamaño original en Blender.
+El repositorio ya cuenta con el archivo de configuración `vercel.json` con las reglas de rewrite necesarias para SPAs con React Router:
 
-### 2. Modificar o Agregar Productos
-- Los datos se encuentran centralizados en:  
-  `src/data/products.ts`
-- Podés modificar precios, fotos, descripciones, composición, colores o añadir nuevos productos respetando la interfaz `Product`.
+### Opción 1: Subiendo a GitHub y conectando Vercel (Recomendada)
+1. Creá un nuevo repositorio en GitHub (ej: `veelvet-shop`).
+2. Vinculá y subí esta carpeta:
+   ```bash
+   git remote add origin https://github.com/TU-USUARIO/veelvet-shop.git
+   git push -u origin main
+   ```
+3. En [Vercel](https://vercel.com/), hacé clic en **"Add New Project"**, importá el repositorio de GitHub y hacé clic en **Deploy**. ¡Vercel detectará Vite automáticamente!
 
-### 3. Reemplazar Imágenes y Fotografías
-- Las fotos de campaña y productos se encuentran en:  
-  `public/assets/images/`
-  - `hero-look.jpg` (Editorial portada)
-  - `buzo-negro.jpg` (Buzo con cierre)
-  - `pantalon-beige.jpg` (Pantalón ancho)
-- El logo bidimensional está en:  
-  `public/assets/logo.png`
+### Opción 2: Usando Vercel CLI
+```bash
+# Si tenés Vercel CLI instalado
+npx vercel
 
-### 4. Ajustar Tablas de Medidas
-- Los valores de las medidas para buzos y pantalones están en:  
-  `src/data/sizeGuide.ts`
+# Para desplegar a producción directamente
+npx vercel --prod
+```
+
+---
+
+## ⚙️ Gestión de Categorías para Backend / CRM
+
+Las categorías que se despliegan en el menú del Header y en la tienda se encuentran tipadas en:
+`src/data/products.ts`
+
+```typescript
+export interface CategoryItem {
+  id: string;          // Identificador único (ej: 'musculosas')
+  name: string;        // Nombre visual completo (ej: 'Musculosas & Tops')
+  shortName: string;   // Nombre corto
+  description: string; // Bajada explicativa
+  href: string;        // Ruta o filtro (ej: '/tienda?cat=musculosas')
+  badge?: string;      // Insignia opcional (ej: 'NUEVO DROP')
+  badgeColor?: string; // Color Tailwind
+}
+```
+
+Al conectar una API REST o GraphQL en el futuro, simplemente reemplazá la constante `CATEGORIES` con el fetch a tu endpoint del CRM o CMS.
 
 ---
 
