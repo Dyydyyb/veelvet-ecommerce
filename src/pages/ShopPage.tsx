@@ -9,27 +9,40 @@ import { PRODUCTS, CATEGORIES, PRODUCT_COLORS } from '../data/products';
 export function ShopPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const categoryParam = searchParams.get('cat') || 'todos';
+  const subParam = searchParams.get('sub') || '';
+  const filterParam = searchParams.get('filter') || '';
 
   const [selectedCategory, setSelectedCategory] = useState<string>(categoryParam);
+  const [selectedSub, setSelectedSub] = useState<string>(subParam);
+  const [selectedFilter, setSelectedFilter] = useState<string>(filterParam);
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<'featured' | 'price-asc' | 'price-desc' | 'rating'>('featured');
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
-  // Sync category with URL query param if present
+  // Sync state with URL query params
   React.useEffect(() => {
-    if (categoryParam) {
-      setSelectedCategory(categoryParam);
-    }
-  }, [categoryParam]);
+    setSelectedCategory(categoryParam);
+    setSelectedSub(subParam);
+    setSelectedFilter(filterParam);
+  }, [categoryParam, subParam, filterParam]);
 
   const handleCategoryChange = (catId: string) => {
     setSelectedCategory(catId);
-    if (catId === 'todos') {
-      searchParams.delete('cat');
-    } else {
-      searchParams.set('cat', catId);
+    setSelectedSub('');
+    setSelectedFilter('');
+    const newParams = new URLSearchParams();
+    if (catId !== 'todos') {
+      newParams.set('cat', catId);
     }
+    setSearchParams(newParams);
+  };
+
+  const removeSubFilter = () => {
+    setSelectedSub('');
+    setSelectedFilter('');
+    searchParams.delete('sub');
+    searchParams.delete('filter');
     setSearchParams(searchParams);
   };
 
@@ -47,20 +60,50 @@ export function ShopPage() {
 
   const clearFilters = () => {
     setSelectedCategory('todos');
+    setSelectedSub('');
+    setSelectedFilter('');
     setSelectedSizes([]);
     setSelectedColors([]);
     setSortBy('featured');
-    searchParams.delete('cat');
-    setSearchParams(searchParams);
+    setSearchParams(new URLSearchParams());
   };
 
   // Filter and Sort Products
   const filteredProducts = useMemo(() => {
     return PRODUCTS.filter((prod) => {
-      // Category filter
-      if (selectedCategory !== 'todos' && prod.category !== selectedCategory) {
-        return false;
+      // Category filter (if not top/accesorios which map to multiple items)
+      if (selectedCategory !== 'todos' && selectedCategory !== 'top' && selectedCategory !== 'accesorios') {
+        if (prod.category !== selectedCategory) return false;
       }
+
+      // Subcategory filter from Mega Menu (e.g. campera, remeras, hoodies, zip-up, cargos, denim)
+      if (selectedSub) {
+        const query = selectedSub.toLowerCase().replace('-', ' ');
+        const matchesName = prod.name.toLowerCase().includes(query);
+        const matchesSubtitle = prod.subtitle.toLowerCase().includes(query);
+        const matchesDesc = prod.description.toLowerCase().includes(query);
+        const matchesCategory = prod.category.toLowerCase().includes(query);
+        // Also special alias checks
+        const matchesAlias =
+          (query.includes('zip') && prod.name.toLowerCase().includes('cierre')) ||
+          (query.includes('hoodie') && prod.category === 'buzos') ||
+          (query.includes('cargo') && prod.category === 'pantalones') ||
+          (query.includes('sweat') && prod.category === 'pantalones');
+
+        if (!matchesName && !matchesSubtitle && !matchesDesc && !matchesCategory && !matchesAlias) {
+          return false;
+        }
+      }
+
+      // Promo filter (e.g. sale-60, precios-unicos, unit-03)
+      if (selectedFilter) {
+        if (selectedFilter === 'sale-60' || selectedFilter === 'precios-unicos') {
+          if (!prod.compareAtPrice) return false;
+        } else if (selectedFilter === 'unit-03') {
+          if (prod.tag !== 'NUEVO' && !prod.featured) return false;
+        }
+      }
+
       // Size filter
       if (selectedSizes.length > 0) {
         const hasSize = selectedSizes.some((s) => prod.sizes.includes(s as any));
@@ -80,7 +123,7 @@ export function ShopPage() {
       if (sortBy === 'rating') return b.rating - a.rating;
       return 0; // default order
     });
-  }, [selectedCategory, selectedSizes, selectedColors, sortBy]);
+  }, [selectedCategory, selectedSub, selectedFilter, selectedSizes, selectedColors, sortBy]);
 
   const activeFiltersCount =
     (selectedCategory !== 'todos' ? 1 : 0) + selectedSizes.length + selectedColors.length;
@@ -216,6 +259,21 @@ export function ShopPage() {
           )}
         </div>
       </div>
+
+      {/* Active Subcategory / Promotion chip */}
+      {(selectedSub || selectedFilter) && (
+        <div className="flex items-center space-x-2 mb-5 bg-beige-200/80 px-3.5 py-2 rounded-xl text-xs text-navy font-medium w-fit border border-beige-300">
+          <span className="font-bold uppercase text-[10px] tracking-wider text-navy/60">Filtro de Colección:</span>
+          <span className="font-bold uppercase tracking-wider">{selectedSub || selectedFilter}</span>
+          <button
+            onClick={removeSubFilter}
+            className="p-1 hover:bg-beige-300 rounded-full transition-colors ml-1 cursor-pointer"
+            aria-label="Quitar filtro de subcategoría"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
 
       {/* Product Count */}
       <div className="flex items-center justify-between text-xs text-navy/60 uppercase font-semibold tracking-wider mb-6 px-1">

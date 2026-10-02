@@ -4,16 +4,16 @@ import { ShoppingBag, Menu, X, ArrowRight, MapPin, ChevronDown, Sparkles } from 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCartStore } from '../../store/cartStore';
 import { InstagramIcon } from './Icons';
-import { CATEGORIES } from '../../data/products';
+import { MEGA_MENU_DATA } from '../../data/megaMenuData';
 
 export function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [collectionDropdownOpen, setCollectionDropdownOpen] = useState(false);
-  const [mobileCollectionOpen, setMobileCollectionOpen] = useState(false);
+  const [mobileCollectionOpen, setMobileCollectionOpen] = useState(true);
 
   const location = useLocation();
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const dropdownContainerRef = useRef<HTMLDivElement>(null);
   const { openCart, getTotalItems } = useCartStore();
   const totalItems = getTotalItems();
 
@@ -31,10 +31,10 @@ export function Header() {
     setCollectionDropdownOpen(false);
   }, [location.pathname, location.search]);
 
-  // Click outside listener for collection dropdown
+  // Click outside listener for collection mega dropdown
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+      if (dropdownContainerRef.current && !dropdownContainerRef.current.contains(e.target as Node)) {
         setCollectionDropdownOpen(false);
       }
     };
@@ -42,9 +42,20 @@ export function Header() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Close on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setCollectionDropdownOpen(false);
+        setMobileMenuOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   // Primary nav links
-  const mainNavLinks = [
-    { label: 'Inicio', href: '/' },
+  const secondaryNavLinks = [
     { label: 'Showroom', href: '/showroom' },
     { label: 'Mayoristas', href: '/mayoristas' },
     { label: 'Guía de Talles', href: '/guia-de-talles' },
@@ -55,9 +66,10 @@ export function Header() {
   return (
     <>
       <header
+        ref={dropdownContainerRef}
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          isScrolled
-            ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-beige-300/80 py-2 sm:py-2.5'
+          isScrolled || collectionDropdownOpen
+            ? 'bg-white/98 backdrop-blur-md shadow-md border-b border-beige-300/80 py-2 sm:py-3'
             : 'bg-transparent py-4 sm:py-5'
         }`}
       >
@@ -72,17 +84,17 @@ export function Header() {
             <Menu className="w-6 h-6 stroke-[1.75]" />
           </button>
 
-          {/* Brand Logo - Visibly Larger */}
+          {/* Brand Logo - Visibly Large & Crisp */}
           <Link to="/" className="flex items-center group py-0.5" aria-label="Veelvet Inicio">
             <img
               src="/assets/logo-transparent.png"
               alt="Veelvet. Simplemente Veelvet."
-              className="h-10 sm:h-12 md:h-14 lg:h-16 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
+              className="h-12 sm:h-14 md:h-16 lg:h-20 w-auto min-w-[130px] sm:min-w-[170px] md:min-w-[200px] max-w-[240px] sm:max-w-[300px] object-contain transition-transform duration-300 group-hover:scale-105"
             />
           </Link>
 
           {/* Desktop Navigation Links */}
-          <nav className="hidden lg:flex items-center space-x-7 text-xs font-montserrat tracking-wider uppercase font-semibold text-navy/85">
+          <nav className="hidden lg:flex items-center space-x-8 text-xs font-montserrat tracking-wider uppercase font-semibold text-navy/85">
             {/* Inicio */}
             <Link
               to="/"
@@ -100,18 +112,13 @@ export function Header() {
               )}
             </Link>
 
-            {/* Dynamic Colección Dropdown */}
-            <div
-              ref={dropdownRef}
-              className="relative"
-              onMouseEnter={() => setCollectionDropdownOpen(true)}
-              onMouseLeave={() => setCollectionDropdownOpen(false)}
-            >
+            {/* Dynamic Colección Button (Triggers the Mega Menu) */}
+            <div className="relative">
               <button
                 type="button"
                 onClick={() => setCollectionDropdownOpen((prev) => !prev)}
                 className={`flex items-center space-x-1.5 py-2 uppercase tracking-wider transition-colors hover:text-navy-500 focus:outline-none cursor-pointer ${
-                  isCollectionActive ? 'text-navy font-bold' : ''
+                  isCollectionActive || collectionDropdownOpen ? 'text-navy font-bold' : ''
                 }`}
                 aria-expanded={collectionDropdownOpen}
                 aria-haspopup="true"
@@ -122,7 +129,7 @@ export function Header() {
                     collectionDropdownOpen ? 'rotate-180 text-navy' : 'text-navy/60'
                   }`}
                 />
-                {isCollectionActive && (
+                {(isCollectionActive || collectionDropdownOpen) && (
                   <motion.div
                     layoutId="activeNavIndicator"
                     className="absolute bottom-0 left-0 right-0 h-[2px] bg-navy"
@@ -130,79 +137,10 @@ export function Header() {
                   />
                 )}
               </button>
-
-              {/* Unfolded Dropdown Menu (connected to CRM/categories data) */}
-              <AnimatePresence>
-                {collectionDropdownOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10, scale: 0.98 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 8, scale: 0.98 }}
-                    transition={{ duration: 0.2, ease: 'easeOut' }}
-                    className="absolute top-full left-0 w-80 bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-beige-300 p-3 z-50 text-left mt-1"
-                  >
-                    <div className="px-3 py-2 border-b border-beige-200 flex items-center justify-between">
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-navy/50">
-                        Categorías & Drops
-                      </span>
-                      <Link
-                        to="/tienda"
-                        className="text-[10px] font-bold uppercase text-navy hover:text-navy-500 underline"
-                      >
-                        Ver todo
-                      </Link>
-                    </div>
-
-                    <div className="py-2 space-y-1">
-                      {CATEGORIES.map((category) => (
-                        <Link
-                          key={category.id}
-                          to={category.href}
-                          className="group/item flex items-center justify-between p-2.5 rounded-xl hover:bg-beige-100 transition-colors"
-                        >
-                          <div>
-                            <div className="flex items-center space-x-2">
-                              <span className="font-montserrat font-bold text-xs uppercase text-navy group-hover/item:text-navy-500 transition-colors">
-                                {category.name}
-                              </span>
-                              {category.badge && (
-                                <span
-                                  className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded ${
-                                    category.badgeColor || 'bg-beige-200 text-navy'
-                                  }`}
-                                >
-                                  {category.badge}
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-[11px] text-navy/60 font-light mt-0.5 line-clamp-1">
-                              {category.description}
-                            </p>
-                          </div>
-                          <ArrowRight className="w-3.5 h-3.5 text-navy/30 group-hover/item:text-navy group-hover/item:translate-x-0.5 transition-all flex-shrink-0 ml-2" />
-                        </Link>
-                      ))}
-                    </div>
-
-                    <div className="pt-2 border-t border-beige-200 px-3 py-2 bg-beige-50/60 rounded-xl flex items-center justify-between">
-                      <div className="flex items-center space-x-1.5 text-[11px] text-navy font-semibold">
-                        <Sparkles className="w-3.5 h-3.5 text-navy-500" />
-                        <span>Moldería Unisex S a XL</span>
-                      </div>
-                      <Link
-                        to="/guia-de-talles"
-                        className="text-[10px] text-navy/70 hover:text-navy underline uppercase"
-                      >
-                        Tabla
-                      </Link>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
             </div>
 
             {/* Other Nav Links */}
-            {mainNavLinks.slice(1).map((link) => {
+            {secondaryNavLinks.map((link) => {
               const isActive = location.pathname === link.href;
               return (
                 <Link
@@ -269,7 +207,108 @@ export function Header() {
             </button>
           </div>
         </div>
+
+        {/* FULL-WIDTH MEGA MENU (Matching the user's reference image) */}
+        <AnimatePresence>
+          {collectionDropdownOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.22, ease: 'easeOut' }}
+              className="w-full bg-white border-t border-b border-beige-300/80 shadow-xl overflow-hidden mt-2 sm:mt-3"
+            >
+              <div className="max-w-7xl mx-auto px-6 sm:px-10 lg:px-12 py-9">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-8 lg:gap-14">
+                  {MEGA_MENU_DATA.columns.map((column) => (
+                    <div key={column.id} className="flex flex-col">
+                      {column.title ? (
+                        <div className="mb-4">
+                          <h3 className="text-xl md:text-2xl font-black font-montserrat tracking-tight text-navy">
+                            {column.title}
+                          </h3>
+                          {column.hasUnderline && (
+                            <div className="w-full h-[1px] bg-navy/20 mt-2" />
+                          )}
+                        </div>
+                      ) : (
+                        // Height placeholder to align items with neighboring columns that have titles
+                        <div className="hidden md:block h-[37px] mb-4" />
+                      )}
+
+                      <ul className="space-y-3">
+                        {column.items.map((item, idx) => (
+                          <li key={idx}>
+                            <Link
+                              to={item.href}
+                              onClick={() => setCollectionDropdownOpen(false)}
+                              className={`group/item inline-flex items-center space-x-2 text-sm transition-all duration-150 ${
+                                item.highlight
+                                  ? 'font-bold text-navy hover:text-navy-500'
+                                  : 'font-medium text-navy/80 hover:text-navy hover:translate-x-1'
+                              }`}
+                            >
+                              <span className="font-montserrat">{item.name}</span>
+                              {item.badge && (
+                                <span
+                                  className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
+                                    item.badgeColor || 'bg-beige-200 text-navy'
+                                  }`}
+                                >
+                                  {item.badge}
+                                </span>
+                              )}
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Bottom Highlight Bar */}
+                <div className="mt-8 pt-5 border-t border-beige-200 flex flex-col sm:flex-row items-center justify-between text-xs text-navy/70 gap-3">
+                  <div className="flex items-center space-x-2 font-medium">
+                    <Sparkles className="w-4 h-4 text-navy-500" />
+                    <span>Moldería unisex en frisa prémium pesada 380g</span>
+                  </div>
+                  <div className="flex items-center space-x-6">
+                    <Link
+                      to="/guia-de-talles"
+                      onClick={() => setCollectionDropdownOpen(false)}
+                      className="hover:text-navy underline uppercase tracking-wider font-semibold text-[11px]"
+                    >
+                      Guía de Talles (S a XL)
+                    </Link>
+                    <Link
+                      to="/tienda"
+                      onClick={() => setCollectionDropdownOpen(false)}
+                      className="font-bold text-navy hover:text-navy-500 uppercase tracking-wider text-[11px] underline flex items-center space-x-1"
+                    >
+                      <span>Ver toda la colección</span>
+                      <ArrowRight className="w-3.5 h-3.5 inline ml-0.5" />
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </header>
+
+      {/* Dimmed backdrop for Mega Menu */}
+      <AnimatePresence>
+        {collectionDropdownOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            onClick={() => setCollectionDropdownOpen(false)}
+            className="fixed inset-0 bg-black/35 backdrop-blur-xs z-40"
+          />
+        )}
+      </AnimatePresence>
 
       {/* Mobile Drawer Menu */}
       <AnimatePresence>
@@ -290,7 +329,7 @@ export function Header() {
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 28, stiffness: 280 }}
-              className="fixed top-0 left-0 bottom-0 w-[85%] max-w-sm bg-white z-50 lg:hidden shadow-2xl flex flex-col justify-between p-6 overflow-y-auto"
+              className="fixed top-0 left-0 bottom-0 w-[88%] max-w-sm bg-white z-50 lg:hidden shadow-2xl flex flex-col justify-between p-6 overflow-y-auto"
             >
               <div>
                 {/* Header inside drawer - Large Logo */}
@@ -299,7 +338,7 @@ export function Header() {
                     <img
                       src="/assets/logo-transparent.png"
                       alt="Veelvet."
-                      className="h-10 sm:h-12 w-auto object-contain"
+                      className="h-12 sm:h-14 w-auto min-w-[130px] object-contain"
                     />
                   </Link>
                   <button
@@ -322,7 +361,7 @@ export function Header() {
                     <ArrowRight className="w-4 h-4 text-navy/30" />
                   </Link>
 
-                  {/* Expandable Mobile Colección Accordion */}
+                  {/* Expandable Mobile Colección with Full Subcategories */}
                   <div className="border-b border-beige-100 py-1">
                     <button
                       type="button"
@@ -331,8 +370,8 @@ export function Header() {
                     >
                       <span className="flex items-center space-x-2">
                         <span>Colección</span>
-                        <span className="text-[10px] bg-beige-200 px-2 py-0.5 rounded-full font-semibold">
-                          {CATEGORIES.length}
+                        <span className="text-[10px] bg-navy text-white px-2 py-0.5 rounded-full font-bold">
+                          Catálogo
                         </span>
                       </span>
                       <ChevronDown
@@ -349,22 +388,41 @@ export function Header() {
                           animate={{ height: 'auto', opacity: 1 }}
                           exit={{ height: 0, opacity: 0 }}
                           transition={{ duration: 0.25 }}
-                          className="overflow-hidden pl-3 pr-1 py-1 space-y-2 bg-beige-50/70 rounded-xl my-1"
+                          className="overflow-hidden pl-3 pr-2 py-2 space-y-4 bg-beige-50/70 rounded-xl my-2"
                         >
-                          {CATEGORIES.map((cat) => (
-                            <Link
-                              key={cat.id}
-                              to={cat.href}
-                              onClick={() => setMobileMenuOpen(false)}
-                              className="flex items-center justify-between py-2 text-xs font-montserrat font-bold uppercase text-navy hover:text-navy-500"
-                            >
-                              <span>{cat.name}</span>
-                              {cat.badge && (
-                                <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded ${cat.badgeColor || 'bg-beige-200 text-navy'}`}>
-                                  {cat.badge}
-                                </span>
+                          {MEGA_MENU_DATA.columns.map((col) => (
+                            <div key={col.id} className="space-y-1.5">
+                              {col.title ? (
+                                <p className="text-[11px] font-black uppercase tracking-wider text-navy border-b border-beige-200 pb-1">
+                                  {col.title}
+                                </p>
+                              ) : (
+                                <p className="text-[11px] font-black uppercase tracking-wider text-navy/60 border-b border-beige-200 pb-1">
+                                  Destacados & Drops
+                                </p>
                               )}
-                            </Link>
+                              <div className="space-y-1 pl-1">
+                                {col.items.map((item, idx) => (
+                                  <Link
+                                    key={idx}
+                                    to={item.href}
+                                    onClick={() => setMobileMenuOpen(false)}
+                                    className="flex items-center justify-between py-1 text-xs font-semibold uppercase text-navy/85 hover:text-navy"
+                                  >
+                                    <span>{item.name}</span>
+                                    {item.badge && (
+                                      <span
+                                        className={`text-[8px] font-bold px-1.5 py-0.5 rounded ${
+                                          item.badgeColor || 'bg-beige-200 text-navy'
+                                        }`}
+                                      >
+                                        {item.badge}
+                                      </span>
+                                    )}
+                                  </Link>
+                                ))}
+                              </div>
+                            </div>
                           ))}
                         </motion.div>
                       )}
@@ -392,7 +450,7 @@ export function Header() {
 
                 {/* Secondary Links */}
                 <div className="mt-6 pt-4 border-t border-beige-200 flex flex-col space-y-2.5 text-xs tracking-wider uppercase font-semibold text-navy/70">
-                  <Link to="/guia-de-talles" onClick={() => setMobileMenuOpen(false)} className="hover:text-navy py-1">Tabla de talles</Link>
+                  <Link to="/guia-de-talles" onClick={() => setMobileMenuOpen(false)} className="hover:text-navy py-1">Tabla de talles (S-XL)</Link>
                   <Link to="/cuidados" onClick={() => setMobileMenuOpen(false)} className="hover:text-navy py-1">Cuidados de la prenda</Link>
                   <Link to="/envios" onClick={() => setMobileMenuOpen(false)} className="hover:text-navy py-1">Envíos a todo el país</Link>
                   <Link to="/preguntas-frecuentes" onClick={() => setMobileMenuOpen(false)} className="hover:text-navy py-1">Preguntas Frecuentes</Link>

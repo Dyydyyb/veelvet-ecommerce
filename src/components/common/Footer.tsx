@@ -25,7 +25,7 @@ export function Footer() {
               <img
                 src="/assets/logo-transparent.png"
                 alt="Veelvet. Simplemente Veelvet."
-                className="h-14 sm:h-18 lg:h-20 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
+                className="h-16 sm:h-20 md:h-24 lg:h-28 w-auto min-w-[180px] sm:min-w-[220px] md:min-w-[260px] max-w-[320px] object-contain transition-transform duration-300 group-hover:scale-105"
               />
             </Link>
             <p className="text-sm font-semibold tracking-wider uppercase text-navy/90">
@@ -61,9 +61,10 @@ export function Footer() {
             </p>
             <ul className="space-y-2 text-sm text-navy/75 font-light">
               <li><Link to="/tienda" className="hover:text-navy transition-colors">Todos los productos</Link></li>
-              <li><Link to="/tienda?cat=buzos" className="hover:text-navy transition-colors">Buzos con cierre</Link></li>
-              <li><Link to="/tienda?cat=pantalones" className="hover:text-navy transition-colors">Pantalones anchos</Link></li>
+              <li><Link to="/tienda?cat=buzos" className="hover:text-navy transition-colors">Buzos con cierre & Hoodies</Link></li>
+              <li><Link to="/tienda?cat=pantalones" className="hover:text-navy transition-colors">Pantalones anchos & Cargos</Link></li>
               <li><Link to="/tienda?cat=conjuntos" className="hover:text-navy transition-colors">Conjuntos completos</Link></li>
+              <li><Link to="/tienda?cat=top" className="hover:text-navy transition-colors">Top & Remeras Boxy</Link></li>
               <li><Link to="/mayoristas" className="hover:text-navy transition-colors font-medium">Venta mayorista</Link></li>
             </ul>
           </div>
