@@ -9,6 +9,7 @@ export interface ProductColor {
   name: string;
   hex: string;
   class: string;
+  images?: string[];
 }
 
 export interface Product {
@@ -16,7 +17,12 @@ export interface Product {
   slug: string;
   name: string;
   subtitle: string;
-  category: 'buzos' | 'pantalones' | 'conjuntos';
+  category: string;
+  categoryId?: string;
+  categoryName?: string;
+  subcategoryId?: string;
+  subcategoryName?: string;
+  subcategorySlug?: string;
   price: number;
   compareAtPrice?: number;
   description: string;
@@ -27,10 +33,11 @@ export interface Product {
     secondary: string;
     lookbook?: string;
   };
+  allImages?: string[];
   colors: ProductColor[];
   sizes: ('S' | 'M' | 'L' | 'XL')[];
   inStock: boolean;
-  tag?: 'NUEVO' | 'BEST SELLER' | 'EDICIÓN LIMITADA' | 'ESENCIAL';
+  tag?: string;
   rating: number;
   reviewsCount: number;
   featured: boolean;

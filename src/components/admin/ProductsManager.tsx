@@ -188,9 +188,34 @@ export function ProductsManager({
                             <p className="font-montserrat font-bold text-xs uppercase text-navy">
                               {prod.nombre}
                             </p>
-                            <p className="text-[10px] text-navy/50 font-mono mt-0.5">
-                              {prod.imagenes_url?.length || 0} foto(s) R2
-                            </p>
+                            {prod.descripcion && (
+                              <p className="text-[10px] text-navy/60 line-clamp-1 italic max-w-xs mt-0.5">
+                                {prod.descripcion}
+                              </p>
+                            )}
+                            <div className="flex items-center space-x-1.5 mt-0.5">
+                              <span className="text-[10px] text-navy/50 font-mono">
+                                {prod.imagenes_url?.length || 0} foto(s) R2
+                              </span>
+                              {prod.colores && prod.colores.length > 0 && (
+                                <>
+                                  <span className="text-navy/30">•</span>
+                                  <span className="text-[10px] text-navy/60 font-semibold">
+                                    {prod.colores.length} color(es)
+                                  </span>
+                                  <div className="flex items-center -space-x-1 ml-0.5">
+                                    {prod.colores.map((c, i) => (
+                                      <span
+                                        key={i}
+                                        className="w-2.5 h-2.5 rounded-full border border-black/30 shadow-2xs"
+                                        style={{ backgroundColor: c.hex }}
+                                        title={c.name}
+                                      />
+                                    ))}
+                                  </div>
+                                </>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </td>

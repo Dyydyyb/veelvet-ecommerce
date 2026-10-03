@@ -110,28 +110,38 @@ export function ShopPage() {
   // Filter and Sort Products
   const filteredProducts = useMemo(() => {
     return allProducts.filter((prod) => {
-      // Category filter (if not top/accesorios which map to multiple items)
-      if (selectedCategory !== 'todos' && selectedCategory !== 'top' && selectedCategory !== 'accesorios') {
-        if (prod.category !== selectedCategory) return false;
+      // Category filter
+      if (selectedCategory !== 'todos') {
+        const catTarget = selectedCategory.toLowerCase();
+        const isMatch =
+          prod.category?.toLowerCase() === catTarget ||
+          prod.categoryName?.toLowerCase() === catTarget ||
+          prod.categoryName?.toLowerCase().replace(/\s+/g, '-') === catTarget ||
+          prod.categoryId === selectedCategory ||
+          (catTarget === 'top' && (prod.category.includes('top') || prod.category.includes('buzo') || prod.category.includes('abrig'))) ||
+          (catTarget === 'bottom' && (prod.category.includes('bottom') || prod.category.includes('pantalon'))) ||
+          (catTarget === 'accesorios' && prod.category.includes('accesorio'));
+        if (!isMatch) return false;
       }
 
       // Subcategory filter from Mega Menu (e.g. campera, remeras, hoodies, zip-up, cargos, denim)
       if (selectedSub) {
-        const query = selectedSub.toLowerCase().replace('-', ' ');
-        const matchesName = prod.name.toLowerCase().includes(query);
-        const matchesSubtitle = prod.subtitle.toLowerCase().includes(query);
-        const matchesDesc = prod.description.toLowerCase().includes(query);
-        const matchesCategory = prod.category.toLowerCase().includes(query);
-        // Also special alias checks
-        const matchesAlias =
+        const query = selectedSub.toLowerCase().replace(/-/g, ' ');
+        const qSlug = selectedSub.toLowerCase();
+        const isSubMatch =
+          prod.subcategorySlug?.toLowerCase() === qSlug ||
+          prod.subcategoryName?.toLowerCase() === query ||
+          prod.subcategoryName?.toLowerCase().replace(/\s+/g, '-') === qSlug ||
+          prod.name.toLowerCase().includes(query) ||
+          prod.subtitle.toLowerCase().includes(query) ||
+          prod.description.toLowerCase().includes(query) ||
+          prod.category.toLowerCase().includes(query) ||
           (query.includes('zip') && prod.name.toLowerCase().includes('cierre')) ||
-          (query.includes('hoodie') && prod.category === 'buzos') ||
-          (query.includes('cargo') && prod.category === 'pantalones') ||
-          (query.includes('sweat') && prod.category === 'pantalones');
+          (query.includes('hoodie') && (prod.category.includes('buzo') || prod.category.includes('top'))) ||
+          (query.includes('cargo') && (prod.category.includes('pantalon') || prod.category.includes('bottom'))) ||
+          (query.includes('sweat') && (prod.category.includes('pantalon') || prod.category.includes('bottom')));
 
-        if (!matchesName && !matchesSubtitle && !matchesDesc && !matchesCategory && !matchesAlias) {
-          return false;
-        }
+        if (!isSubMatch) return false;
       }
 
       // Promo filter (e.g. sale-60, precios-unicos, unit-03)

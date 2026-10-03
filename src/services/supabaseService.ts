@@ -1,6 +1,33 @@
-import { supabase, Categoria, Subcategoria, TipoOferta, Producto } from '../lib/supabase';
+import { supabase, Categoria, Subcategoria, TipoOferta, Producto, ColorVariant } from '../lib/supabase';
 import { Product, PRODUCT_COLORS } from '../data/products';
 import { MegaMenuConfig } from '../data/megaMenuData';
+
+function parseRawProduct(raw: any): Producto {
+  let urls: string[] = [];
+  let descripcion: string = raw.descripcion || '';
+  let colores: ColorVariant[] = Array.isArray(raw.colores) ? raw.colores : [];
+
+  if (Array.isArray(raw.imagenes_url)) {
+    urls = raw.imagenes_url.filter(Boolean);
+  } else if (raw.imagenes_url && typeof raw.imagenes_url === 'object') {
+    if (Array.isArray(raw.imagenes_url.urls)) {
+      urls = raw.imagenes_url.urls.filter(Boolean);
+    }
+    if (!descripcion && raw.imagenes_url.descripcion) {
+      descripcion = raw.imagenes_url.descripcion;
+    }
+    if (colores.length === 0 && Array.isArray(raw.imagenes_url.colores)) {
+      colores = raw.imagenes_url.colores;
+    }
+  }
+
+  return {
+    ...raw,
+    imagenes_url: urls,
+    descripcion: descripcion || null,
+    colores,
+  };
+}
 
 export const SupabaseService = {
   // ==========================================
@@ -197,11 +224,7 @@ export const SupabaseService = {
       return [];
     }
 
-    // Asegurar que imagenes_url siempre sea un arreglo válido
-    return (data || []).map((p) => ({
-      ...p,
-      imagenes_url: Array.isArray(p.imagenes_url) ? p.imagenes_url : [],
-    }));
+    return (data || []).map((p) => parseRawProduct(p));
   },
 
   async getProductoById(id: string): Promise<Producto | null> {
@@ -215,11 +238,8 @@ export const SupabaseService = {
       .eq('id', id)
       .single();
 
-    if (error) return null;
-    return {
-      ...data,
-      imagenes_url: Array.isArray(data.imagenes_url) ? data.imagenes_url : [],
-    };
+    if (error || !data) return null;
+    return parseRawProduct(data);
   },
 
   async createProducto(payload: {
@@ -229,23 +249,33 @@ export const SupabaseService = {
     subcategoria_id?: string | null;
     tipo_oferta_id?: string | null;
     imagenes_url: string[];
+    colores?: ColorVariant[];
+    descripcion?: string | null;
     destacado?: boolean;
     stock?: number;
   }): Promise<Producto> {
-    const { data, error } = await supabase
+    const cleanUrls = (payload.imagenes_url || []).map((u) => u.trim()).filter(Boolean);
+    const cleanColores = (payload.colores || []).filter((c) => c && c.name?.trim());
+    const cleanDescripcion = payload.descripcion?.trim() || '';
+
+    const insertObj: any = {
+      nombre: payload.nombre.trim(),
+      precio: payload.precio,
+      precio_anterior: payload.precio_anterior || null,
+      subcategoria_id: payload.subcategoria_id || null,
+      tipo_oferta_id: payload.tipo_oferta_id || null,
+      destacado: Boolean(payload.destacado),
+      stock: Number(payload.stock) || 0,
+      imagenes_url: {
+        urls: cleanUrls,
+        colores: cleanColores,
+        descripcion: cleanDescripcion,
+      },
+    };
+
+    let res = await supabase
       .from('productos')
-      .insert([
-        {
-          nombre: payload.nombre,
-          precio: payload.precio,
-          precio_anterior: payload.precio_anterior || null,
-          subcategoria_id: payload.subcategoria_id || null,
-          tipo_oferta_id: payload.tipo_oferta_id || null,
-          imagenes_url: payload.imagenes_url || [],
-          destacado: Boolean(payload.destacado),
-          stock: Number(payload.stock) || 0,
-        },
-      ])
+      .insert([insertObj])
       .select(`
         *,
         subcategoria:subcategorias(id, nombre, slug, categoria:categorias(id, nombre, orden)),
@@ -253,8 +283,22 @@ export const SupabaseService = {
       `)
       .single();
 
-    if (error) throw new Error(error.message);
-    return data;
+    // Fallback si la columna imagenes_url solo acepta array nativo
+    if (res.error && res.error.message.includes('array')) {
+      insertObj.imagenes_url = cleanUrls;
+      res = await supabase
+        .from('productos')
+        .insert([insertObj])
+        .select(`
+          *,
+          subcategoria:subcategorias(id, nombre, slug, categoria:categorias(id, nombre, orden)),
+          tipo_oferta:tipos_oferta(id, nombre, etiqueta_badge, color_badge)
+        `)
+        .single();
+    }
+
+    if (res.error) throw new Error(res.error.message);
+    return parseRawProduct(res.data);
   },
 
   async updateProducto(
@@ -266,15 +310,36 @@ export const SupabaseService = {
       subcategoria_id?: string | null;
       tipo_oferta_id?: string | null;
       imagenes_url?: string[];
+      colores?: ColorVariant[];
+      descripcion?: string | null;
       destacado?: boolean;
       stock?: number;
     }
   ): Promise<Producto> {
+    const updateObj: any = {};
+    if (payload.nombre !== undefined) updateObj.nombre = payload.nombre.trim();
+    if (payload.precio !== undefined) updateObj.precio = payload.precio;
+    if (payload.precio_anterior !== undefined) updateObj.precio_anterior = payload.precio_anterior;
+    if (payload.subcategoria_id !== undefined) updateObj.subcategoria_id = payload.subcategoria_id;
+    if (payload.tipo_oferta_id !== undefined) updateObj.tipo_oferta_id = payload.tipo_oferta_id;
+    if (payload.destacado !== undefined) updateObj.destacado = Boolean(payload.destacado);
+    if (payload.stock !== undefined) updateObj.stock = Number(payload.stock);
+
+    if (payload.imagenes_url !== undefined || payload.colores !== undefined || payload.descripcion !== undefined) {
+      const cleanUrls = (payload.imagenes_url || []).map((u) => u.trim()).filter(Boolean);
+      const cleanColores = (payload.colores || []).filter((c) => c && c.name?.trim());
+      const cleanDescripcion = payload.descripcion !== undefined ? (payload.descripcion?.trim() || '') : '';
+
+      updateObj.imagenes_url = {
+        urls: cleanUrls,
+        colores: cleanColores,
+        descripcion: cleanDescripcion,
+      };
+    }
+
     const { data, error } = await supabase
       .from('productos')
-      .update({
-        ...payload,
-      })
+      .update(updateObj)
       .eq('id', id)
       .select(`
         *,
@@ -284,7 +349,7 @@ export const SupabaseService = {
       .single();
 
     if (error) throw new Error(error.message);
-    return data;
+    return parseRawProduct(data);
   },
 
   async deleteProducto(id: string): Promise<void> {
@@ -305,10 +370,7 @@ export const SupabaseService = {
       .single();
 
     if (error) throw new Error(error.message);
-    return {
-      ...data,
-      imagenes_url: Array.isArray(data.imagenes_url) ? data.imagenes_url : [],
-    };
+    return parseRawProduct(data);
   },
 
   // ==========================================
@@ -316,41 +378,98 @@ export const SupabaseService = {
   // ==========================================
   adaptSupabaseProductToFrontend(p: Producto): Product {
     const defaultImg = '/assets/images/hero-look.jpg';
-    const imagesList = Array.isArray(p.imagenes_url) && p.imagenes_url.length > 0 ? p.imagenes_url : [defaultImg];
+    const parsed = parseRawProduct(p);
 
-    // Inferir categoría principal para filtros existentes
-    const catName = p.subcategoria?.categoria?.nombre?.toLowerCase() || '';
-    let category: 'buzos' | 'pantalones' | 'conjuntos' = 'buzos';
-    if (catName.includes('bottom') || catName.includes('pantalon')) {
-      category = 'pantalones';
-    } else if (p.nombre.toLowerCase().includes('conjunto') || p.nombre.toLowerCase().includes('set')) {
-      category = 'conjuntos';
+    // Unificar todas las fotos disponibles (generales + variantes de color)
+    const allUrls: string[] = [...parsed.imagenes_url];
+    if (parsed.colores && parsed.colores.length > 0) {
+      parsed.colores.forEach((c) => {
+        if (Array.isArray(c.imagenes)) {
+          c.imagenes.forEach((imgUrl) => {
+            if (imgUrl && !allUrls.includes(imgUrl)) {
+              allUrls.push(imgUrl);
+            }
+          });
+        }
+      });
+    }
+
+    const finalImagesList = allUrls.length > 0 ? allUrls : [defaultImg];
+
+    // Mapear variedad de colores
+    let productColors: { name: string; hex: string; class: string; images: string[] }[] = [];
+    if (parsed.colores && parsed.colores.length > 0) {
+      productColors = parsed.colores.map((c) => ({
+        name: c.name,
+        hex: c.hex,
+        class: `bg-[${c.hex}]`,
+        images: Array.isArray(c.imagenes) && c.imagenes.length > 0 ? c.imagenes : finalImagesList,
+      }));
+    } else {
+      productColors = [
+        { name: 'Negro Washed', hex: '#161616', class: 'bg-[#161616]', images: finalImagesList },
+        { name: 'Gris Melange', hex: '#9B9B9B', class: 'bg-[#9B9B9B]', images: finalImagesList },
+      ];
+    }
+
+    // Datos de categoría y subcategoría de Supabase
+    const cat = p.subcategoria?.categoria;
+    const sub = p.subcategoria;
+    const rawCatName = cat?.nombre || '';
+    const categorySlug = rawCatName ? rawCatName.toLowerCase().replace(/\s+/g, '-') : 'general';
+
+    // Inferencia de tipo de prenda para guía de talles
+    let measureType: 'buzo' | 'pantalon' | 'conjunto' = 'buzo';
+    const lowerName = p.nombre.toLowerCase();
+    const lowerCat = rawCatName.toLowerCase();
+    if (
+      lowerCat.includes('pantalon') ||
+      lowerCat.includes('bottom') ||
+      lowerName.includes('pantalon') ||
+      lowerName.includes('cargo')
+    ) {
+      measureType = 'pantalon';
+    } else if (
+      lowerCat.includes('conjunto') ||
+      lowerName.includes('conjunto') ||
+      lowerName.includes('set') ||
+      lowerName.includes('tracksuit')
+    ) {
+      measureType = 'conjunto';
     }
 
     return {
       id: p.id,
-      slug: p.subcategoria?.slug ? `${p.subcategoria.slug}-${p.id.slice(0, 6)}` : `prod-${p.id.slice(0, 8)}`,
+      slug: sub?.slug ? `${sub.slug}-${p.id.slice(0, 6)}` : `prod-${p.id.slice(0, 8)}`,
       name: p.nombre,
-      subtitle: `${p.subcategoria?.nombre || 'Colección'} • Unisex`,
-      category,
+      subtitle: `${rawCatName || 'Colección'}${sub?.nombre ? ` • ${sub.nombre}` : ''} • Unisex`,
+      category: categorySlug,
+      categoryId: cat?.id || '',
+      categoryName: rawCatName,
+      subcategoryId: sub?.id || '',
+      subcategoryName: sub?.nombre || '',
+      subcategorySlug: sub?.slug || '',
       price: Number(p.precio),
       compareAtPrice: p.precio_anterior ? Number(p.precio_anterior) : undefined,
-      description: `Pieza oficial Veelvet confeccionada en frisa de alta densidad. Silueta holgada y diseño urbano contemporáneo.`,
+      description:
+        parsed.descripcion?.trim() ||
+        `Pieza oficial Veelvet confeccionada en frisa de alta densidad. Silueta holgada y diseño urbano contemporáneo.`,
       composition: '100% Algodón peinado pesado 380g con proceso antipilling y teñido reactivo.',
       fit: 'Boxy / Oversized unisex. Recomendamos llevar tu talle habitual para un calce relajado.',
       images: {
-        primary: imagesList[0] || defaultImg,
-        secondary: imagesList[1] || imagesList[0] || defaultImg,
-        lookbook: imagesList[2] || imagesList[0] || defaultImg,
+        primary: finalImagesList[0] || defaultImg,
+        secondary: finalImagesList[1] || finalImagesList[0] || defaultImg,
+        lookbook: finalImagesList[2] || finalImagesList[0] || defaultImg,
       },
-      colors: [PRODUCT_COLORS.negro, PRODUCT_COLORS.beige, PRODUCT_COLORS.chocolate, PRODUCT_COLORS.gris],
+      allImages: finalImagesList,
+      colors: productColors,
       sizes: ['S', 'M', 'L', 'XL'],
       inStock: p.stock > 0,
       tag: p.tipo_oferta?.etiqueta_badge as any,
       rating: 4.9,
       reviewsCount: 34,
-      featured: p.destacado,
-      measureType: category === 'pantalones' ? 'pantalon' : category === 'conjuntos' ? 'conjunto' : 'buzo',
+      featured: Boolean(p.destacado),
+      measureType,
     };
   },
 

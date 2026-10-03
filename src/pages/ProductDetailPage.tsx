@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ShoppingBag, Ruler, Truck, ShieldCheck, Heart, Share2, Plus, Minus, ArrowRight, Check, AlertCircle } from 'lucide-react';
-import { Product } from '../data/products';
+import { Product, ProductColor } from '../data/products';
 import { CatalogService } from '../services/catalogService';
 import { useCartStore } from '../store/cartStore';
 import { useUIStore } from '../store/uiStore';
@@ -21,7 +21,7 @@ export function ProductDetailPage() {
 
   const [activeImage, setActiveImage] = useState<string>('');
   const [selectedSize, setSelectedSize] = useState<'S' | 'M' | 'L' | 'XL'>('M');
-  const [selectedColor, setSelectedColor] = useState<{ name: string; hex: string; class: string }>({
+  const [selectedColor, setSelectedColor] = useState<ProductColor>({
     name: 'Negro Washed',
     hex: '#161616',
     class: 'bg-[#161616]',
@@ -31,6 +31,18 @@ export function ProductDetailPage() {
   const [zoomPos, setZoomPos] = useState({ x: 0, y: 0 });
   const [isAdded, setIsAdded] = useState(false);
 
+  // Obtener la galería de fotos activa (si el color tiene fotos propias, mostrar esas, sino fotos generales)
+  const currentGalleryImages = React.useMemo(() => {
+    if (!product) return [];
+    if (selectedColor.images && selectedColor.images.length > 0) {
+      return selectedColor.images;
+    }
+    if (product.allImages && product.allImages.length > 0) {
+      return product.allImages;
+    }
+    return [product.images.primary, product.images.secondary, product.images.lookbook].filter(Boolean) as string[];
+  }, [product, selectedColor]);
+
   // Load product dynamically from Supabase
   React.useEffect(() => {
     if (id) {
@@ -38,9 +50,16 @@ export function ProductDetailPage() {
       CatalogService.getProductBySlug(id).then((found) => {
         if (found) {
           setProduct(found);
-          setActiveImage(found.images.primary);
-          if (found.colors && found.colors.length > 0) {
-            setSelectedColor(found.colors[0]);
+          const firstColor = found.colors && found.colors.length > 0 ? found.colors[0] : null;
+          if (firstColor) {
+            setSelectedColor(firstColor);
+            if (firstColor.images && firstColor.images.length > 0) {
+              setActiveImage(firstColor.images[0]);
+            } else {
+              setActiveImage(found.images.primary);
+            }
+          } else {
+            setActiveImage(found.images.primary);
           }
         } else {
           setProduct(null);
@@ -59,13 +78,29 @@ export function ProductDetailPage() {
   // Sync state if product changes
   React.useEffect(() => {
     if (product) {
-      setActiveImage(product.images.primary);
-      if (product.colors && product.colors.length > 0) {
-        setSelectedColor(product.colors[0]);
+      const firstColor = product.colors && product.colors.length > 0 ? product.colors[0] : null;
+      if (firstColor) {
+        setSelectedColor(firstColor);
+        if (firstColor.images && firstColor.images.length > 0) {
+          setActiveImage(firstColor.images[0]);
+        } else {
+          setActiveImage(product.images.primary);
+        }
+      } else {
+        setActiveImage(product.images.primary);
       }
       setQuantity(1);
     }
   }, [product]);
+
+  const handleSelectColor = (color: ProductColor) => {
+    setSelectedColor(color);
+    if (color.images && color.images.length > 0) {
+      setActiveImage(color.images[0]);
+    } else if (product?.images.primary) {
+      setActiveImage(product.images.primary);
+    }
+  };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
@@ -205,20 +240,18 @@ export function ProductDetailPage() {
         {/* Left: Gallery with Zoom */}
         <div className="lg:col-span-7 flex flex-col-reverse sm:flex-row gap-4">
           {/* Thumbnails list */}
-          <div className="flex sm:flex-col space-x-3 sm:space-x-0 sm:space-y-3 overflow-x-auto sm:overflow-visible">
-            {[product.images.primary, product.images.secondary, product.images.lookbook]
-              .filter(Boolean)
-              .map((img, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setActiveImage(img!)}
-                  className={`w-16 h-20 sm:w-20 sm:h-24 rounded-lg overflow-hidden border-2 transition-all flex-shrink-0 bg-beige-100 ${
-                    activeImage === img ? 'border-navy shadow-sm' : 'border-beige-300 opacity-70 hover:opacity-100'
-                  }`}
-                >
-                  <img src={img} alt={`Vista ${idx + 1}`} className="w-full h-full object-cover" />
-                </button>
-              ))}
+          <div className="flex sm:flex-col space-x-3 sm:space-x-0 sm:space-y-3 overflow-x-auto sm:overflow-y-auto sm:max-h-[520px] pb-2 sm:pb-0 scrollbar-none">
+            {currentGalleryImages.map((img, idx) => (
+              <button
+                key={idx}
+                onClick={() => setActiveImage(img)}
+                className={`w-16 h-20 sm:w-20 sm:h-24 rounded-lg overflow-hidden border-2 transition-all flex-shrink-0 bg-beige-100 cursor-pointer ${
+                  activeImage === img ? 'border-navy shadow-sm ring-2 ring-navy' : 'border-beige-300 opacity-70 hover:opacity-100'
+                }`}
+              >
+                <img src={img} alt={`Vista ${idx + 1}`} className="w-full h-full object-cover" />
+              </button>
+            ))}
           </div>
 
           {/* Main Zoomable Image Canvas */}
@@ -296,18 +329,24 @@ export function ProductDetailPage() {
               <span className="text-xs font-bold uppercase tracking-wider text-navy">
                 Color: <strong className="text-navy-500">{selectedColor.name}</strong>
               </span>
+              {selectedColor.images && selectedColor.images.length > 0 && (
+                <span className="text-[10px] text-navy/50 font-medium">
+                  {selectedColor.images.length} fotos de este color
+                </span>
+              )}
             </div>
             <div className="flex items-center space-x-2.5">
               {product.colors.map((color) => (
                 <button
                   key={color.name}
-                  onClick={() => setSelectedColor(color)}
-                  className={`group relative p-0.5 rounded-full border-2 transition-all ${
+                  onClick={() => handleSelectColor(color)}
+                  className={`group relative p-0.5 rounded-full border-2 transition-all cursor-pointer ${
                     selectedColor.name === color.name
-                      ? 'border-navy scale-110'
+                      ? 'border-navy scale-110 shadow-sm'
                       : 'border-transparent hover:border-beige-400'
                   }`}
                   aria-label={`Seleccionar color ${color.name}`}
+                  title={color.name}
                 >
                   <span
                     className="block w-6 h-6 rounded-full border border-black/20 shadow-xs"
@@ -408,7 +447,7 @@ export function ProductDetailPage() {
           </div>
 
           {/* Description Paragraph */}
-          <div className="pt-2 text-xs sm:text-sm text-navy/80 font-light leading-relaxed">
+          <div className="pt-2 text-xs sm:text-sm text-navy/80 font-light leading-relaxed whitespace-pre-line">
             {product.description}
           </div>
 

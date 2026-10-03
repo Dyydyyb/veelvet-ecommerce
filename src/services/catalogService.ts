@@ -35,8 +35,13 @@ export const CatalogService = {
       if (params?.category && params.category !== 'todos') {
         const catFilter = params.category.toLowerCase();
         adapted = adapted.filter((p) => {
-          if (p.category === catFilter) return true;
-          // Coincidencia con nombre de categoría en Supabase
+          if (p.category?.toLowerCase() === catFilter) return true;
+          if (p.categoryName?.toLowerCase() === catFilter) return true;
+          if (p.categoryName?.toLowerCase().replace(/\s+/g, '-') === catFilter) return true;
+          if (p.categoryId === params.category) return true;
+          if (catFilter === 'top' && (p.category.includes('top') || p.category.includes('buzo') || p.category.includes('abrig'))) return true;
+          if (catFilter === 'bottom' && (p.category.includes('bottom') || p.category.includes('pantalon'))) return true;
+          if (catFilter === 'accesorios' && p.category.includes('accesorio')) return true;
           const catName = p.subtitle?.toLowerCase() || '';
           return catName.includes(catFilter);
         });
@@ -45,8 +50,12 @@ export const CatalogService = {
       // Filtro por subcategoría
       if (params?.subcategory) {
         const q = params.subcategory.toLowerCase().replace(/-/g, ' ');
+        const qSlug = params.subcategory.toLowerCase();
         adapted = adapted.filter(
           (p) =>
+            p.subcategorySlug?.toLowerCase() === qSlug ||
+            p.subcategoryName?.toLowerCase() === q ||
+            p.subcategoryName?.toLowerCase().replace(/\s+/g, '-') === qSlug ||
             p.name.toLowerCase().includes(q) ||
             p.subtitle.toLowerCase().includes(q) ||
             p.slug.toLowerCase().includes(q)
@@ -107,17 +116,15 @@ export const CatalogService = {
 
   /**
    * Obtiene los productos destacados (destacado = true) desde Supabase.
+   * Filtra estrictamente las prendas que el usuario marcó como destacadas.
    */
   async getFeaturedProducts(): Promise<Product[]> {
     try {
       const supaProducts = await SupabaseService.getProductos();
       if (!supaProducts || supaProducts.length === 0) return [];
 
-      let featured = supaProducts.filter((p) => Boolean(p.destacado));
-      // Si ninguno está marcado como destacado, mostrar las prendas más recientes (hasta 4)
-      if (featured.length === 0) {
-        featured = supaProducts.slice(0, 4);
-      }
+      // Estrictamente SOLO prendas marcadas como destacado = true en el sistema
+      const featured = supaProducts.filter((p) => Boolean(p.destacado));
 
       return featured.map((p) => SupabaseService.adaptSupabaseProductToFrontend(p));
     } catch (err) {
@@ -183,11 +190,9 @@ export const CatalogService = {
 
       if (!cats || cats.length === 0) return [];
 
-      // Filtrar categorías destacadas, o las primeras por orden si no hay ninguna con el flag
+      // Filtrar categorías destacadas de forma estricta (destacada = true)
       let featured = cats.filter((c) => Boolean(c.destacada));
-      if (featured.length === 0) {
-        featured = cats.slice(0, 3);
-      }
+      if (featured.length === 0) return [];
 
       const defaultImgs = [
         '/assets/images/buzo-negro.jpg',

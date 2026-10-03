@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Trash2, Image as ImageIcon, Sparkles, AlertCircle } from 'lucide-react';
-import { Producto, Subcategoria, TipoOferta } from '../../lib/supabase';
+import { X, Plus, Trash2, Image as ImageIcon, Sparkles, AlertCircle, Palette } from 'lucide-react';
+import { Producto, Subcategoria, TipoOferta, ColorVariant } from '../../lib/supabase';
 
 interface ProductModalProps {
   isOpen: boolean;
@@ -12,6 +12,8 @@ interface ProductModalProps {
     subcategoria_id?: string | null;
     tipo_oferta_id?: string | null;
     imagenes_url: string[];
+    colores?: ColorVariant[];
+    descripcion?: string | null;
     destacado: boolean;
     stock: number;
   }) => Promise<void>;
@@ -19,6 +21,22 @@ interface ProductModalProps {
   subcategorias: Subcategoria[];
   tiposOferta: TipoOferta[];
 }
+
+interface ColorItemState {
+  name: string;
+  hex: string;
+  imagenes: string[];
+}
+
+const PRESET_COLORS = [
+  { name: 'Negro Washed', hex: '#161616' },
+  { name: 'Gris Melange', hex: '#9B9B9B' },
+  { name: 'Beige Crudo', hex: '#E2DAC8' },
+  { name: 'Marrón Chocolate', hex: '#3B291D' },
+  { name: 'Azul Veelvet', hex: '#1B2A4A' },
+  { name: 'Blanco Óptico', hex: '#F3F4F6' },
+  { name: 'Verde Militar', hex: '#3A4B3C' },
+];
 
 export function ProductModal({
   isOpen,
@@ -29,6 +47,7 @@ export function ProductModal({
   tiposOferta,
 }: ProductModalProps) {
   const [nombre, setNombre] = useState('');
+  const [descripcion, setDescripcion] = useState('');
   const [precio, setPrecio] = useState<number | ''>('');
   const [precioAnterior, setPrecioAnterior] = useState<number | ''>('');
   const [subcategoriaId, setSubcategoriaId] = useState('');
@@ -36,12 +55,14 @@ export function ProductModal({
   const [destacado, setDestacado] = useState(false);
   const [stock, setStock] = useState<number | ''>(10);
   const [imagenes, setImagenes] = useState<string[]>(['']);
+  const [colores, setColores] = useState<ColorItemState[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (product) {
       setNombre(product.nombre || '');
+      setDescripcion(product.descripcion || '');
       setPrecio(product.precio || '');
       setPrecioAnterior(product.precio_anterior || '');
       setSubcategoriaId(product.subcategoria_id || '');
@@ -53,8 +74,21 @@ export function ProductModal({
           ? product.imagenes_url
           : ['']
       );
+
+      if (Array.isArray(product.colores) && product.colores.length > 0) {
+        setColores(
+          product.colores.map((c) => ({
+            name: c.name,
+            hex: c.hex,
+            imagenes: Array.isArray(c.imagenes) && c.imagenes.length > 0 ? c.imagenes : [''],
+          }))
+        );
+      } else {
+        setColores([]);
+      }
     } else {
       setNombre('');
+      setDescripcion('');
       setPrecio('');
       setPrecioAnterior('');
       setSubcategoriaId(subcategorias[0]?.id || '');
@@ -62,25 +96,68 @@ export function ProductModal({
       setDestacado(false);
       setStock(15);
       setImagenes(['']);
+      setColores([]);
     }
     setError(null);
   }, [product, subcategorias, isOpen]);
 
   if (!isOpen) return null;
 
-  const handleAddImageUrl = () => {
+  // Manejo de Fotos Generales
+  const handleAddGeneralImage = () => {
     setImagenes([...imagenes, '']);
   };
 
-  const handleRemoveImageUrl = (index: number) => {
+  const handleRemoveGeneralImage = (index: number) => {
     const updated = imagenes.filter((_, idx) => idx !== index);
     setImagenes(updated.length > 0 ? updated : ['']);
   };
 
-  const handleImageUrlChange = (index: number, val: string) => {
+  const handleGeneralImageChange = (index: number, val: string) => {
     const updated = [...imagenes];
     updated[index] = val;
     setImagenes(updated);
+  };
+
+  // Manejo de Colores
+  const handleAddPresetColor = (preset: { name: string; hex: string }) => {
+    const exists = colores.some((c) => c.name.toLowerCase() === preset.name.toLowerCase());
+    if (exists) return;
+    setColores([...colores, { name: preset.name, hex: preset.hex, imagenes: [''] }]);
+  };
+
+  const handleAddCustomColor = () => {
+    setColores([...colores, { name: 'Nuevo Color', hex: '#222222', imagenes: [''] }]);
+  };
+
+  const handleRemoveColor = (index: number) => {
+    setColores(colores.filter((_, idx) => idx !== index));
+  };
+
+  const handleColorChange = (index: number, field: 'name' | 'hex', val: string) => {
+    const updated = [...colores];
+    updated[index] = { ...updated[index], [field]: val };
+    setColores(updated);
+  };
+
+  // Fotos específicas de un Color
+  const handleAddColorPhoto = (colorIndex: number) => {
+    const updated = [...colores];
+    updated[colorIndex].imagenes.push('');
+    setColores(updated);
+  };
+
+  const handleRemoveColorPhoto = (colorIndex: number, photoIndex: number) => {
+    const updated = [...colores];
+    const filtered = updated[colorIndex].imagenes.filter((_, idx) => idx !== photoIndex);
+    updated[colorIndex].imagenes = filtered.length > 0 ? filtered : [''];
+    setColores(updated);
+  };
+
+  const handleColorPhotoChange = (colorIndex: number, photoIndex: number, val: string) => {
+    const updated = [...colores];
+    updated[colorIndex].imagenes[photoIndex] = val;
+    setColores(updated);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -94,18 +171,37 @@ export function ProductModal({
       return;
     }
 
-    const cleanUrls = imagenes.map((u) => u.trim()).filter(Boolean);
+    const cleanGeneralUrls = imagenes.map((u) => u.trim()).filter(Boolean);
+    const cleanColores: ColorVariant[] = colores
+      .filter((c) => c.name.trim())
+      .map((c) => ({
+        name: c.name.trim(),
+        hex: c.hex.trim() || '#161616',
+        imagenes: c.imagenes.map((u) => u.trim()).filter(Boolean),
+      }));
+
+    // Si no se cargaron fotos generales pero sí fotos en colores, unificar en la lista general
+    const allCollectedUrls = [...cleanGeneralUrls];
+    cleanColores.forEach((c) => {
+      c.imagenes.forEach((u) => {
+        if (!allCollectedUrls.includes(u)) {
+          allCollectedUrls.push(u);
+        }
+      });
+    });
 
     try {
       setIsSubmitting(true);
       setError(null);
       await onSave({
         nombre: nombre.trim(),
+        descripcion: descripcion.trim() || null,
         precio: Number(precio),
         precio_anterior: precioAnterior ? Number(precioAnterior) : null,
         subcategoria_id: subcategoriaId || null,
         tipo_oferta_id: tipoOfertaId || null,
-        imagenes_url: cleanUrls,
+        imagenes_url: allCollectedUrls,
+        colores: cleanColores,
         destacado,
         stock: Number(stock) || 0,
       });
@@ -119,7 +215,7 @@ export function ProductModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy/60 backdrop-blur-xs overflow-y-auto">
-      <div className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-beige-300 overflow-hidden my-8">
+      <div className="relative w-full max-w-3xl bg-white rounded-2xl shadow-2xl border border-beige-300 overflow-hidden my-8">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-beige-200 bg-beige-50">
           <div>
@@ -127,7 +223,7 @@ export function ProductModal({
               {product ? 'Editar Producto' : 'Crear Nuevo Producto'}
             </h3>
             <p className="text-xs text-navy/60 font-light">
-              Los cambios se sincronizan en vivo con Supabase y la tienda pública.
+              Los cambios se sincronizan en tiempo real con Supabase y la tienda online.
             </p>
           </div>
           <button
@@ -139,7 +235,7 @@ export function ProductModal({
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[80vh] overflow-y-auto">
+        <form onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[80vh] overflow-y-auto">
           {error && (
             <div className="flex items-center space-x-2 p-3 bg-red-50 text-red-700 text-xs rounded-lg border border-red-200">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -147,7 +243,7 @@ export function ProductModal({
             </div>
           )}
 
-          {/* Nombre */}
+          {/* 1. Nombre */}
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-navy mb-1">
               Nombre de la prenda *
@@ -158,11 +254,30 @@ export function ProductModal({
               value={nombre}
               onChange={(e) => setNombre(e.target.value)}
               placeholder="Ej: Buzo con Cierre Boxy Heavy"
-              className="w-full text-xs bg-beige-50 border border-beige-300 rounded-lg px-3.5 py-2.5 text-navy focus:outline-none focus:border-navy"
+              className="w-full text-xs bg-beige-50 border border-beige-300 rounded-lg px-3.5 py-2.5 text-navy focus:outline-none focus:border-navy font-medium"
             />
           </div>
 
-          {/* Precios & Stock */}
+          {/* 2. Descripción */}
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-xs font-bold uppercase tracking-wider text-navy">
+                Descripción del producto
+              </label>
+              <span className="text-[10px] text-navy/50 font-light">
+                Aparece en la página del producto al entrar a la prenda
+              </span>
+            </div>
+            <textarea
+              rows={3}
+              value={descripcion}
+              onChange={(e) => setDescripcion(e.target.value)}
+              placeholder="Ej: Pieza confeccionada en frisa pesada de algodón peinado 380g. Silueta oversized unisex con costuras dobles reforzadas y teñido reactivo antipilling."
+              className="w-full text-xs bg-beige-50 border border-beige-300 rounded-lg p-3 text-navy focus:outline-none focus:border-navy resize-y leading-relaxed"
+            />
+          </div>
+
+          {/* 3. Precios & Stock */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-navy mb-1">
@@ -206,18 +321,18 @@ export function ProductModal({
             </div>
           </div>
 
-          {/* Subcategoría & Tipo de Oferta */}
+          {/* 4. Subcategoría & Tipo de Oferta */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-navy mb-1">
-                Subcategoría
+                Categoría / Subcategoría *
               </label>
               <select
                 value={subcategoriaId}
                 onChange={(e) => setSubcategoriaId(e.target.value)}
-                className="w-full text-xs bg-beige-50 border border-beige-300 rounded-lg px-3.5 py-2.5 text-navy focus:outline-none focus:border-navy"
+                className="w-full text-xs bg-beige-50 border border-beige-300 rounded-lg px-3.5 py-2.5 text-navy focus:outline-none focus:border-navy font-medium"
               >
-                <option value="">-- Sin subcategoría --</option>
+                <option value="">-- Sin subcategoría asignada --</option>
                 {subcategorias.map((sub) => (
                   <option key={sub.id} value={sub.id}>
                     {sub.categoria?.nombre ? `[${sub.categoria.nombre}] ` : ''}
@@ -246,7 +361,7 @@ export function ProductModal({
             </div>
           </div>
 
-          {/* Destacado */}
+          {/* 5. Destacado */}
           <div className="flex items-center space-x-3 p-3 bg-beige-50 rounded-xl border border-beige-200">
             <input
               type="checkbox"
@@ -256,25 +371,199 @@ export function ProductModal({
               className="w-4 h-4 rounded text-navy focus:ring-navy border-beige-300 cursor-pointer"
             />
             <label htmlFor="destacado" className="text-xs font-semibold text-navy cursor-pointer select-none">
-              Marcar como <strong>Producto Destacado</strong> (aparece en la sección principal de la Home)
+              Marcar como <strong>Producto Destacado</strong> (solo los productos marcados aquí figuran en la sección de Destacados de la Home)
             </label>
           </div>
 
-          {/* URLs de Imágenes (Cloudflare R2) */}
-          <div className="space-y-2 pt-2 border-t border-beige-200">
+          {/* 6. VARIEDAD DE COLORES & FOTOS POR COLOR */}
+          <div className="pt-4 border-t border-beige-200 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <div className="flex items-center space-x-2">
+                  <Palette className="w-4 h-4 text-navy" />
+                  <label className="block text-xs font-bold uppercase tracking-wider text-navy">
+                    Variedad de Colores y Fotos Específicas
+                  </label>
+                </div>
+                <p className="text-[11px] text-navy/60 font-light mt-0.5">
+                  Agregá cada color disponible para la prenda y sus respectivas fotos de Cloudflare R2.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleAddCustomColor}
+                className="inline-flex items-center space-x-1 text-xs font-bold text-navy hover:text-navy-500 bg-beige-100 hover:bg-beige-200 px-3 py-1.5 rounded-lg border border-beige-300 transition-colors cursor-pointer self-start sm:self-auto"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>+ Color personalizado</span>
+              </button>
+            </div>
+
+            {/* Presets de colores rápidos */}
+            <div className="flex items-center flex-wrap gap-1.5 p-2 bg-beige-50/70 rounded-xl border border-beige-200">
+              <span className="text-[10px] uppercase font-bold text-navy/60 mr-1">
+                Colores frecuentes:
+              </span>
+              {PRESET_COLORS.map((p) => {
+                const isSelected = colores.some((c) => c.name.toLowerCase() === p.name.toLowerCase());
+                return (
+                  <button
+                    key={p.name}
+                    type="button"
+                    onClick={() => handleAddPresetColor(p)}
+                    disabled={isSelected}
+                    className={`inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all ${
+                      isSelected
+                        ? 'opacity-40 bg-white border-beige-300 text-navy cursor-not-allowed'
+                        : 'bg-white hover:bg-beige-200 border-beige-300 text-navy cursor-pointer hover:border-navy'
+                    }`}
+                  >
+                    <span
+                      className="w-2.5 h-2.5 rounded-full border border-black/20"
+                      style={{ backgroundColor: p.hex }}
+                    />
+                    <span>{p.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Lista de Colores Configurados */}
+            {colores.length === 0 ? (
+              <div className="p-4 rounded-xl border border-dashed border-beige-300 text-center text-xs text-navy/50 font-light">
+                No definiste colores específicos todavía. Hacé clic en uno de los colores frecuentes arriba o en "+ Color personalizado".
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {colores.map((colorItem, cIdx) => (
+                  <div
+                    key={cIdx}
+                    className="p-4 rounded-xl border border-beige-300 bg-beige-50/50 space-y-3"
+                  >
+                    {/* Header de este color */}
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center space-x-2 flex-1">
+                        {/* Selector nativo de color */}
+                        <div className="relative">
+                          <input
+                            type="color"
+                            value={colorItem.hex}
+                            onChange={(e) => handleColorChange(cIdx, 'hex', e.target.value)}
+                            className="w-8 h-8 rounded-lg border border-beige-300 cursor-pointer overflow-hidden p-0"
+                            title="Elegir tono"
+                          />
+                        </div>
+
+                        {/* Nombre del color */}
+                        <input
+                          type="text"
+                          value={colorItem.name}
+                          onChange={(e) => handleColorChange(cIdx, 'name', e.target.value)}
+                          placeholder="Nombre del color (ej: Negro Washed)"
+                          className="flex-1 text-xs bg-white border border-beige-300 rounded-lg px-3 py-1.5 text-navy font-semibold focus:outline-none focus:border-navy"
+                        />
+
+                        {/* Código HEX */}
+                        <input
+                          type="text"
+                          value={colorItem.hex}
+                          onChange={(e) => handleColorChange(cIdx, 'hex', e.target.value)}
+                          placeholder="#161616"
+                          className="w-20 text-xs font-mono bg-white border border-beige-300 rounded-lg px-2.5 py-1.5 text-navy focus:outline-none focus:border-navy"
+                        />
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveColor(cIdx)}
+                        className="p-1.5 text-navy/40 hover:text-red-600 rounded-lg transition-colors cursor-pointer"
+                        title="Eliminar este color"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {/* URLs de fotos para este color */}
+                    <div className="pl-4 border-l-2 border-beige-300 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-navy/70">
+                          Fotos de la prenda en color {colorItem.name || 'este tono'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleAddColorPhoto(cIdx)}
+                          className="text-[11px] font-bold text-navy hover:text-navy-500 inline-flex items-center space-x-1 cursor-pointer"
+                        >
+                          <Plus className="w-3 h-3" />
+                          <span>Agregar foto a este color</span>
+                        </button>
+                      </div>
+
+                      <div className="space-y-2">
+                        {colorItem.imagenes.map((url, pIdx) => (
+                          <div key={pIdx} className="flex items-center space-x-2">
+                            {/* Thumbnail preview */}
+                            <div className="w-9 h-9 rounded-lg bg-white border border-beige-300 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                              {url.trim() ? (
+                                <img
+                                  src={url}
+                                  alt="Preview color"
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    (e.target as HTMLElement).style.display = 'none';
+                                  }}
+                                />
+                              ) : (
+                                <ImageIcon className="w-3.5 h-3.5 text-navy/30" />
+                              )}
+                            </div>
+
+                            {/* Input URL */}
+                            <input
+                              type="url"
+                              value={url}
+                              onChange={(e) => handleColorPhotoChange(cIdx, pIdx, e.target.value)}
+                              placeholder={`https://pub-xxxx.r2.dev/${colorItem.name.toLowerCase().replace(/\s+/g, '-')}-${pIdx + 1}.jpg`}
+                              className="flex-1 text-xs bg-white border border-beige-300 rounded-lg px-3 py-1.5 text-navy focus:outline-none focus:border-navy"
+                            />
+
+                            {/* Botón borrar foto de este color */}
+                            {colorItem.imagenes.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveColorPhoto(cIdx, pIdx)}
+                                className="p-1.5 text-navy/40 hover:text-red-600 transition-colors"
+                                title="Eliminar URL"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 7. FOTOS GENERALES / LOOKBOOK (OPCIONAL) */}
+          <div className="pt-4 border-t border-beige-200 space-y-2">
             <div className="flex items-center justify-between">
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-navy">
-                  URLs de Imágenes (Cloudflare R2 / CDN)
+                  Fotos Generales o Lookbook Adicionales (Opcional)
                 </label>
                 <p className="text-[11px] text-navy/60 font-light">
-                  Ingresá los enlaces públicos de tus fotos (la 1ª será la foto principal del producto).
+                  Podés agregar más URLs de fotos si querés imágenes de catálogo adicionales.
                 </p>
               </div>
               <button
                 type="button"
-                onClick={handleAddImageUrl}
-                className="inline-flex items-center space-x-1 text-xs font-bold text-navy hover:text-navy-500 bg-beige-100 hover:bg-beige-200 px-2.5 py-1.5 rounded-lg border border-beige-300 transition-colors"
+                onClick={handleAddGeneralImage}
+                className="inline-flex items-center space-x-1 text-xs font-bold text-navy hover:text-navy-500 bg-beige-100 hover:bg-beige-200 px-2.5 py-1.5 rounded-lg border border-beige-300 transition-colors cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Agregar foto</span>
@@ -288,7 +577,7 @@ export function ProductModal({
                     {url.trim() ? (
                       <img
                         src={url}
-                        alt="Preview"
+                        alt="Preview general"
                         className="w-full h-full object-cover"
                         onError={(e) => {
                           (e.target as HTMLElement).style.display = 'none';
@@ -302,16 +591,16 @@ export function ProductModal({
                   <input
                     type="url"
                     value={url}
-                    onChange={(e) => handleImageUrlChange(idx, e.target.value)}
-                    placeholder={`https://pub-xxxx.r2.dev/foto-${idx + 1}.jpg`}
+                    onChange={(e) => handleGeneralImageChange(idx, e.target.value)}
+                    placeholder={`https://pub-xxxx.r2.dev/lookbook-${idx + 1}.jpg`}
                     className="flex-1 text-xs bg-beige-50 border border-beige-300 rounded-lg px-3 py-2 text-navy focus:outline-none focus:border-navy"
                   />
 
                   {imagenes.length > 1 && (
                     <button
                       type="button"
-                      onClick={() => handleRemoveImageUrl(idx)}
-                      className="p-2 text-navy/40 hover:text-red-600 transition-colors"
+                      onClick={() => handleRemoveGeneralImage(idx)}
+                      className="p-2 text-navy/40 hover:text-red-600 transition-colors cursor-pointer"
                       title="Eliminar URL"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -327,7 +616,7 @@ export function ProductModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-semibold text-navy/70 hover:text-navy uppercase tracking-wider"
+              className="px-4 py-2 text-xs font-semibold text-navy/70 hover:text-navy uppercase tracking-wider cursor-pointer"
             >
               Cancelar
             </button>

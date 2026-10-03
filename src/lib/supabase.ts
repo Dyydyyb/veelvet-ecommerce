@@ -31,6 +31,12 @@ export interface TipoOferta {
   color_badge: string | null;
 }
 
+export interface ColorVariant {
+  name: string;
+  hex: string;
+  imagenes: string[];
+}
+
 export interface Producto {
   id: string;
   subcategoria_id: string | null;
@@ -38,11 +44,14 @@ export interface Producto {
   nombre: string;
   precio: number;
   precio_anterior: number | null;
-  imagenes_url: string[]; // Lista JSON de Cloudflare R2 URLs
+  imagenes_url: string[] | any; // Lista JSON de Cloudflare R2 URLs o payload con { urls, colores, descripcion }
   destacado: boolean;
   stock: number;
   created_at: string;
+  descripcion?: string | null;
+  colores?: ColorVariant[];
   // Relaciones
   subcategoria?: Subcategoria;
   tipo_oferta?: TipoOferta;
 }
+
