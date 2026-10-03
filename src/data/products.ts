@@ -7,6 +7,7 @@
 
 export interface ProductColor {
   name: string;
+  titulo?: string;
   hex: string;
   class: string;
   images?: string[];

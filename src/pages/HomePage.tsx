@@ -194,15 +194,15 @@ export function HomePage() {
               ))}
             </div>
           ) : featuredCategories.length === 0 ? (
-            <div className="text-center py-12 bg-white rounded-2xl border border-beige-300 p-8">
-              <p className="text-sm text-navy/60 font-light mb-4">
-                No hay categorías destacadas configuradas en Supabase todavía.
+            <div className="text-center py-12 bg-white rounded-2xl border border-beige-300 p-8 max-w-md mx-auto">
+              <p className="text-sm text-navy/70 font-light mb-4">
+                Explorá todas las prendas en nuestra colección completa.
               </p>
               <Link
-                to="/admin"
-                className="inline-flex items-center space-x-2 bg-navy text-white text-xs font-montserrat font-bold uppercase tracking-wider px-5 py-2.5 rounded-lg shadow-sm"
+                to="/tienda"
+                className="inline-flex items-center space-x-2 bg-navy hover:bg-navy-500 text-white text-xs font-montserrat font-bold uppercase tracking-wider px-5 py-2.5 rounded-lg shadow-sm transition-colors"
               >
-                <span>Administrar Categorías en /admin</span>
+                <span>Ver Colección Completa</span>
               </Link>
             </div>
           ) : (
@@ -284,19 +284,19 @@ export function HomePage() {
               ))}
             </div>
           ) : featuredProducts.length === 0 ? (
-            <div className="text-center py-16 bg-beige-50 rounded-3xl border border-beige-300 p-8 max-w-2xl mx-auto">
+            <div className="text-center py-16 bg-beige-50 rounded-3xl border border-beige-300 p-8 max-w-xl mx-auto">
               <Sparkles className="w-8 h-8 text-navy/40 mx-auto mb-3" />
               <h3 className="font-montserrat font-bold text-lg text-navy uppercase mb-1">
-                Catálogo en preparación
+                Próximos Lanzamientos
               </h3>
               <p className="text-xs text-navy/70 font-light mb-6">
-                Aún no hay prendas destacadas en Supabase. Podés agregar y marcar prendas como destacadas desde el panel de administración.
+                Estamos preparando nuevos drops y reposiciones exclusivas. Conocé todas las prendas disponibles en nuestra tienda.
               </p>
               <Link
-                to="/admin"
+                to="/tienda"
                 className="inline-flex items-center space-x-2 bg-navy hover:bg-navy-500 text-white text-xs font-montserrat font-bold uppercase tracking-wider px-6 py-3 rounded-xl transition-all shadow-md"
               >
-                <span>Cargar o Sembrar Productos en /admin</span>
+                <span>Explorar Tienda Online</span>
               </Link>
             </div>
           ) : (
@@ -435,7 +435,7 @@ export function HomePage() {
             <div className="lg:col-span-5 relative">
               <div className="relative aspect-square rounded-2xl overflow-hidden shadow-xl border-4 border-white bg-beige-300">
                 <img
-                  src="/assets/images/pantalon-beige.jpg"
+                  src="/assets/images/showroom-quilmes.png"
                   alt="Showroom Veelvet Quilmes"
                   className="w-full h-full object-cover filter contrast-[1.03]"
                 />
@@ -478,10 +478,10 @@ export function HomePage() {
           {/* Lookbook Feed Grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
             {[
-              { img: '/assets/images/hero-look.jpg', tag: '#SimplementeVeelvet' },
-              { img: '/assets/images/buzo-negro.jpg', tag: '#VeelvetHeavyBuzo' },
-              { img: '/assets/images/pantalon-beige.jpg', tag: '#VeelvetWidePant' },
-              { img: '/assets/images/hero-look.jpg', tag: '#ShowroomQuilmes' },
+              { img: '/assets/images/instagram-1.png', tag: '#SimplementeVeelvet' },
+              { img: '/assets/images/instagram-2.png', tag: '#VeelvetEarth' },
+              { img: '/assets/images/instagram-3.png', tag: '#VeelvetHeavyBuzo' },
+              { img: '/assets/images/instagram-4.png', tag: '#ShowroomQuilmes' },
             ].map((post, idx) => (
               <a
                 key={idx}

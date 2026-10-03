@@ -18,6 +18,56 @@ export interface ProductQueryParams {
   search?: string;
 }
 
+export function computeVariantTitle(
+  prodName: string,
+  color: { name: string; titulo?: string },
+  allColors?: { name: string }[]
+): string {
+  if (color.titulo && color.titulo.trim()) {
+    return color.titulo.trim();
+  }
+
+  // Si el nombre del color ya es un nombre completo de prenda (ej: "Conjunto Negro Veelvet")
+  const lowerColor = color.name.toLowerCase();
+  if (
+    lowerColor.startsWith('conjunto') ||
+    lowerColor.startsWith('buzo') ||
+    lowerColor.startsWith('pantalon') ||
+    lowerColor.startsWith('pantalón') ||
+    lowerColor.startsWith('remera') ||
+    lowerColor.startsWith('campera')
+  ) {
+    return color.name.trim();
+  }
+
+  // Limpiar sufijos comerciales repetitivos del nombre base como "- VeelvetShop.", "- Veelvet", etc.
+  let baseClean = prodName
+    .replace(/\s*-\s*veelvet\s*shop\.?/gi, '')
+    .replace(/\s*-\s*veelvet\.?/gi, '')
+    .trim();
+
+  // Limpiar del nombre base cualquier nombre de color existente en la lista
+  if (allColors && allColors.length > 0) {
+    for (const c of allColors) {
+      if (c.name && c.name.trim().length >= 2) {
+        const escaped = c.name.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const regex = new RegExp(`\\b${escaped}\\b`, 'gi');
+        baseClean = baseClean.replace(regex, ' ').trim();
+      }
+    }
+  }
+
+  // Limpiar guiones o dobles espacios sobrantes
+  baseClean = baseClean.replace(/\s*-\s*$/, '').replace(/\s+/g, ' ').trim();
+
+  if (!baseClean) {
+    baseClean = 'Conjunto Veelvet';
+  }
+
+  // Unir la prenda limpia con el color asignado
+  return `${baseClean} ${color.name}`.replace(/\s+/g, ' ').trim();
+}
+
 function expandProductVariants(products: Product[]): Product[] {
   const result: Product[] = [];
 
@@ -30,13 +80,15 @@ function expandProductVariants(products: Product[]): Product[] {
         const secondaryImg = colorImages[1] || colorImages[0] || prod.images.secondary || primaryImg;
         const lookbookImg = colorImages[2] || colorImages[0] || prod.images.lookbook || primaryImg;
 
+        const variantName = computeVariantTitle(prod.name, color, prod.colors);
+
         result.push({
           ...prod,
           id: `${prod.id}---${encodeURIComponent(color.name)}`,
           baseId: prod.id,
           baseSlug: prod.slug,
           slug: `${prod.slug}?color=${encodeURIComponent(color.name)}`,
-          name: `${prod.name} - ${color.name}`,
+          name: variantName,
           selectedColorVariant: color.name,
           images: {
             primary: primaryImg,

@@ -33,6 +33,7 @@ export interface TipoOferta {
 
 export interface ColorVariant {
   name: string;
+  titulo?: string;
   hex: string;
   imagenes: string[];
 }

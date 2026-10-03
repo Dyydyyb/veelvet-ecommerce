@@ -448,6 +448,7 @@ export const SupabaseService = {
     if (parsed.colores && parsed.colores.length > 0) {
       productColors = parsed.colores.map((c) => ({
         name: c.name,
+        titulo: c.titulo,
         hex: c.hex,
         class: `bg-[${c.hex}]`,
         images: Array.isArray(c.imagenes) && c.imagenes.length > 0 ? c.imagenes : finalImagesList,

@@ -27,6 +27,7 @@ interface ProductModalProps {
 
 interface ColorItemState {
   name: string;
+  titulo?: string;
   hex: string;
   imagenes: string[];
 }
@@ -95,6 +96,7 @@ export function ProductModal({
         setColores(
           product.colores.map((c) => ({
             name: c.name,
+            titulo: c.titulo || '',
             hex: c.hex,
             imagenes: Array.isArray(c.imagenes) && c.imagenes.length > 0 ? c.imagenes : [''],
           }))
@@ -165,18 +167,18 @@ export function ProductModal({
   const handleAddPresetColor = (preset: { name: string; hex: string }) => {
     const exists = colores.some((c) => c.name.toLowerCase() === preset.name.toLowerCase());
     if (exists) return;
-    setColores([...colores, { name: preset.name, hex: preset.hex, imagenes: [''] }]);
+    setColores([...colores, { name: preset.name, titulo: '', hex: preset.hex, imagenes: [''] }]);
   };
 
   const handleAddCustomColor = () => {
-    setColores([...colores, { name: 'Nuevo Color', hex: '#222222', imagenes: [''] }]);
+    setColores([...colores, { name: 'Nuevo Color', titulo: '', hex: '#222222', imagenes: [''] }]);
   };
 
   const handleRemoveColor = (index: number) => {
     setColores(colores.filter((_, idx) => idx !== index));
   };
 
-  const handleColorChange = (index: number, field: 'name' | 'hex', val: string) => {
+  const handleColorChange = (index: number, field: 'name' | 'titulo' | 'hex', val: string) => {
     const updated = [...colores];
     updated[index] = { ...updated[index], [field]: val };
     setColores(updated);
@@ -222,6 +224,7 @@ export function ProductModal({
       .filter((c) => c.name.trim())
       .map((c) => ({
         name: c.name.trim(),
+        titulo: c.titulo?.trim() || undefined,
         hex: c.hex.trim() || '#161616',
         imagenes: c.imagenes.map((u) => u.trim()).filter(Boolean),
       }));
@@ -638,8 +641,18 @@ export function ProductModal({
                           type="text"
                           value={colorItem.name}
                           onChange={(e) => handleColorChange(cIdx, 'name', e.target.value)}
-                          placeholder="Nombre del color (ej: Negro Washed)"
-                          className="flex-1 text-xs bg-white border border-beige-300 rounded-lg px-3 py-1.5 text-navy font-semibold focus:outline-none focus:border-navy"
+                          placeholder="Color (ej: Negro)"
+                          className="w-32 sm:w-36 text-xs bg-white border border-beige-300 rounded-lg px-2.5 py-1.5 text-navy font-semibold focus:outline-none focus:border-navy"
+                        />
+
+                        {/* Título en la tienda para este color */}
+                        <input
+                          type="text"
+                          value={colorItem.titulo || ''}
+                          onChange={(e) => handleColorChange(cIdx, 'titulo', e.target.value)}
+                          placeholder={`Título en la web (ej: Conjunto Veelvet ${colorItem.name || ''})`}
+                          title="Título exclusivo para este color en el catálogo y ficha"
+                          className="flex-1 text-xs bg-white border border-beige-300 rounded-lg px-2.5 py-1.5 text-navy focus:outline-none focus:border-navy"
                         />
 
                         {/* Código HEX */}
@@ -648,7 +661,7 @@ export function ProductModal({
                           value={colorItem.hex}
                           onChange={(e) => handleColorChange(cIdx, 'hex', e.target.value)}
                           placeholder="#161616"
-                          className="w-20 text-xs font-mono bg-white border border-beige-300 rounded-lg px-2.5 py-1.5 text-navy focus:outline-none focus:border-navy"
+                          className="w-16 sm:w-20 text-xs font-mono bg-white border border-beige-300 rounded-lg px-2 py-1.5 text-navy focus:outline-none focus:border-navy"
                         />
                       </div>
 

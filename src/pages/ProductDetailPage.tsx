@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion';
 import { ShoppingBag, Ruler, Truck, ShieldCheck, Heart, Share2, Plus, Minus, ArrowRight, Check, AlertCircle } from 'lucide-react';
 import { Product, ProductColor } from '../data/products';
-import { CatalogService } from '../services/catalogService';
+import { CatalogService, computeVariantTitle } from '../services/catalogService';
 import { useCartStore } from '../store/cartStore';
 import { useUIStore } from '../store/uiStore';
 import { Accordion } from '../components/common/Accordion';
@@ -43,6 +43,15 @@ export function ProductDetailPage() {
       return product.allImages;
     }
     return [product.images.primary, product.images.secondary, product.images.lookbook].filter(Boolean) as string[];
+  }, [product, selectedColor]);
+
+  // Título dinámico que refleja el color seleccionado
+  const currentProductTitle = React.useMemo(() => {
+    if (!product) return '';
+    if (product.colors && product.colors.length > 1 && selectedColor) {
+      return computeVariantTitle(product.name, selectedColor, product.colors);
+    }
+    return product.name;
   }, [product, selectedColor]);
 
   // Load product dynamically from Supabase
@@ -125,7 +134,7 @@ export function ProductDetailPage() {
     if (!product) return;
     addItem(product, selectedSize, selectedColor.name, selectedColor.hex, quantity);
     setIsAdded(true);
-    showToast(`¡${product.name} agregado al carrito!`);
+    showToast(`¡${currentProductTitle} agregado al carrito!`);
     setTimeout(() => setIsAdded(false), 2000);
   };
 
@@ -243,7 +252,7 @@ export function ProductDetailPage() {
         <span>/</span>
         <Link to="/tienda" className="hover:text-navy">Colección</Link>
         <span>/</span>
-        <span className="text-navy font-bold">{product.name}</span>
+        <span className="text-navy font-bold">{currentProductTitle}</span>
       </nav>
 
       {/* Main Grid */}
@@ -275,7 +284,7 @@ export function ProductDetailPage() {
           >
             <img
               src={activeImage}
-              alt={product.name}
+              alt={currentProductTitle}
               className={`w-full h-full object-cover transition-transform duration-200 ${
                 isZoomed ? 'scale-150' : 'scale-100'
               }`}
@@ -308,7 +317,7 @@ export function ProductDetailPage() {
               Veelvet Official • Unisex
             </span>
             <h1 className="font-montserrat font-black text-2xl sm:text-3xl lg:text-4xl text-navy uppercase tracking-tight mt-1">
-              {product.name}
+              {currentProductTitle}
             </h1>
             <p className="text-xs sm:text-sm text-navy/70 font-light mt-1">
               {product.subtitle}

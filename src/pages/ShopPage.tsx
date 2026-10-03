@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Filter, X, ArrowUpDown, SlidersHorizontal } from 'lucide-react';
+import { Filter, X, ArrowUpDown, SlidersHorizontal, Sparkles } from 'lucide-react';
 import { ProductCard } from '../components/product/ProductCard';
 import { SectionTitle } from '../components/common/SectionTitle';
 import { Product, CategoryItem, PRODUCT_COLORS } from '../data/products';
@@ -365,19 +365,21 @@ export function ShopPage() {
           ) : allProducts.length === 0 ? (
             <div className="bg-white rounded-3xl p-12 text-center border border-beige-300 my-8 max-w-lg mx-auto shadow-xs">
               <div className="w-12 h-12 rounded-2xl bg-beige-200 flex items-center justify-center text-navy mx-auto mb-4">
-                <SlidersHorizontal className="w-6 h-6" />
+                <Sparkles className="w-6 h-6" />
               </div>
               <p className="font-montserrat font-bold text-lg text-navy uppercase">
-                Catálogo no disponible aún
+                Próximamente nuevas prendas
               </p>
               <p className="text-xs text-navy/70 mt-2 font-light leading-relaxed">
-                No hay prendas cargadas en Supabase en este momento. Podés crear nuevas prendas o poblar la base de datos con un clic en el panel interno.
+                Estamos actualizando el catálogo con los próximos lanzamientos. Podés consultarnos directamente por stock o nuevos modelos.
               </p>
               <a
-                href="/admin"
+                href="https://wa.me/5491136291392?text=Hola%20Veelvet!%20Quisiera%20consultar%20por%20la%20disponibilidad%20de%20prendas."
+                target="_blank"
+                rel="noopener noreferrer"
                 className="mt-6 inline-block text-xs font-montserrat font-bold uppercase tracking-wider bg-navy text-white px-6 py-3 rounded-xl hover:bg-navy-500 transition-colors shadow-md"
               >
-                Abrir Panel /admin
+                Consultar por WhatsApp
               </a>
             </div>
           ) : (
