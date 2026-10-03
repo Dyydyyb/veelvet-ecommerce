@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Trash2, Image as ImageIcon, Sparkles, AlertCircle, Palette } from 'lucide-react';
+import { X, Plus, Trash2, Image as ImageIcon, Sparkles, AlertCircle, Palette, Check, Tag, CreditCard, Percent } from 'lucide-react';
 import { Producto, Subcategoria, TipoOferta, ColorVariant } from '../../lib/supabase';
 
 interface ProductModalProps {
@@ -14,6 +14,9 @@ interface ProductModalProps {
     imagenes_url: string[];
     colores?: ColorVariant[];
     descripcion?: string | null;
+    talles?: string[];
+    permite_cuotas?: boolean;
+    permite_transferencia_descuento?: boolean;
     destacado: boolean;
     stock: number;
   }) => Promise<void>;
@@ -38,6 +41,8 @@ const PRESET_COLORS = [
   { name: 'Verde Militar', hex: '#3A4B3C' },
 ];
 
+const STANDARD_SIZES = ['S', 'M', 'L', 'XL', 'XXL', 'Único'];
+
 export function ProductModal({
   isOpen,
   onClose,
@@ -56,6 +61,10 @@ export function ProductModal({
   const [stock, setStock] = useState<number | ''>(10);
   const [imagenes, setImagenes] = useState<string[]>(['']);
   const [colores, setColores] = useState<ColorItemState[]>([]);
+  const [talles, setTalles] = useState<string[]>(['S', 'M', 'L', 'XL']);
+  const [customTalle, setCustomTalle] = useState('');
+  const [permiteCuotas, setPermiteCuotas] = useState(true);
+  const [permiteTransferencia, setPermiteTransferencia] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -69,6 +78,13 @@ export function ProductModal({
       setTipoOfertaId(product.tipo_oferta_id || '');
       setDestacado(Boolean(product.destacado));
       setStock(product.stock ?? 0);
+      setPermiteCuotas(product.permite_cuotas !== false);
+      setPermiteTransferencia(product.permite_transferencia_descuento !== false);
+      setTalles(
+        Array.isArray(product.talles) && product.talles.length > 0
+          ? product.talles
+          : ['S', 'M', 'L', 'XL']
+      );
       setImagenes(
         Array.isArray(product.imagenes_url) && product.imagenes_url.length > 0
           ? product.imagenes_url
@@ -95,6 +111,9 @@ export function ProductModal({
       setTipoOfertaId('');
       setDestacado(false);
       setStock(15);
+      setTalles(['S', 'M', 'L', 'XL']);
+      setPermiteCuotas(true);
+      setPermiteTransferencia(true);
       setImagenes(['']);
       setColores([]);
     }
@@ -102,6 +121,29 @@ export function ProductModal({
   }, [product, subcategorias, isOpen]);
 
   if (!isOpen) return null;
+
+  // Manejo de Talles
+  const toggleTalle = (sizeName: string) => {
+    if (talles.includes(sizeName)) {
+      if (talles.length === 1) {
+        alert('Debe quedar al menos 1 talle disponible para la prenda.');
+        return;
+      }
+      setTalles(talles.filter((s) => s !== sizeName));
+    } else {
+      setTalles([...talles, sizeName]);
+    }
+  };
+
+  const handleAddCustomTalle = (e: React.FormEvent) => {
+    e.preventDefault();
+    const clean = customTalle.trim().toUpperCase();
+    if (!clean) return;
+    if (!talles.includes(clean)) {
+      setTalles([...talles, clean]);
+    }
+    setCustomTalle('');
+  };
 
   // Manejo de Fotos Generales
   const handleAddGeneralImage = () => {
@@ -170,6 +212,10 @@ export function ProductModal({
       setError('Por favor ingresá un precio válido en ARS.');
       return;
     }
+    if (talles.length === 0) {
+      setError('Seleccioná al menos un talle disponible para el producto.');
+      return;
+    }
 
     const cleanGeneralUrls = imagenes.map((u) => u.trim()).filter(Boolean);
     const cleanColores: ColorVariant[] = colores
@@ -202,6 +248,9 @@ export function ProductModal({
         tipo_oferta_id: tipoOfertaId || null,
         imagenes_url: allCollectedUrls,
         colores: cleanColores,
+        talles,
+        permite_cuotas: permiteCuotas,
+        permite_transferencia_descuento: permiteTransferencia,
         destacado,
         stock: Number(stock) || 0,
       });
@@ -228,7 +277,7 @@ export function ProductModal({
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-navy/50 hover:text-navy rounded-lg hover:bg-beige-200 transition-colors"
+            className="p-1.5 text-navy/50 hover:text-navy rounded-lg hover:bg-beige-200 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -290,7 +339,7 @@ export function ProductModal({
                 value={precio}
                 onChange={(e) => setPrecio(e.target.value ? Number(e.target.value) : '')}
                 placeholder="Ej: 68000"
-                className="w-full text-xs bg-beige-50 border border-beige-300 rounded-lg px-3.5 py-2.5 text-navy focus:outline-none focus:border-navy"
+                className="w-full text-xs bg-beige-50 border border-beige-300 rounded-lg px-3.5 py-2.5 text-navy focus:outline-none focus:border-navy font-semibold"
               />
             </div>
             <div>
@@ -321,7 +370,136 @@ export function ProductModal({
             </div>
           </div>
 
-          {/* 4. Subcategoría & Tipo de Oferta */}
+          {/* 4. Opciones de Promociones de Pago (Casillas activables) */}
+          <div className="p-3.5 bg-beige-50/80 rounded-xl border border-beige-200 space-y-3">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-navy block">
+              Promociones y Facilidades de Pago en Web
+            </span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label className="flex items-start space-x-2.5 cursor-pointer select-none p-2.5 rounded-lg bg-white border border-beige-300/80 hover:border-navy transition-colors">
+                <input
+                  type="checkbox"
+                  checked={permiteCuotas}
+                  onChange={(e) => setPermiteCuotas(e.target.checked)}
+                  className="w-4 h-4 mt-0.5 rounded text-navy focus:ring-navy border-beige-300 cursor-pointer"
+                />
+                <div>
+                  <div className="flex items-center space-x-1.5 text-xs font-bold text-navy">
+                    <CreditCard className="w-3.5 h-3.5" />
+                    <span>3 Cuotas fijas sin interés</span>
+                  </div>
+                  <span className="text-[10px] text-navy/60 font-light block mt-0.5">
+                    {permiteCuotas ? 'Visible en la ficha del producto' : 'Oculto (no se muestra en la web)'}
+                  </span>
+                </div>
+              </label>
+
+              <label className="flex items-start space-x-2.5 cursor-pointer select-none p-2.5 rounded-lg bg-white border border-beige-300/80 hover:border-navy transition-colors">
+                <input
+                  type="checkbox"
+                  checked={permiteTransferencia}
+                  onChange={(e) => setPermiteTransferencia(e.target.checked)}
+                  className="w-4 h-4 mt-0.5 rounded text-navy focus:ring-navy border-beige-300 cursor-pointer"
+                />
+                <div>
+                  <div className="flex items-center space-x-1.5 text-xs font-bold text-navy">
+                    <Percent className="w-3.5 h-3.5" />
+                    <span>10% OFF en transferencia</span>
+                  </div>
+                  <span className="text-[10px] text-navy/60 font-light block mt-0.5">
+                    {permiteTransferencia ? 'Visible en la ficha del producto' : 'Oculto (no se muestra en la web)'}
+                  </span>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          {/* 5. Talles Disponibles */}
+          <div className="p-3.5 bg-beige-50/80 rounded-xl border border-beige-200 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-navy">
+                  Talles Disponibles para esta Prenda *
+                </label>
+                <p className="text-[11px] text-navy/60 font-light">
+                  Hacé clic para marcar o desmarcar qué talles figuran en la tienda.
+                </p>
+              </div>
+              <div className="flex space-x-1 text-[11px]">
+                <button
+                  type="button"
+                  onClick={() => setTalles(['S', 'M', 'L', 'XL'])}
+                  className="px-2 py-0.5 bg-white border border-beige-300 rounded text-navy/70 hover:text-navy hover:border-navy transition-colors cursor-pointer"
+                >
+                  S-XL estándar
+                </button>
+              </div>
+            </div>
+
+            {/* Chips de talles */}
+            <div className="flex items-center flex-wrap gap-2 pt-1">
+              {STANDARD_SIZES.map((size) => {
+                const isSelected = talles.includes(size);
+                return (
+                  <button
+                    key={size}
+                    type="button"
+                    onClick={() => toggleTalle(size)}
+                    className={`inline-flex items-center space-x-1 px-3 py-1.5 rounded-lg text-xs font-montserrat font-bold transition-all cursor-pointer ${
+                      isSelected
+                        ? 'bg-navy text-white shadow-xs'
+                        : 'bg-white text-navy/70 border border-beige-300 hover:border-navy hover:text-navy'
+                    }`}
+                  >
+                    {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                    <span>{size}</span>
+                  </button>
+                );
+              })}
+
+              {/* Talles personalizados agregados */}
+              {talles
+                .filter((s) => !STANDARD_SIZES.includes(s))
+                .map((custom) => (
+                  <button
+                    key={custom}
+                    type="button"
+                    onClick={() => toggleTalle(custom)}
+                    className="inline-flex items-center space-x-1 px-3 py-1.5 rounded-lg text-xs font-montserrat font-bold bg-navy text-white shadow-xs cursor-pointer"
+                  >
+                    <Check className="w-3 h-3 stroke-[3]" />
+                    <span>{custom}</span>
+                    <X className="w-3 h-3 ml-1 opacity-70 hover:opacity-100" />
+                  </button>
+                ))}
+            </div>
+
+            {/* Agregar talle adicional */}
+            <div className="flex items-center space-x-2 pt-2">
+              <input
+                type="text"
+                value={customTalle}
+                onChange={(e) => setCustomTalle(e.target.value)}
+                placeholder="Otro talle (ej: 28, 30, XS)..."
+                className="text-xs bg-white border border-beige-300 rounded-lg px-3 py-1.5 text-navy focus:outline-none focus:border-navy max-w-[180px]"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddCustomTalle(e);
+                  }
+                }}
+              />
+              <button
+                type="button"
+                onClick={handleAddCustomTalle}
+                className="px-3 py-1.5 bg-beige-200 hover:bg-beige-300 text-navy font-bold text-xs rounded-lg transition-colors cursor-pointer"
+              >
+                + Agregar talle
+              </button>
+            </div>
+          </div>
+
+          {/* 6. Subcategoría & Tipo de Oferta */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-navy mb-1">
@@ -361,7 +539,7 @@ export function ProductModal({
             </div>
           </div>
 
-          {/* 5. Destacado */}
+          {/* 7. Destacado */}
           <div className="flex items-center space-x-3 p-3 bg-beige-50 rounded-xl border border-beige-200">
             <input
               type="checkbox"
@@ -375,7 +553,7 @@ export function ProductModal({
             </label>
           </div>
 
-          {/* 6. VARIEDAD DE COLORES & FOTOS POR COLOR */}
+          {/* 8. VARIEDAD DE COLORES & FOTOS POR COLOR */}
           <div className="pt-4 border-t border-beige-200 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
@@ -386,7 +564,7 @@ export function ProductModal({
                   </label>
                 </div>
                 <p className="text-[11px] text-navy/60 font-light mt-0.5">
-                  Agregá cada color disponible para la prenda y sus respectivas fotos de Cloudflare R2.
+                  Cada color se desglosará automáticamente como un producto individual en la tienda, mostrando sus fotos específicas.
                 </p>
               </div>
 
@@ -533,7 +711,7 @@ export function ProductModal({
                               <button
                                 type="button"
                                 onClick={() => handleRemoveColorPhoto(cIdx, pIdx)}
-                                className="p-1.5 text-navy/40 hover:text-red-600 transition-colors"
+                                className="p-1.5 text-navy/40 hover:text-red-600 transition-colors cursor-pointer"
                                 title="Eliminar URL"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -549,7 +727,7 @@ export function ProductModal({
             )}
           </div>
 
-          {/* 7. FOTOS GENERALES / LOOKBOOK (OPCIONAL) */}
+          {/* 9. FOTOS GENERALES / LOOKBOOK (OPCIONAL) */}
           <div className="pt-4 border-t border-beige-200 space-y-2">
             <div className="flex items-center justify-between">
               <div>

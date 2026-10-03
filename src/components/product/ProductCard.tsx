@@ -12,15 +12,32 @@ interface ProductCardProps {
 
 export function ProductCard({ product }: ProductCardProps) {
   const [isHovered, setIsHovered] = useState(false);
-  const [selectedSize, setSelectedSize] = useState<'S' | 'M' | 'L' | 'XL'>('M');
-  const [selectedColor, setSelectedColor] = useState(product.colors[0]);
+  const [selectedSize, setSelectedSize] = useState<string>(product.sizes?.[0] || 'M');
+  const [selectedColor, setSelectedColor] = useState(
+    product.selectedColorVariant
+      ? product.colors.find((c) => c.name === product.selectedColorVariant) || product.colors[0]
+      : product.colors[0]
+  );
   const [isAdded, setIsAdded] = useState(false);
   const { addItem } = useCartStore();
+
+  // Sync if product changes
+  React.useEffect(() => {
+    if (product.selectedColorVariant) {
+      const match = product.colors.find((c) => c.name === product.selectedColorVariant);
+      if (match) setSelectedColor(match);
+    } else if (product.colors?.[0]) {
+      setSelectedColor(product.colors[0]);
+    }
+    if (product.sizes?.[0]) {
+      setSelectedSize(product.sizes[0]);
+    }
+  }, [product]);
 
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    addItem(product, selectedSize, selectedColor.name, selectedColor.hex, 1);
+    addItem(product, selectedSize as any, selectedColor.name, selectedColor.hex, 1);
     setIsAdded(true);
     setTimeout(() => setIsAdded(false), 1800);
   };
@@ -88,7 +105,7 @@ export function ProductCard({ product }: ProductCardProps) {
             <span className="text-[10px] uppercase tracking-wider font-bold text-navy/70">
               Talle rápido:
             </span>
-            <div className="flex space-x-1">
+            <div className="flex flex-wrap gap-1">
               {product.sizes.map((size) => (
                 <button
                   key={size}
@@ -98,7 +115,7 @@ export function ProductCard({ product }: ProductCardProps) {
                     e.stopPropagation();
                     setSelectedSize(size);
                   }}
-                  className={`w-6 h-6 text-[10px] font-bold rounded flex items-center justify-center transition-colors ${
+                  className={`min-w-[24px] h-6 px-1.5 text-[10px] font-bold rounded flex items-center justify-center transition-colors cursor-pointer ${
                     selectedSize === size
                       ? 'bg-navy text-white'
                       : 'bg-beige-100 text-navy hover:bg-beige-200'
@@ -114,7 +131,7 @@ export function ProductCard({ product }: ProductCardProps) {
           <button
             type="button"
             onClick={handleQuickAdd}
-            className={`w-full py-2 px-3 text-xs font-bold uppercase tracking-wider rounded transition-all duration-200 flex items-center justify-center space-x-1.5 ${
+            className={`w-full py-2 px-3 text-xs font-bold uppercase tracking-wider rounded transition-all duration-200 flex items-center justify-center space-x-1.5 cursor-pointer ${
               isAdded
                 ? 'bg-green-700 text-white'
                 : 'bg-navy hover:bg-navy-500 text-white'
@@ -147,7 +164,7 @@ export function ProductCard({ product }: ProductCardProps) {
                 onClick={() => setSelectedColor(color)}
                 title={color.name}
                 aria-label={`Color ${color.name}`}
-                className={`w-3.5 h-3.5 rounded-full border transition-all duration-200 ${
+                className={`w-3.5 h-3.5 rounded-full border transition-all duration-200 cursor-pointer ${
                   selectedColor.name === color.name
                     ? 'ring-1 ring-navy scale-110 border-white'
                     : 'border-beige-400/80 hover:scale-105'
@@ -184,9 +201,16 @@ export function ProductCard({ product }: ProductCardProps) {
               </span>
             )}
           </div>
-          <span className="text-[10px] uppercase font-bold text-navy/60 tracking-wider">
-            3 cuotas s/int
-          </span>
+          {product.allowInstallments && (
+            <span className="text-[10px] uppercase font-bold text-navy/60 tracking-wider">
+              3 cuotas s/int
+            </span>
+          )}
+          {!product.allowInstallments && product.allowTransferDiscount && (
+            <span className="text-[10px] uppercase font-bold text-green-800 tracking-wider">
+              10% OFF transf.
+            </span>
+          )}
         </div>
       </div>
     </div>

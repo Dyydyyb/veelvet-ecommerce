@@ -50,6 +50,9 @@ export interface Producto {
   created_at: string;
   descripcion?: string | null;
   colores?: ColorVariant[];
+  talles?: string[];
+  permite_cuotas?: boolean;
+  permite_transferencia_descuento?: boolean;
   // Relaciones
   subcategoria?: Subcategoria;
   tipo_oferta?: TipoOferta;

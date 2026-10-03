@@ -6,6 +6,10 @@ function parseRawProduct(raw: any): Producto {
   let urls: string[] = [];
   let descripcion: string = raw.descripcion || '';
   let colores: ColorVariant[] = Array.isArray(raw.colores) ? raw.colores : [];
+  let talles: string[] = Array.isArray(raw.talles) ? raw.talles : [];
+  let permite_cuotas: boolean = raw.permite_cuotas !== undefined ? Boolean(raw.permite_cuotas) : true;
+  let permite_transferencia_descuento: boolean =
+    raw.permite_transferencia_descuento !== undefined ? Boolean(raw.permite_transferencia_descuento) : true;
 
   if (Array.isArray(raw.imagenes_url)) {
     urls = raw.imagenes_url.filter(Boolean);
@@ -19,6 +23,15 @@ function parseRawProduct(raw: any): Producto {
     if (colores.length === 0 && Array.isArray(raw.imagenes_url.colores)) {
       colores = raw.imagenes_url.colores;
     }
+    if (talles.length === 0 && Array.isArray(raw.imagenes_url.talles)) {
+      talles = raw.imagenes_url.talles;
+    }
+    if (raw.imagenes_url.permite_cuotas !== undefined) {
+      permite_cuotas = Boolean(raw.imagenes_url.permite_cuotas);
+    }
+    if (raw.imagenes_url.permite_transferencia_descuento !== undefined) {
+      permite_transferencia_descuento = Boolean(raw.imagenes_url.permite_transferencia_descuento);
+    }
   }
 
   return {
@@ -26,6 +39,9 @@ function parseRawProduct(raw: any): Producto {
     imagenes_url: urls,
     descripcion: descripcion || null,
     colores,
+    talles: talles.length > 0 ? talles : ['S', 'M', 'L', 'XL'],
+    permite_cuotas,
+    permite_transferencia_descuento,
   };
 }
 
@@ -251,12 +267,21 @@ export const SupabaseService = {
     imagenes_url: string[];
     colores?: ColorVariant[];
     descripcion?: string | null;
+    talles?: string[];
+    permite_cuotas?: boolean;
+    permite_transferencia_descuento?: boolean;
     destacado?: boolean;
     stock?: number;
   }): Promise<Producto> {
     const cleanUrls = (payload.imagenes_url || []).map((u) => u.trim()).filter(Boolean);
     const cleanColores = (payload.colores || []).filter((c) => c && c.name?.trim());
     const cleanDescripcion = payload.descripcion?.trim() || '';
+    const cleanTalles = payload.talles && payload.talles.length > 0 ? payload.talles : ['S', 'M', 'L', 'XL'];
+    const permiteCuotas = payload.permite_cuotas !== undefined ? Boolean(payload.permite_cuotas) : true;
+    const permiteTransferencia =
+      payload.permite_transferencia_descuento !== undefined
+        ? Boolean(payload.permite_transferencia_descuento)
+        : true;
 
     const insertObj: any = {
       nombre: payload.nombre.trim(),
@@ -270,6 +295,9 @@ export const SupabaseService = {
         urls: cleanUrls,
         colores: cleanColores,
         descripcion: cleanDescripcion,
+        talles: cleanTalles,
+        permite_cuotas: permiteCuotas,
+        permite_transferencia_descuento: permiteTransferencia,
       },
     };
 
@@ -312,6 +340,9 @@ export const SupabaseService = {
       imagenes_url?: string[];
       colores?: ColorVariant[];
       descripcion?: string | null;
+      talles?: string[];
+      permite_cuotas?: boolean;
+      permite_transferencia_descuento?: boolean;
       destacado?: boolean;
       stock?: number;
     }
@@ -325,15 +356,31 @@ export const SupabaseService = {
     if (payload.destacado !== undefined) updateObj.destacado = Boolean(payload.destacado);
     if (payload.stock !== undefined) updateObj.stock = Number(payload.stock);
 
-    if (payload.imagenes_url !== undefined || payload.colores !== undefined || payload.descripcion !== undefined) {
+    if (
+      payload.imagenes_url !== undefined ||
+      payload.colores !== undefined ||
+      payload.descripcion !== undefined ||
+      payload.talles !== undefined ||
+      payload.permite_cuotas !== undefined ||
+      payload.permite_transferencia_descuento !== undefined
+    ) {
       const cleanUrls = (payload.imagenes_url || []).map((u) => u.trim()).filter(Boolean);
       const cleanColores = (payload.colores || []).filter((c) => c && c.name?.trim());
       const cleanDescripcion = payload.descripcion !== undefined ? (payload.descripcion?.trim() || '') : '';
+      const cleanTalles = payload.talles && payload.talles.length > 0 ? payload.talles : ['S', 'M', 'L', 'XL'];
+      const permiteCuotas = payload.permite_cuotas !== undefined ? Boolean(payload.permite_cuotas) : true;
+      const permiteTransferencia =
+        payload.permite_transferencia_descuento !== undefined
+          ? Boolean(payload.permite_transferencia_descuento)
+          : true;
 
       updateObj.imagenes_url = {
         urls: cleanUrls,
         colores: cleanColores,
         descripcion: cleanDescripcion,
+        talles: cleanTalles,
+        permite_cuotas: permiteCuotas,
+        permite_transferencia_descuento: permiteTransferencia,
       };
     }
 
@@ -463,13 +510,15 @@ export const SupabaseService = {
       },
       allImages: finalImagesList,
       colors: productColors,
-      sizes: ['S', 'M', 'L', 'XL'],
+      sizes: parsed.talles && parsed.talles.length > 0 ? parsed.talles : ['S', 'M', 'L', 'XL'],
       inStock: p.stock > 0,
       tag: p.tipo_oferta?.etiqueta_badge as any,
       rating: 4.9,
       reviewsCount: 34,
       featured: Boolean(p.destacado),
       measureType,
+      allowInstallments: parsed.permite_cuotas !== false,
+      allowTransferDiscount: parsed.permite_transferencia_descuento !== false,
     };
   },
 

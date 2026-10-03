@@ -4,7 +4,7 @@ import type { Product } from '../data/products';
 export interface CartItem {
   id: string; // unique combo of product.id + size + color
   product: Product;
-  size: 'S' | 'M' | 'L' | 'XL';
+  size: string;
   colorName: string;
   colorHex: string;
   quantity: number;
@@ -18,7 +18,7 @@ interface CartState {
   lastAddedItem: CartItem | null;
   
   // Actions
-  addItem: (product: Product, size: 'S' | 'M' | 'L' | 'XL', colorName: string, colorHex: string, quantity?: number) => void;
+  addItem: (product: Product, size: string, colorName: string, colorHex: string, quantity?: number) => void;
   removeItem: (id: string) => void;
   updateQuantity: (id: string, delta: number) => void;
   clearCart: () => void;

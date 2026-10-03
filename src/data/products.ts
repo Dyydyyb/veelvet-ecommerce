@@ -14,7 +14,9 @@ export interface ProductColor {
 
 export interface Product {
   id: string;
+  baseId?: string;
   slug: string;
+  baseSlug?: string;
   name: string;
   subtitle: string;
   category: string;
@@ -35,13 +37,16 @@ export interface Product {
   };
   allImages?: string[];
   colors: ProductColor[];
-  sizes: ('S' | 'M' | 'L' | 'XL')[];
+  sizes: string[];
   inStock: boolean;
   tag?: string;
   rating: number;
   reviewsCount: number;
   featured: boolean;
   measureType: 'buzo' | 'pantalon' | 'conjunto';
+  allowInstallments?: boolean;
+  allowTransferDiscount?: boolean;
+  selectedColorVariant?: string;
 }
 
 export interface CategoryItem {
