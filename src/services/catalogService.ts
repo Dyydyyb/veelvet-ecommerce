@@ -209,18 +209,18 @@ export const CatalogService = {
   },
 
   /**
-   * Obtiene los productos destacados (destacado = true) desde Supabase,
-   * desglosados por variantes de color.
+   * Obtiene los productos destacados (destacado = true) desde Supabase.
+   * En la sección de destacados se muestra únicamente el producto principal,
+   * sin desglosarlo en múltiples tarjetas de colores.
    */
   async getFeaturedProducts(): Promise<Product[]> {
     try {
       const supaProducts = await SupabaseService.getProductos();
       if (!supaProducts || supaProducts.length === 0) return [];
 
-      // Estrictamente SOLO prendas marcadas como destacado = true en el sistema
+      // Estrictamente SOLO prendas marcadas como destacado = true en el sistema (producto principal)
       const featured = supaProducts.filter((p) => Boolean(p.destacado));
-      const adapted = featured.map((p) => SupabaseService.adaptSupabaseProductToFrontend(p));
-      return expandProductVariants(adapted);
+      return featured.map((p) => SupabaseService.adaptSupabaseProductToFrontend(p));
     } catch (err) {
       console.error('Error al obtener productos destacados desde Supabase:', err);
       return [];

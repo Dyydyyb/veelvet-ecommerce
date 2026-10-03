@@ -411,7 +411,7 @@ export const SupabaseService = {
       .eq('id', id)
       .select(`
         *,
-        subcategoria:subcategorias(id, nombre, slug, categoria:categorias(id, nombre, orden, destacada)),
+        subcategoria:subcategorias(id, nombre, slug, categoria:categorias(id, nombre, orden)),
         tipo_oferta:tipos_oferta(id, nombre, etiqueta_badge, color_badge)
       `)
       .single();
