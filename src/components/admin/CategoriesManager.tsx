@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Edit3, Trash2, Layers, Check, X, AlertCircle, Star } from 'lucide-react';
+import { Plus, Edit3, Trash2, Layers, Check, X, AlertCircle, Star, Copy, ExternalLink } from 'lucide-react';
 import { Categoria, Subcategoria } from '../../lib/supabase';
 import { SupabaseService } from '../../services/supabaseService';
 
@@ -34,6 +34,14 @@ export function CategoriesManager({
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [copiedSql, setCopiedSql] = useState(false);
+  const missingColumnSql = 'ALTER TABLE categorias ADD COLUMN IF NOT EXISTS destacada boolean DEFAULT false;';
+
+  const handleCopyMissingSql = () => {
+    navigator.clipboard.writeText(missingColumnSql);
+    setCopiedSql(true);
+    setTimeout(() => setCopiedSql(false), 2500);
+  };
 
   // Set default category when available
   React.useEffect(() => {
@@ -171,12 +179,64 @@ export function CategoriesManager({
 
   return (
     <div className="space-y-8">
-      {error && (
+      {error && error.includes('destacada') ? (
+        <div className="p-5 bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl border border-amber-300/80 text-xs text-navy space-y-3 shadow-md">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center space-x-2 text-amber-900 font-bold uppercase tracking-wider text-xs">
+              <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0" />
+              <span>Paso rápido en Supabase: Falta la columna "destacada"</span>
+            </div>
+            <button
+              onClick={() => setError(null)}
+              className="text-navy/40 hover:text-navy p-1 transition-colors"
+              title="Cerrar aviso"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <p className="text-navy/80 font-light leading-relaxed">
+            Tu tabla <strong>categorias</strong> se creó originalmente sin la columna para marcar favoritos. Para habilitar el botón de la estrella con 1 solo clic, ejecutá esta línea en tu panel de Supabase:
+          </p>
+
+          <div className="bg-navy text-beige-100 p-3.5 rounded-xl font-mono text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-inner">
+            <code className="text-amber-300 font-bold select-all">{missingColumnSql}</code>
+            <button
+              onClick={handleCopyMissingSql}
+              className="inline-flex items-center space-x-1.5 bg-white/15 hover:bg-white/25 text-white px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer self-start sm:self-auto flex-shrink-0"
+            >
+              {copiedSql ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+              <span>{copiedSql ? '¡Copiado!' : 'Copiar SQL'}</span>
+            </button>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 pt-1">
+            <a
+              href="https://supabase.com/dashboard/project/ikuwvjvhtbouafjayrvj/sql/new"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center space-x-1.5 bg-navy hover:bg-navy-500 text-white text-xs font-montserrat font-bold uppercase tracking-wider px-4 py-2 rounded-xl transition-colors shadow-sm"
+            >
+              <span>Abrir SQL Editor en Supabase</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+            <button
+              onClick={() => {
+                setError(null);
+                onRefresh();
+              }}
+              className="inline-flex items-center space-x-1 text-xs font-semibold text-navy/70 hover:text-navy px-3 py-2 rounded-lg border border-beige-300 bg-white hover:bg-beige-100 cursor-pointer"
+            >
+              <span>Ya lo ejecuté, reintentar</span>
+            </button>
+          </div>
+        </div>
+      ) : error ? (
         <div className="flex items-center space-x-2 p-3 bg-red-50 text-red-700 text-xs rounded-xl border border-red-200">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
           <span>{error}</span>
         </div>
-      )}
+      ) : null}
 
       {/* Grid: 2 Columns */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
