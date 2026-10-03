@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ShoppingBag, Ruler, Truck, ShieldCheck, Heart, Share2, Plus, Minus, ArrowRight, Check } from 'lucide-react';
-import { PRODUCTS, Product } from '../data/products';
+import { ShoppingBag, Ruler, Truck, ShieldCheck, Heart, Share2, Plus, Minus, ArrowRight, Check, AlertCircle } from 'lucide-react';
+import { Product } from '../data/products';
 import { CatalogService } from '../services/catalogService';
 import { useCartStore } from '../store/cartStore';
 import { useUIStore } from '../store/uiStore';
@@ -15,26 +15,42 @@ export function ProductDetailPage() {
   const { addItem } = useCartStore();
   const { openSizeGuide, showToast } = useUIStore();
 
-  const initialProduct = PRODUCTS.find((p) => p.slug === id || p.id === id) || PRODUCTS[0];
-  const [product, setProduct] = useState<Product>(initialProduct);
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
 
-  const [activeImage, setActiveImage] = useState(product.images.primary);
+  const [activeImage, setActiveImage] = useState<string>('');
   const [selectedSize, setSelectedSize] = useState<'S' | 'M' | 'L' | 'XL'>('M');
-  const [selectedColor, setSelectedColor] = useState(product.colors[0]);
+  const [selectedColor, setSelectedColor] = useState<{ name: string; hex: string; class: string }>({
+    name: 'Negro Washed',
+    hex: '#161616',
+    class: 'bg-[#161616]',
+  });
   const [quantity, setQuantity] = useState(1);
   const [isZoomed, setIsZoomed] = useState(false);
   const [zoomPos, setZoomPos] = useState({ x: 0, y: 0 });
   const [isAdded, setIsAdded] = useState(false);
 
-  // Load product dynamically from Supabase if available
+  // Load product dynamically from Supabase
   React.useEffect(() => {
     if (id) {
+      setLoading(true);
       CatalogService.getProductBySlug(id).then((found) => {
         if (found) {
           setProduct(found);
           setActiveImage(found.images.primary);
-          setSelectedColor(found.colors[0]);
+          if (found.colors && found.colors.length > 0) {
+            setSelectedColor(found.colors[0]);
+          }
+        } else {
+          setProduct(null);
         }
+        setLoading(false);
+      });
+
+      CatalogService.getProducts().then((all) => {
+        const related = all.filter((p) => p.id !== id && p.slug !== id).slice(0, 3);
+        setRelatedProducts(related);
       });
     }
     window.scrollTo(0, 0);
@@ -42,9 +58,13 @@ export function ProductDetailPage() {
 
   // Sync state if product changes
   React.useEffect(() => {
-    setActiveImage(product.images.primary);
-    setSelectedColor(product.colors[0]);
-    setQuantity(1);
+    if (product) {
+      setActiveImage(product.images.primary);
+      if (product.colors && product.colors.length > 0) {
+        setSelectedColor(product.colors[0]);
+      }
+      setQuantity(1);
+    }
   }, [product]);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -55,11 +75,51 @@ export function ProductDetailPage() {
   };
 
   const handleAddToCart = () => {
+    if (!product) return;
     addItem(product, selectedSize, selectedColor.name, selectedColor.hex, quantity);
     setIsAdded(true);
     showToast(`¡${product.name} agregado al carrito!`);
     setTimeout(() => setIsAdded(false), 2000);
   };
+
+  if (loading) {
+    return (
+      <div className="pt-28 pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 animate-pulse">
+          <div className="lg:col-span-7 h-[500px] bg-beige-200 rounded-3xl" />
+          <div className="lg:col-span-5 space-y-6">
+            <div className="h-6 bg-beige-200 rounded w-1/3" />
+            <div className="h-10 bg-beige-200 rounded w-3/4" />
+            <div className="h-8 bg-beige-200 rounded w-1/2" />
+            <div className="h-24 bg-beige-200 rounded" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!product) {
+    return (
+      <div className="pt-32 pb-24 px-4 text-center max-w-md mx-auto">
+        <div className="w-16 h-16 bg-beige-200 rounded-full flex items-center justify-center mx-auto mb-4 text-navy">
+          <AlertCircle className="w-8 h-8" />
+        </div>
+        <h2 className="font-montserrat font-black text-2xl uppercase tracking-tight text-navy mb-2">
+          Prenda no encontrada
+        </h2>
+        <p className="text-xs text-navy/70 mb-6 font-light">
+          La prenda solicitada no existe o fue retirada del catálogo de Supabase.
+        </p>
+        <Link
+          to="/tienda"
+          className="inline-flex items-center space-x-2 bg-navy text-white text-xs font-montserrat font-bold uppercase tracking-wider px-6 py-3 rounded-xl shadow-md hover:bg-navy-500 transition-colors"
+        >
+          <span>Volver a la Tienda</span>
+          <ArrowRight className="w-4 h-4" />
+        </Link>
+      </div>
+    );
+  }
 
   const formattedPrice = new Intl.NumberFormat('es-AR', {
     style: 'currency',
@@ -80,8 +140,6 @@ export function ProductDetailPage() {
     currency: 'ARS',
     maximumFractionDigits: 0,
   }).format(Math.round(product.price / 3));
-
-  const relatedProducts = PRODUCTS.filter((p) => p.id !== product.id).slice(0, 3);
 
   // Accordion data
   const accordionItems = [

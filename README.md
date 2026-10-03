@@ -12,9 +12,8 @@
 - **Estilos**: [Tailwind CSS v3](https://tailwindcss.com/) con paleta personalizada (blanco `#FFFFFF`, beige protagonista `#F0EDE3`, variantes `#E8E2D0` / `#D9CFB4`, y azul navy `#1B2A4A` / `#2F4A8A`)
 - **3D**: [Three.js](https://threejs.org/) + [@react-three/fiber](https://docs.pmnd.rs/react-three-fiber/) + [@react-three/drei](https://github.com/pmndrs/drei)
 - **Animaciones**: [Framer Motion](https://www.framer.com/motion/) + GSAP
-- **Navegación**: [React Router DOM v7](https://reactrouter.com/)
-- **Estado Global**: [Zustand](https://github.com/pmndrs/zustand) con persistencia en `localStorage`
-- **Íconos**: [Lucide React](https://lucide.dev/) + SVG de alta fidelidad
+- **Estado Global**: [Zustand](https://github.com/pmndrs/zustand) puro en memoria (cero localStorage, 100% Supabase)
+- **Base de Datos & Backend**: [Supabase](https://supabase.com) puro (Catálogo, Categorías, Tipos de Oferta y Productos)
 
 ---
 

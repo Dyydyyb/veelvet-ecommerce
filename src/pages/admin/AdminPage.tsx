@@ -107,11 +107,11 @@ export function AdminPage() {
             <Package className="w-4 h-4" />
             <span>Productos</span>
             <span
-              className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+              className={`text-[10px] px-2 py-0.5 rounded-full font-mono ${
                 activeTab === 'productos' ? 'bg-white/20 text-white' : 'bg-beige-200 text-navy'
               }`}
             >
-              {productos.length}
+              {productos.length} ({productos.filter((p) => p.destacado).length} ★)
             </span>
           </button>
 
@@ -126,11 +126,11 @@ export function AdminPage() {
             <Layers className="w-4 h-4" />
             <span>Categorías & Subcategorías</span>
             <span
-              className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+              className={`text-[10px] px-2 py-0.5 rounded-full font-mono ${
                 activeTab === 'categorias' ? 'bg-white/20 text-white' : 'bg-beige-200 text-navy'
               }`}
             >
-              {categorias.length} / {subcategorias.length}
+              {categorias.length} ({categorias.filter((c) => c.destacada).length} ★)
             </span>
           </button>
 

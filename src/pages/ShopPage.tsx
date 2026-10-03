@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Filter, X, ArrowUpDown, SlidersHorizontal } from 'lucide-react';
 import { ProductCard } from '../components/product/ProductCard';
 import { SectionTitle } from '../components/common/SectionTitle';
-import { Product, PRODUCTS, CATEGORIES, PRODUCT_COLORS } from '../data/products';
+import { Product, CategoryItem, PRODUCT_COLORS } from '../data/products';
 import { CatalogService } from '../services/catalogService';
 
 export function ShopPage() {
@@ -13,7 +13,17 @@ export function ShopPage() {
   const subParam = searchParams.get('sub') || '';
   const filterParam = searchParams.get('filter') || '';
 
-  const [allProducts, setAllProducts] = useState<Product[]>(PRODUCTS);
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<CategoryItem[]>([
+    {
+      id: 'todos',
+      name: 'Toda la Colección',
+      shortName: 'Todo',
+      description: 'Colección completa',
+      href: '/tienda',
+    },
+  ]);
+  const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>(categoryParam);
   const [selectedSub, setSelectedSub] = useState<string>(subParam);
   const [selectedFilter, setSelectedFilter] = useState<string>(filterParam);
@@ -22,11 +32,29 @@ export function ShopPage() {
   const [sortBy, setSortBy] = useState<'featured' | 'price-asc' | 'price-desc' | 'rating'>('featured');
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
-  // Load products dynamically from Supabase
+  // Load products and categories dynamically from Supabase
   React.useEffect(() => {
-    CatalogService.getProducts().then((data) => {
-      if (data && data.length > 0) {
-        setAllProducts(data);
+    setLoading(true);
+    CatalogService.getProducts()
+      .then((data) => {
+        setAllProducts(data || []);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+
+    CatalogService.getCategories().then((cats) => {
+      if (cats && cats.length > 0) {
+        setCategories([
+          {
+            id: 'todos',
+            name: 'Toda la Colección',
+            shortName: 'Todo',
+            description: 'Colección completa',
+            href: '/tienda',
+          },
+          ...cats,
+        ]);
       }
     });
   }, []);
@@ -155,7 +183,7 @@ export function ShopPage() {
           
           {/* Category Pills */}
           <div className="flex items-center space-x-2 overflow-x-auto pb-2 lg:pb-0 scrollbar-none">
-            {CATEGORIES.map((cat) => (
+            {categories.map((cat) => (
               <button
                 key={cat.id}
                 onClick={() => handleCategoryChange(cat.id)}
@@ -293,43 +321,74 @@ export function ShopPage() {
       </div>
 
       {/* Product Grid */}
-      <AnimatePresence mode="popLayout">
-        {filteredProducts.length > 0 ? (
-          <motion.div
-            layout
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-8"
-          >
-            {filteredProducts.map((product) => (
-              <motion.div
-                key={product.id}
-                layout
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.3 }}
-              >
-                <ProductCard product={product} />
-              </motion.div>
-            ))}
-          </motion.div>
-        ) : (
-          <div className="bg-beige-100 rounded-2xl p-12 text-center border border-beige-300 my-8">
-            <Filter className="w-10 h-10 text-navy/40 mx-auto mb-3" />
-            <p className="font-montserrat font-bold text-lg text-navy uppercase">
-              No encontramos productos con esos filtros
-            </p>
-            <p className="text-xs text-navy/70 mt-1 max-w-sm mx-auto font-light">
-              Intentá seleccionar otros talles o colores, o hacé clic en limpiar filtros para ver todo.
-            </p>
-            <button
-              onClick={clearFilters}
-              className="mt-5 text-xs font-bold uppercase tracking-wider bg-navy text-white px-5 py-2.5 rounded-lg hover:bg-navy-500 transition-colors"
+      {loading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-8">
+          {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+            <div key={i} className="rounded-2xl border border-beige-300 p-4 space-y-4 animate-pulse bg-white">
+              <div className="h-72 bg-beige-200 rounded-xl" />
+              <div className="h-4 bg-beige-200 rounded w-3/4" />
+              <div className="h-3 bg-beige-200 rounded w-1/2" />
+              <div className="h-4 bg-beige-200 rounded w-1/3" />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <AnimatePresence mode="popLayout">
+          {filteredProducts.length > 0 ? (
+            <motion.div
+              layout
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-8"
             >
-              Restablecer filtros
-            </button>
-          </div>
-        )}
-      </AnimatePresence>
+              {filteredProducts.map((product) => (
+                <motion.div
+                  key={product.id}
+                  layout
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <ProductCard product={product} />
+                </motion.div>
+              ))}
+            </motion.div>
+          ) : allProducts.length === 0 ? (
+            <div className="bg-white rounded-3xl p-12 text-center border border-beige-300 my-8 max-w-lg mx-auto shadow-xs">
+              <div className="w-12 h-12 rounded-2xl bg-beige-200 flex items-center justify-center text-navy mx-auto mb-4">
+                <SlidersHorizontal className="w-6 h-6" />
+              </div>
+              <p className="font-montserrat font-bold text-lg text-navy uppercase">
+                Catálogo no disponible aún
+              </p>
+              <p className="text-xs text-navy/70 mt-2 font-light leading-relaxed">
+                No hay prendas cargadas en Supabase en este momento. Podés crear nuevas prendas o poblar la base de datos con un clic en el panel interno.
+              </p>
+              <a
+                href="/admin"
+                className="mt-6 inline-block text-xs font-montserrat font-bold uppercase tracking-wider bg-navy text-white px-6 py-3 rounded-xl hover:bg-navy-500 transition-colors shadow-md"
+              >
+                Abrir Panel /admin
+              </a>
+            </div>
+          ) : (
+            <div className="bg-beige-100 rounded-2xl p-12 text-center border border-beige-300 my-8">
+              <Filter className="w-10 h-10 text-navy/40 mx-auto mb-3" />
+              <p className="font-montserrat font-bold text-lg text-navy uppercase">
+                No encontramos productos con esos filtros
+              </p>
+              <p className="text-xs text-navy/70 mt-1 max-w-sm mx-auto font-light">
+                Intentá seleccionar otros talles o colores, o hacé clic en limpiar filtros para ver todo.
+              </p>
+              <button
+                onClick={clearFilters}
+                className="mt-5 text-xs font-bold uppercase tracking-wider bg-navy text-white px-5 py-2.5 rounded-lg hover:bg-navy-500 transition-colors cursor-pointer"
+              >
+                Restablecer filtros
+              </button>
+            </div>
+          )}
+        </AnimatePresence>
+      )}
     </div>
   );
 }

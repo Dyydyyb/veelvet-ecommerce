@@ -11,11 +11,15 @@ export function R2ConfigGuide({ onRefresh }: R2ConfigGuideProps) {
   const [isSeeding, setIsSeeding] = useState(false);
   const [seedResult, setSeedResult] = useState<{ success: boolean; message: string } | null>(null);
 
-  const rlsSql = `-- Ejecutá esto en el SQL Editor de Supabase si tenés error 42501 (Row-Level Security):
-ALTER TABLE categorias DISABLE ROW LEVEL SECURITY;
-ALTER TABLE subcategorias DISABLE ROW LEVEL SECURITY;
-ALTER TABLE tipos_oferta DISABLE ROW LEVEL SECURITY;
-ALTER TABLE productos DISABLE ROW LEVEL SECURITY;`;
+  const rlsSql = `-- 1. Habilitar permisos de lectura y escritura (desactivar RLS):
+ALTER TABLE IF EXISTS categorias DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS subcategorias DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS tipos_oferta DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS productos DISABLE ROW LEVEL SECURITY;
+
+-- 2. Asegurar columnas de destacado en categorías y productos:
+ALTER TABLE IF EXISTS categorias ADD COLUMN IF NOT EXISTS destacada boolean DEFAULT false;
+ALTER TABLE IF EXISTS productos ADD COLUMN IF NOT EXISTS destacado boolean DEFAULT false;`;
 
   const handleCopySql = () => {
     navigator.clipboard.writeText(rlsSql);

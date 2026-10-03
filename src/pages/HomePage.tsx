@@ -8,12 +8,26 @@ import { Marquee } from '../components/common/Marquee';
 import { SectionTitle } from '../components/common/SectionTitle';
 import { ProductCard } from '../components/product/ProductCard';
 import { Hero3DBackground } from '../components/3d/Hero3DBackground';
-import { PRODUCTS, CATEGORIES } from '../data/products';
+import { Product, CategoryItem } from '../data/products';
+import { CatalogService } from '../services/catalogService';
 import { useUIStore } from '../store/uiStore';
 
 export function HomePage() {
   const { openSizeGuide } = useUIStore();
-  const featuredProducts = PRODUCTS.slice(0, 4);
+  const [featuredProducts, setFeaturedProducts] = React.useState<Product[]>([]);
+  const [featuredCategories, setFeaturedCategories] = React.useState<CategoryItem[]>([]);
+  const [loadingProducts, setLoadingProducts] = React.useState(true);
+  const [loadingCategories, setLoadingCategories] = React.useState(true);
+
+  React.useEffect(() => {
+    CatalogService.getFeaturedProducts()
+      .then(setFeaturedProducts)
+      .finally(() => setLoadingProducts(false));
+
+    CatalogService.getFeaturedCategories()
+      .then(setFeaturedCategories)
+      .finally(() => setLoadingCategories(false));
+  }, []);
 
   // Word-by-word reveal animation variants
   const containerVariants = {
@@ -168,43 +182,71 @@ export function HomePage() {
             subtitle="Piezas estructuradas con frisa de alto gramaje para armar tu uniforme urbano diario."
           />
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
-            {CATEGORIES.filter((c) => c.id !== 'todos').map((cat) => (
-              <Link
-                key={cat.id}
-                to={`/tienda?cat=${cat.id}`}
-                className="group relative rounded-2xl overflow-hidden bg-beige-200 border border-beige-300/80 shadow-xs hover:shadow-xl transition-all duration-300 flex flex-col justify-end min-h-[380px] sm:min-h-[440px] p-8"
-              >
-                {/* Background Image */}
-                {cat.image && (
-                  <img
-                    src={cat.image}
-                    alt={cat.name}
-                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-                  />
-                )}
-                {/* Overlay gradient */}
-                <div className="absolute inset-0 bg-gradient-to-t from-navy/90 via-navy/30 to-transparent" />
-
-                {/* Content */}
-                <div className="relative z-10 text-white">
-                  <span className="text-[11px] font-bold uppercase tracking-widest text-beige-300 mb-2 block">
-                    Cápsula Veelvet
-                  </span>
-                  <h3 className="font-montserrat font-black text-2xl sm:text-3xl uppercase tracking-tight text-white mb-2 group-hover:translate-x-1 transition-transform">
-                    {cat.name}
-                  </h3>
-                  <p className="text-xs text-beige-200 font-light max-w-xs mb-4 line-clamp-2">
-                    {cat.description}
-                  </p>
-                  <span className="inline-flex items-center space-x-2 text-xs font-bold tracking-wider uppercase text-white bg-white/20 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/30 group-hover:bg-white group-hover:text-navy transition-all">
-                    <span>Ver modelos</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </span>
+          {/* Loading Skeletons or Categories List */}
+          {loadingCategories ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="rounded-2xl bg-beige-200 animate-pulse min-h-[380px] p-8 flex flex-col justify-end">
+                  <div className="h-4 w-24 bg-beige-300 rounded mb-2" />
+                  <div className="h-8 w-44 bg-beige-300 rounded mb-2" />
+                  <div className="h-4 w-56 bg-beige-300 rounded" />
                 </div>
+              ))}
+            </div>
+          ) : featuredCategories.length === 0 ? (
+            <div className="text-center py-12 bg-white rounded-2xl border border-beige-300 p-8">
+              <p className="text-sm text-navy/60 font-light mb-4">
+                No hay categorías destacadas configuradas en Supabase todavía.
+              </p>
+              <Link
+                to="/admin"
+                className="inline-flex items-center space-x-2 bg-navy text-white text-xs font-montserrat font-bold uppercase tracking-wider px-5 py-2.5 rounded-lg shadow-sm"
+              >
+                <span>Administrar Categorías en /admin</span>
               </Link>
-            ))}
-          </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
+              {featuredCategories.map((cat) => (
+                <Link
+                  key={cat.id}
+                  to={cat.href}
+                  className="group relative rounded-2xl overflow-hidden bg-beige-200 border border-beige-300/80 shadow-xs hover:shadow-xl transition-all duration-300 flex flex-col justify-end min-h-[380px] sm:min-h-[440px] p-8"
+                >
+                  {/* Background Image */}
+                  {cat.image && (
+                    <img
+                      src={cat.image}
+                      alt={cat.name}
+                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = '/assets/images/hero-look.jpg';
+                      }}
+                    />
+                  )}
+                  {/* Overlay gradient */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-navy/90 via-navy/30 to-transparent" />
+
+                  {/* Content */}
+                  <div className="relative z-10 text-white">
+                    <span className="text-[11px] font-bold uppercase tracking-widest text-beige-300 mb-2 block">
+                      Cápsula Veelvet
+                    </span>
+                    <h3 className="font-montserrat font-black text-2xl sm:text-3xl uppercase tracking-tight text-white mb-2 group-hover:translate-x-1 transition-transform">
+                      {cat.name}
+                    </h3>
+                    <p className="text-xs text-beige-200 font-light max-w-xs mb-4 line-clamp-2">
+                      {cat.description}
+                    </p>
+                    <span className="inline-flex items-center space-x-2 text-xs font-bold tracking-wider uppercase text-white bg-white/20 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/30 group-hover:bg-white group-hover:text-navy transition-all">
+                      <span>Ver modelos</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
@@ -229,11 +271,41 @@ export function HomePage() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
-            {featuredProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+          {/* Loading or Products */}
+          {loadingProducts ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="rounded-2xl border border-beige-300 p-4 space-y-4 animate-pulse">
+                  <div className="h-64 bg-beige-200 rounded-xl" />
+                  <div className="h-4 bg-beige-200 rounded w-3/4" />
+                  <div className="h-3 bg-beige-200 rounded w-1/2" />
+                  <div className="h-4 bg-beige-200 rounded w-1/3" />
+                </div>
+              ))}
+            </div>
+          ) : featuredProducts.length === 0 ? (
+            <div className="text-center py-16 bg-beige-50 rounded-3xl border border-beige-300 p-8 max-w-2xl mx-auto">
+              <Sparkles className="w-8 h-8 text-navy/40 mx-auto mb-3" />
+              <h3 className="font-montserrat font-bold text-lg text-navy uppercase mb-1">
+                Catálogo en preparación
+              </h3>
+              <p className="text-xs text-navy/70 font-light mb-6">
+                Aún no hay prendas destacadas en Supabase. Podés agregar y marcar prendas como destacadas desde el panel de administración.
+              </p>
+              <Link
+                to="/admin"
+                className="inline-flex items-center space-x-2 bg-navy hover:bg-navy-500 text-white text-xs font-montserrat font-bold uppercase tracking-wider px-6 py-3 rounded-xl transition-all shadow-md"
+              >
+                <span>Cargar o Sembrar Productos en /admin</span>
+              </Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
+              {featuredProducts.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          )}
         </div>
       </section>
 

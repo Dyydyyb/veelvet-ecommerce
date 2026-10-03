@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Edit3, Trash2, Layers, Check, X, AlertCircle } from 'lucide-react';
+import { Plus, Edit3, Trash2, Layers, Check, X, AlertCircle, Star } from 'lucide-react';
 import { Categoria, Subcategoria } from '../../lib/supabase';
 import { SupabaseService } from '../../services/supabaseService';
 
@@ -17,9 +17,11 @@ export function CategoriesManager({
   // Estado para crear Categoría
   const [newCatNombre, setNewCatNombre] = useState('');
   const [newCatOrden, setNewCatOrden] = useState<number | ''>(categorias.length + 1);
+  const [newCatDestacada, setNewCatDestacada] = useState(false);
   const [editingCatId, setEditingCatId] = useState<string | null>(null);
   const [editCatNombre, setEditCatNombre] = useState('');
   const [editCatOrden, setEditCatOrden] = useState<number | ''>(1);
+  const [editCatDestacada, setEditCatDestacada] = useState(false);
 
   // Estado para crear Subcategoría
   const [newSubNombre, setNewSubNombre] = useState('');
@@ -47,9 +49,14 @@ export function CategoriesManager({
     try {
       setLoading(true);
       setError(null);
-      await SupabaseService.createCategoria(newCatNombre.trim(), Number(newCatOrden) || 1);
+      await SupabaseService.createCategoria(
+        newCatNombre.trim(),
+        Number(newCatOrden) || 1,
+        newCatDestacada
+      );
       setNewCatNombre('');
       setNewCatOrden(categorias.length + 2);
+      setNewCatDestacada(false);
       await onRefresh();
     } catch (err: any) {
       setError(err.message || 'Error al crear categoría.');
@@ -62,16 +69,35 @@ export function CategoriesManager({
     setEditingCatId(cat.id);
     setEditCatNombre(cat.nombre);
     setEditCatOrden(cat.orden);
+    setEditCatDestacada(Boolean(cat.destacada));
   };
 
   const handleSaveEditCat = async (id: string) => {
     try {
       setLoading(true);
-      await SupabaseService.updateCategoria(id, editCatNombre, Number(editCatOrden) || 1);
+      await SupabaseService.updateCategoria(
+        id,
+        editCatNombre,
+        Number(editCatOrden) || 1,
+        editCatDestacada
+      );
       setEditingCatId(null);
       await onRefresh();
     } catch (err: any) {
       setError(err.message || 'Error al actualizar categoría.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleToggleDestacada = async (cat: Categoria) => {
+    try {
+      setLoading(true);
+      setError(null);
+      await SupabaseService.toggleCategoriaDestacada(cat.id, Boolean(cat.destacada));
+      await onRefresh();
+    } catch (err: any) {
+      setError(err.message || 'Error al actualizar estado destacado de categoría.');
     } finally {
       setLoading(false);
     }
@@ -205,6 +231,18 @@ export function CategoriesManager({
                   <Plus className="w-4 h-4" />
                 </button>
               </div>
+              <label className="flex items-center space-x-2 text-xs text-navy cursor-pointer pt-1">
+                <input
+                  type="checkbox"
+                  checked={newCatDestacada}
+                  onChange={(e) => setNewCatDestacada(e.target.checked)}
+                  className="rounded text-navy focus:ring-navy cursor-pointer"
+                />
+                <span className="text-[11px] font-medium text-navy/80 flex items-center space-x-1">
+                  <Star className="w-3 h-3 text-amber-500" />
+                  <span>Destacar en Home (Sección "Categorías Destacadas")</span>
+                </span>
+              </label>
             </form>
 
             {/* Lista Categorías */}
@@ -217,41 +255,73 @@ export function CategoriesManager({
                 categorias.map((cat) => (
                   <div key={cat.id} className="py-2.5 flex items-center justify-between text-xs">
                     {editingCatId === cat.id ? (
-                      <div className="flex-1 flex items-center space-x-2 mr-2">
-                        <input
-                          type="text"
-                          value={editCatNombre}
-                          onChange={(e) => setEditCatNombre(e.target.value)}
-                          className="flex-1 text-xs bg-white border border-beige-300 rounded px-2 py-1"
-                        />
-                        <input
-                          type="number"
-                          value={editCatOrden}
-                          onChange={(e) => setEditCatOrden(Number(e.target.value))}
-                          className="w-14 text-xs bg-white border border-beige-300 rounded px-1 py-1 text-center"
-                        />
-                        <button
-                          onClick={() => handleSaveEditCat(cat.id)}
-                          className="text-green-700 hover:text-green-800 p-1"
-                        >
-                          <Check className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => setEditingCatId(null)}
-                          className="text-navy/40 hover:text-navy p-1"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
+                      <div className="flex-1 flex flex-col space-y-2 mr-2 bg-beige-50 p-2 rounded-lg">
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="text"
+                            value={editCatNombre}
+                            onChange={(e) => setEditCatNombre(e.target.value)}
+                            className="flex-1 text-xs bg-white border border-beige-300 rounded px-2 py-1"
+                          />
+                          <input
+                            type="number"
+                            value={editCatOrden}
+                            onChange={(e) => setEditCatOrden(Number(e.target.value))}
+                            className="w-14 text-xs bg-white border border-beige-300 rounded px-1 py-1 text-center"
+                          />
+                          <button
+                            onClick={() => handleSaveEditCat(cat.id)}
+                            className="text-green-700 hover:text-green-800 p-1"
+                            title="Guardar"
+                          >
+                            <Check className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => setEditingCatId(null)}
+                            className="text-navy/40 hover:text-navy p-1"
+                            title="Cancelar"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                        <label className="flex items-center space-x-2 text-[11px] text-navy cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={editCatDestacada}
+                            onChange={(e) => setEditCatDestacada(e.target.checked)}
+                            className="rounded text-navy focus:ring-navy"
+                          />
+                          <span>Destacada en Home</span>
+                        </label>
                       </div>
                     ) : (
                       <>
-                        <div>
-                          <span className="font-montserrat font-bold uppercase text-navy">
-                            {cat.nombre}
-                          </span>
-                          <span className="ml-2 text-[10px] text-navy/50 font-mono">
-                            Orden #{cat.orden}
-                          </span>
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={() => handleToggleDestacada(cat)}
+                            disabled={loading}
+                            className={`p-1 rounded transition-colors ${
+                              cat.destacada
+                                ? 'text-amber-500 hover:text-amber-600 bg-amber-50'
+                                : 'text-navy/20 hover:text-navy/60 hover:bg-beige-100'
+                            }`}
+                            title={cat.destacada ? 'Categoría destacada en Home (clic para quitar)' : 'Clic para destacar en Home'}
+                          >
+                            <Star className={`w-3.5 h-3.5 ${cat.destacada ? 'fill-amber-500' : ''}`} />
+                          </button>
+                          <div>
+                            <span className="font-montserrat font-bold uppercase text-navy">
+                              {cat.nombre}
+                            </span>
+                            <span className="ml-2 text-[10px] text-navy/50 font-mono">
+                              Orden #{cat.orden}
+                            </span>
+                            {cat.destacada && (
+                              <span className="ml-2 px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-800 uppercase tracking-wider">
+                                Destacada
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <div className="flex items-center space-x-1">
                           <button

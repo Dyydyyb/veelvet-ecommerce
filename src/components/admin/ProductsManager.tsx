@@ -24,6 +24,7 @@ export function ProductsManager({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Producto | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   const formatPrice = (val: number) => {
     return new Intl.NumberFormat('es-AR', {
@@ -47,6 +48,18 @@ export function ProductsManager({
   const handleOpenEdit = (p: Producto) => {
     setEditingProduct(p);
     setIsModalOpen(true);
+  };
+
+  const handleToggleDestacado = async (prod: Producto) => {
+    try {
+      setTogglingId(prod.id);
+      await SupabaseService.toggleProductoDestacado(prod.id, Boolean(prod.destacado));
+      await onRefresh();
+    } catch (err: any) {
+      alert(`Error al cambiar estado destacado de la prenda: ${err.message}`);
+    } finally {
+      setTogglingId(null);
+    }
   };
 
   const handleDelete = async (id: string, name: string) => {
@@ -238,16 +251,21 @@ export function ProductsManager({
                         )}
                       </td>
 
-                      {/* Featured */}
+                      {/* Featured Toggle */}
                       <td className="py-3 px-4">
-                        {prod.destacado ? (
-                          <span className="inline-flex items-center space-x-1 text-amber-700 text-xs font-semibold">
-                            <Star className="w-3.5 h-3.5 fill-amber-500 stroke-amber-500" />
-                            <span>Sí</span>
-                          </span>
-                        ) : (
-                          <span className="text-navy/30 text-xs">No</span>
-                        )}
+                        <button
+                          onClick={() => handleToggleDestacado(prod)}
+                          disabled={togglingId === prod.id}
+                          className={`inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                            prod.destacado
+                              ? 'bg-amber-100 text-amber-800 hover:bg-amber-200'
+                              : 'bg-beige-100 text-navy/40 hover:text-navy hover:bg-beige-200'
+                          }`}
+                          title={prod.destacado ? 'Prenda destacada en la web (Clic para quitar)' : 'Clic para destacar prenda en la web'}
+                        >
+                          <Star className={`w-3.5 h-3.5 ${prod.destacado ? 'fill-amber-500 text-amber-500' : 'text-navy/40'}`} />
+                          <span>{prod.destacado ? 'Destacado' : 'Normal'}</span>
+                        </button>
                       </td>
 
                       {/* Actions */}

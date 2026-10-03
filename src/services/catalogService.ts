@@ -1,10 +1,11 @@
 /**
  * catalogService.ts
- * Servicio unificado del catálogo conectado a Supabase con fallback local.
+ * Servicio 100% Supabase puro para el catálogo público de Veelvet.
+ * Cero datos mock ni localStorage.
  */
 
-import { Product, PRODUCTS, CategoryItem, CATEGORIES } from '../data/products';
-import { MEGA_MENU_DATA, MegaMenuConfig } from '../data/megaMenuData';
+import { Product, CategoryItem } from '../data/products';
+import { MegaMenuConfig } from '../data/megaMenuData';
 import { SupabaseService } from './supabaseService';
 
 export interface ProductQueryParams {
@@ -19,82 +20,110 @@ export interface ProductQueryParams {
 
 export const CatalogService = {
   /**
-   * Obtiene la lista de productos dinámicamente desde Supabase.
-   * Si no hay productos en la base de datos, recurre al catálogo local de reserva.
+   * Obtiene la lista completa de productos directamente desde Supabase.
    */
   async getProducts(params?: ProductQueryParams): Promise<Product[]> {
     try {
       const supaProducts = await SupabaseService.getProductos();
+      if (!supaProducts || supaProducts.length === 0) {
+        return [];
+      }
 
-      if (supaProducts && supaProducts.length > 0) {
-        let adapted = supaProducts.map((p) => SupabaseService.adaptSupabaseProductToFrontend(p));
+      let adapted = supaProducts.map((p) => SupabaseService.adaptSupabaseProductToFrontend(p));
 
-        // Filtro por categoría principal
-        if (params?.category && params.category !== 'todos' && params.category !== 'top' && params.category !== 'accesorios') {
-          adapted = adapted.filter((p) => p.category === params.category);
-        }
+      // Filtro por categoría principal
+      if (params?.category && params.category !== 'todos') {
+        const catFilter = params.category.toLowerCase();
+        adapted = adapted.filter((p) => {
+          if (p.category === catFilter) return true;
+          // Coincidencia con nombre de categoría en Supabase
+          const catName = p.subtitle?.toLowerCase() || '';
+          return catName.includes(catFilter);
+        });
+      }
 
-        // Filtro por subcategoría
-        if (params?.subcategory) {
-          const q = params.subcategory.toLowerCase();
+      // Filtro por subcategoría
+      if (params?.subcategory) {
+        const q = params.subcategory.toLowerCase().replace(/-/g, ' ');
+        adapted = adapted.filter(
+          (p) =>
+            p.name.toLowerCase().includes(q) ||
+            p.subtitle.toLowerCase().includes(q) ||
+            p.slug.toLowerCase().includes(q)
+        );
+      }
+
+      // Filtro por tipo de oferta
+      if (params?.filter) {
+        const f = params.filter.toLowerCase();
+        if (f === 'precios-unicos' || f === 'sale-60') {
+          adapted = adapted.filter((p) => Boolean(p.compareAtPrice));
+        } else {
           adapted = adapted.filter(
-            (p) =>
-              p.name.toLowerCase().includes(q) ||
-              p.subtitle.toLowerCase().includes(q) ||
-              p.slug.toLowerCase().includes(q)
+            (p) => p.tag?.toLowerCase().includes(f) || Boolean(p.compareAtPrice)
           );
         }
-
-        // Filtro por tipo de oferta
-        if (params?.filter) {
-          const f = params.filter.toLowerCase();
-          if (f === 'precios-unicos' || f === 'sale-60') {
-            adapted = adapted.filter((p) => Boolean(p.compareAtPrice));
-          } else {
-            adapted = adapted.filter(
-              (p) => p.tag?.toLowerCase().includes(f) || Boolean(p.compareAtPrice)
-            );
-          }
-        }
-
-        // Ordenamiento
-        if (params?.sortBy === 'price-asc') {
-          adapted.sort((a, b) => a.price - b.price);
-        } else if (params?.sortBy === 'price-desc') {
-          adapted.sort((a, b) => b.price - a.price);
-        } else if (params?.sortBy === 'rating') {
-          adapted.sort((a, b) => b.rating - a.rating);
-        }
-
-        return adapted;
       }
+
+      // Filtro por búsqueda
+      if (params?.search) {
+        const s = params.search.toLowerCase();
+        adapted = adapted.filter(
+          (p) =>
+            p.name.toLowerCase().includes(s) ||
+            p.description.toLowerCase().includes(s) ||
+            p.subtitle.toLowerCase().includes(s)
+        );
+      }
+
+      // Filtro por talle
+      if (params?.size) {
+        adapted = adapted.filter((p) => p.sizes.includes(params.size as any));
+      }
+
+      // Filtro por color
+      if (params?.color) {
+        const c = params.color.toLowerCase();
+        adapted = adapted.filter((p) => p.colors.some((col) => col.name.toLowerCase().includes(c)));
+      }
+
+      // Ordenamiento
+      if (params?.sortBy === 'price-asc') {
+        adapted.sort((a, b) => a.price - b.price);
+      } else if (params?.sortBy === 'price-desc') {
+        adapted.sort((a, b) => b.price - a.price);
+      } else if (params?.sortBy === 'rating') {
+        adapted.sort((a, b) => b.rating - a.rating);
+      } else if (params?.sortBy === 'featured') {
+        adapted.sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
+      }
+
+      return adapted;
     } catch (err) {
-      console.warn('Usando catálogo local por error de conexión con Supabase:', err);
+      console.error('Error al obtener productos desde Supabase:', err);
+      return [];
     }
+  },
 
-    // Fallback a datos locales
-    let result = [...PRODUCTS];
+  /**
+   * Obtiene los productos destacados (destacado = true) desde Supabase.
+   */
+  async getFeaturedProducts(): Promise<Product[]> {
+    try {
+      const supaProducts = await SupabaseService.getProductos();
+      if (!supaProducts || supaProducts.length === 0) return [];
 
-    if (params?.category && params.category !== 'todos' && params.category !== 'top' && params.category !== 'accesorios') {
-      result = result.filter((p) => p.category === params.category);
+      let featured = supaProducts.filter((p) => Boolean(p.destacado));
+      // Si ninguno está marcado como destacado, mostrar las prendas más recientes (hasta 4)
+      if (featured.length === 0) {
+        featured = supaProducts.slice(0, 4);
+      }
+
+      return featured.map((p) => SupabaseService.adaptSupabaseProductToFrontend(p));
+    } catch (err) {
+      console.error('Error al obtener productos destacados desde Supabase:', err);
+      return [];
     }
-
-    if (params?.subcategory) {
-      const q = params.subcategory.toLowerCase();
-      result = result.filter(
-        (p) =>
-          p.name.toLowerCase().includes(q) ||
-          p.subtitle.toLowerCase().includes(q) ||
-          p.description.toLowerCase().includes(q) ||
-          (q.includes('zip') && p.name.toLowerCase().includes('cierre'))
-      );
-    }
-
-    if (params?.filter === 'precios-unicos' || params?.filter === 'sale-60') {
-      result = result.filter((p) => Boolean(p.compareAtPrice));
-    }
-
-    return result;
   },
 
   /**
@@ -103,21 +132,91 @@ export const CatalogService = {
   async getProductBySlug(slugOrId: string): Promise<Product | null> {
     try {
       const supaProducts = await SupabaseService.getProductos();
-      const match = supaProducts.find(
-        (p) => p.id === slugOrId || p.nombre.toLowerCase().replace(/\s+/g, '-') === slugOrId
-      );
+      const match = supaProducts.find((p) => {
+        if (p.id === slugOrId) return true;
+        const computedSlug = p.subcategoria?.slug
+          ? `${p.subcategoria.slug}-${p.id.slice(0, 6)}`
+          : `prod-${p.id.slice(0, 8)}`;
+        return computedSlug === slugOrId || p.nombre.toLowerCase().replace(/\s+/g, '-') === slugOrId;
+      });
+
       if (match) {
         return SupabaseService.adaptSupabaseProductToFrontend(match);
       }
+      return null;
     } catch (err) {
-      console.warn('Fallback a productos locales:', err);
+      console.error('Error al obtener prenda desde Supabase:', err);
+      return null;
     }
-
-    return PRODUCTS.find((p) => p.slug === slugOrId || p.id === slugOrId) || null;
   },
 
   /**
-   * Obtiene la configuración del Mega Menú (Colección) dinámicamente desde Supabase.
+   * Obtiene todas las categorías principales desde Supabase.
+   */
+  async getCategories(): Promise<CategoryItem[]> {
+    try {
+      const supaCats = await SupabaseService.getCategorias();
+      if (!supaCats || supaCats.length === 0) return [];
+
+      return supaCats.map((c) => ({
+        id: c.nombre.toLowerCase().replace(/\s+/g, '-'),
+        name: c.nombre,
+        shortName: c.nombre,
+        description: `Colección de prendas ${c.nombre} Veelvet.`,
+        href: `/tienda?cat=${encodeURIComponent(c.nombre.toLowerCase())}`,
+      }));
+    } catch (err) {
+      console.error('Error al obtener categorías desde Supabase:', err);
+      return [];
+    }
+  },
+
+  /**
+   * Obtiene las categorías destacadas (destacada = true) desde Supabase.
+   */
+  async getFeaturedCategories(): Promise<CategoryItem[]> {
+    try {
+      const [cats, prods] = await Promise.all([
+        SupabaseService.getCategorias(),
+        SupabaseService.getProductos(),
+      ]);
+
+      if (!cats || cats.length === 0) return [];
+
+      // Filtrar categorías destacadas, o las primeras por orden si no hay ninguna con el flag
+      let featured = cats.filter((c) => Boolean(c.destacada));
+      if (featured.length === 0) {
+        featured = cats.slice(0, 3);
+      }
+
+      const defaultImgs = [
+        '/assets/images/buzo-negro.jpg',
+        '/assets/images/pantalon-beige.jpg',
+        '/assets/images/hero-look.jpg',
+      ];
+
+      return featured.map((c, idx) => {
+        // Asociar foto real de un producto de esta categoría si existe
+        const catProd = prods.find((p) => p.subcategoria?.categoria?.id === c.id || p.subcategoria?.categoria_id === c.id);
+        const prodImg = catProd?.imagenes_url?.[0];
+
+        return {
+          id: c.nombre.toLowerCase().replace(/\s+/g, '-'),
+          name: c.nombre,
+          shortName: c.nombre,
+          description: `Colección oficial Veelvet ${c.nombre} en frisa peinada pesada.`,
+          image: prodImg || defaultImgs[idx % defaultImgs.length],
+          href: `/tienda?cat=${encodeURIComponent(c.nombre.toLowerCase())}`,
+        };
+      });
+    } catch (err) {
+      console.error('Error al obtener categorías destacadas desde Supabase:', err);
+      return [];
+    }
+  },
+
+  /**
+   * Obtiene la configuración del Mega Menú (Colección) 100% dinámicamente desde Supabase.
    */
   async getMegaMenuConfig(): Promise<MegaMenuConfig> {
     try {
@@ -126,30 +225,9 @@ export const CatalogService = {
         return dynamicMenu;
       }
     } catch (err) {
-      console.warn('Usando megaMenuData local:', err);
+      console.error('Error al construir Mega Menú desde Supabase:', err);
     }
-    return MEGA_MENU_DATA;
-  },
-
-  /**
-   * Obtiene las categorías principales para la Home y filtros.
-   */
-  async getCategories(): Promise<CategoryItem[]> {
-    try {
-      const supaCats = await SupabaseService.getCategorias();
-      if (supaCats && supaCats.length > 0) {
-        return supaCats.map((c) => ({
-          id: c.nombre.toLowerCase(),
-          name: c.nombre,
-          shortName: c.nombre,
-          description: `Colección de prendas ${c.nombre} Veelvet.`,
-          href: `/tienda?cat=${encodeURIComponent(c.nombre.toLowerCase())}`,
-        }));
-      }
-    } catch (err) {
-      console.warn('Fallback categorías:', err);
-    }
-    return CATEGORIES;
+    return { columns: [] };
   },
 
   /**

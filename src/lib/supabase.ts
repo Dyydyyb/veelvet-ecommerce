@@ -13,6 +13,7 @@ export interface Categoria {
   id: string;
   nombre: string;
   orden: number;
+  destacada?: boolean;
 }
 
 export interface Subcategoria {

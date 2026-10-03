@@ -19,26 +19,68 @@ export const SupabaseService = {
     return data || [];
   },
 
-  async createCategoria(nombre: string, orden: number): Promise<Categoria> {
-    const { data, error } = await supabase
+  async createCategoria(nombre: string, orden: number, destacada: boolean = false): Promise<Categoria> {
+    let res = await supabase
       .from('categorias')
-      .insert([{ nombre, orden }])
+      .insert([{ nombre, orden, destacada }])
       .select()
       .single();
 
-    if (error) throw new Error(error.message);
-    return data;
+    // Fallback if column 'destacada' doesn't exist yet in Supabase schema
+    if (res.error && res.error.code === 'PGRST204') {
+      res = await supabase
+        .from('categorias')
+        .insert([{ nombre, orden }])
+        .select()
+        .single();
+    }
+
+    if (res.error) throw new Error(res.error.message);
+    return res.data;
   },
 
-  async updateCategoria(id: string, nombre: string, orden: number): Promise<Categoria> {
-    const { data, error } = await supabase
+  async updateCategoria(id: string, nombre: string, orden: number, destacada?: boolean): Promise<Categoria> {
+    const payload: any = { nombre, orden };
+    if (typeof destacada === 'boolean') {
+      payload.destacada = destacada;
+    }
+
+    let res = await supabase
       .from('categorias')
-      .update({ nombre, orden })
+      .update(payload)
       .eq('id', id)
       .select()
       .single();
 
-    if (error) throw new Error(error.message);
+    // Fallback if column 'destacada' doesn't exist yet in Supabase schema
+    if (res.error && res.error.code === 'PGRST204') {
+      delete payload.destacada;
+      res = await supabase
+        .from('categorias')
+        .update(payload)
+        .eq('id', id)
+        .select()
+        .single();
+    }
+
+    if (res.error) throw new Error(res.error.message);
+    return res.data;
+  },
+
+  async toggleCategoriaDestacada(id: string, currentState: boolean): Promise<Categoria> {
+    const { data, error } = await supabase
+      .from('categorias')
+      .update({ destacada: !currentState })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST204') {
+        throw new Error('La columna "destacada" no existe aún en tu tabla categorias. Ejecutá el SQL de configuración en Supabase.');
+      }
+      throw new Error(error.message);
+    }
     return data;
   },
 
@@ -250,6 +292,25 @@ export const SupabaseService = {
     if (error) throw new Error(error.message);
   },
 
+  async toggleProductoDestacado(id: string, currentState: boolean): Promise<Producto> {
+    const { data, error } = await supabase
+      .from('productos')
+      .update({ destacado: !currentState })
+      .eq('id', id)
+      .select(`
+        *,
+        subcategoria:subcategorias(id, nombre, slug, categoria:categorias(id, nombre, orden, destacada)),
+        tipo_oferta:tipos_oferta(id, nombre, etiqueta_badge, color_badge)
+      `)
+      .single();
+
+    if (error) throw new Error(error.message);
+    return {
+      ...data,
+      imagenes_url: Array.isArray(data.imagenes_url) ? data.imagenes_url : [],
+    };
+  },
+
   // ==========================================
   // 5. Adaptador de Supabase al Frontend Público
   // ==========================================
@@ -356,10 +417,10 @@ export const SupabaseService = {
   // ==========================================
   async seedInitialData(): Promise<{ success: boolean; message: string }> {
     try {
-      // 1. Crear Categorías
-      const top = await this.createCategoria('Top', 1);
-      const bottom = await this.createCategoria('Bottom', 2);
-      const accesorios = await this.createCategoria('Accesorios', 3);
+      // 1. Crear Categorías (Top y Bottom destacadas)
+      const top = await this.createCategoria('Top', 1, true);
+      const bottom = await this.createCategoria('Bottom', 2, true);
+      const accesorios = await this.createCategoria('Accesorios', 3, false);
 
       // 2. Crear Subcategorías
       const subsTop = ['Campera', 'Remeras', 'Musculosas', 'Camisas', 'Hoodies', 'Zip Up'];

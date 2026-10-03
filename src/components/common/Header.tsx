@@ -230,52 +230,68 @@ export function Header() {
               className="w-full bg-white border-t border-b border-beige-300/80 shadow-xl overflow-hidden mt-2 sm:mt-3"
             >
               <div className="max-w-7xl mx-auto px-6 sm:px-10 lg:px-12 py-9">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-8 lg:gap-14">
-                  {menuConfig.columns.map((column) => (
-                    <div key={column.id} className="flex flex-col">
-                      {column.title ? (
-                        <div className="mb-4">
-                          <h3 className="text-xl md:text-2xl font-black font-montserrat tracking-tight text-navy">
-                            {column.title}
-                          </h3>
-                          {column.hasUnderline && (
-                            <div className="w-full h-[1px] bg-navy/20 mt-2" />
-                          )}
-                        </div>
-                      ) : (
-                        // Height placeholder to align items with neighboring columns that have titles
-                        <div className="hidden md:block h-[37px] mb-4" />
-                      )}
+                {menuConfig.columns.length === 0 ? (
+                  <div className="py-8 text-center max-w-md mx-auto">
+                    <p className="text-xs text-navy/60 font-light mb-4">
+                      Explorá toda nuestra colección de prendas unisex y siluetas urbanas.
+                    </p>
+                    <Link
+                      to="/tienda"
+                      onClick={() => setCollectionDropdownOpen(false)}
+                      className="inline-flex items-center space-x-2 bg-navy text-white text-xs font-montserrat font-bold uppercase tracking-wider px-6 py-2.5 rounded-lg shadow-sm hover:bg-navy-500 transition-colors"
+                    >
+                      <span>Ver toda la colección</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-8 lg:gap-14">
+                    {menuConfig.columns.map((column) => (
+                      <div key={column.id} className="flex flex-col">
+                        {column.title ? (
+                          <div className="mb-4">
+                            <h3 className="text-xl md:text-2xl font-black font-montserrat tracking-tight text-navy">
+                              {column.title}
+                            </h3>
+                            {column.hasUnderline && (
+                              <div className="w-full h-[1px] bg-navy/20 mt-2" />
+                            )}
+                          </div>
+                        ) : (
+                          // Height placeholder to align items with neighboring columns that have titles
+                          <div className="hidden md:block h-[37px] mb-4" />
+                        )}
 
-                      <ul className="space-y-3">
-                        {column.items.map((item, idx) => (
-                          <li key={idx}>
-                            <Link
-                              to={item.href}
-                              onClick={() => setCollectionDropdownOpen(false)}
-                              className={`group/item inline-flex items-center space-x-2 text-sm transition-all duration-150 ${
-                                item.highlight
-                                  ? 'font-bold text-navy hover:text-navy-500'
-                                  : 'font-medium text-navy/80 hover:text-navy hover:translate-x-1'
-                              }`}
-                            >
-                              <span className="font-montserrat">{item.name}</span>
-                              {item.badge && (
-                                <span
-                                  className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
-                                    item.badgeColor || 'bg-beige-200 text-navy'
-                                  }`}
-                                >
-                                  {item.badge}
-                                </span>
-                              )}
-                            </Link>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
-                </div>
+                        <ul className="space-y-3">
+                          {column.items.map((item, idx) => (
+                            <li key={idx}>
+                              <Link
+                                to={item.href}
+                                onClick={() => setCollectionDropdownOpen(false)}
+                                className={`group/item inline-flex items-center space-x-2 text-sm transition-all duration-150 ${
+                                  item.highlight
+                                    ? 'font-bold text-navy hover:text-navy-500'
+                                    : 'font-medium text-navy/80 hover:text-navy hover:translate-x-1'
+                                }`}
+                              >
+                                <span className="font-montserrat">{item.name}</span>
+                                {item.badge && (
+                                  <span
+                                    className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
+                                      item.badgeColor || 'bg-beige-200 text-navy'
+                                    }`}
+                                  >
+                                    {item.badge}
+                                  </span>
+                                )}
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 {/* Bottom Highlight Bar */}
                 <div className="mt-8 pt-5 border-t border-beige-200 flex flex-col sm:flex-row items-center justify-between text-xs text-navy/70 gap-3">
@@ -401,40 +417,52 @@ export function Header() {
                           transition={{ duration: 0.25 }}
                           className="overflow-hidden pl-3 pr-2 py-2 space-y-4 bg-beige-50/70 rounded-xl my-2"
                         >
-                          {menuConfig.columns.map((col) => (
-                            <div key={col.id} className="space-y-1.5">
-                              {col.title ? (
-                                <p className="text-[11px] font-black uppercase tracking-wider text-navy border-b border-beige-200 pb-1">
-                                  {col.title}
-                                </p>
-                              ) : (
-                                <p className="text-[11px] font-black uppercase tracking-wider text-navy/60 border-b border-beige-200 pb-1">
-                                  Destacados & Drops
-                                </p>
-                              )}
-                              <div className="space-y-1 pl-1">
-                                {col.items.map((item, idx) => (
-                                  <Link
-                                    key={idx}
-                                    to={item.href}
-                                    onClick={() => setMobileMenuOpen(false)}
-                                    className="flex items-center justify-between py-1 text-xs font-semibold uppercase text-navy/85 hover:text-navy"
-                                  >
-                                    <span>{item.name}</span>
-                                    {item.badge && (
-                                      <span
-                                        className={`text-[8px] font-bold px-1.5 py-0.5 rounded ${
-                                          item.badgeColor || 'bg-beige-200 text-navy'
-                                        }`}
-                                      >
-                                        {item.badge}
-                                      </span>
-                                    )}
-                                  </Link>
-                                ))}
-                              </div>
+                          {menuConfig.columns.length === 0 ? (
+                            <div className="py-2 pl-1">
+                              <Link
+                                to="/tienda"
+                                onClick={() => setMobileMenuOpen(false)}
+                                className="text-xs font-bold underline uppercase text-navy"
+                              >
+                                Ver catálogo completo
+                              </Link>
                             </div>
-                          ))}
+                          ) : (
+                            menuConfig.columns.map((col) => (
+                              <div key={col.id} className="space-y-1.5">
+                                {col.title ? (
+                                  <p className="text-[11px] font-black uppercase tracking-wider text-navy border-b border-beige-200 pb-1">
+                                    {col.title}
+                                  </p>
+                                ) : (
+                                  <p className="text-[11px] font-black uppercase tracking-wider text-navy/60 border-b border-beige-200 pb-1">
+                                    Destacados & Drops
+                                  </p>
+                                )}
+                                <div className="space-y-1 pl-1">
+                                  {col.items.map((item, idx) => (
+                                    <Link
+                                      key={idx}
+                                      to={item.href}
+                                      onClick={() => setMobileMenuOpen(false)}
+                                      className="flex items-center justify-between py-1 text-xs font-semibold uppercase text-navy/85 hover:text-navy"
+                                    >
+                                      <span>{item.name}</span>
+                                      {item.badge && (
+                                        <span
+                                          className={`text-[8px] font-bold px-1.5 py-0.5 rounded ${
+                                            item.badgeColor || 'bg-beige-200 text-navy'
+                                          }`}
+                                        >
+                                          {item.badge}
+                                        </span>
+                                      )}
+                                    </Link>
+                                  ))}
+                                </div>
+                              </div>
+                            ))
+                          )}
                         </motion.div>
                       )}
                     </AnimatePresence>
