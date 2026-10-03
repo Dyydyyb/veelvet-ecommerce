@@ -325,12 +325,12 @@ export function ProductDetailPage() {
 
             {/* Direct WhatsApp consultation */}
             <a
-              href={`https://wa.me/5491100000000?text=Hola%20Veelvet!%20Tengo%20una%20consulta%20sobre%20el%20producto%20${encodeURIComponent(product.name)}`}
+              href={`https://wa.me/5491136291392?text=Hola%20Veelvet!%20Tengo%20una%20consulta%20sobre%20el%20producto%20${encodeURIComponent(product.name)}`}
               target="_blank"
               rel="noopener noreferrer"
               className="w-full py-3 bg-beige-100 hover:bg-beige-200 text-navy font-bold text-xs uppercase tracking-wider rounded-lg transition-colors border border-beige-300 flex items-center justify-center space-x-2"
             >
-              <span>Consultar por WhatsApp</span>
+              <span>Consultar por WhatsApp (11 3629-1392)</span>
             </a>
           </div>
 

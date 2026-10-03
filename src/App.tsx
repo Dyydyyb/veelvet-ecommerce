@@ -5,6 +5,7 @@ import { Header } from './components/common/Header';
 import { Footer } from './components/common/Footer';
 import { CustomCursor } from './components/common/CustomCursor';
 import { Toast } from './components/common/Toast';
+import { FloatingWhatsApp } from './components/common/FloatingWhatsApp';
 import { CartDrawer } from './components/cart/CartDrawer';
 import { SizeGuideModal } from './components/product/SizeGuideModal';
 
@@ -45,10 +46,11 @@ export function App() {
       {/* Desktop Custom Cursor */}
       <CustomCursor />
 
-      {/* Global Modals and Drawers */}
+      {/* Global Modals, Drawers and Floating Support */}
       <CartDrawer />
       <SizeGuideModal />
       <Toast />
+      <FloatingWhatsApp />
       <ScrollToTop />
 
       <div className="flex flex-col min-h-screen bg-white text-navy selection:bg-beige-300 selection:text-navy">

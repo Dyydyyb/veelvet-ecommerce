@@ -349,12 +349,12 @@ export function HomePage() {
                 </Link>
 
                 <a
-                  href="https://wa.me/5491100000000?text=Hola%20Veelvet!%20Quiero%20reservar%20un%20turno%20para%20visitar%20el%20showroom%20en%20Quilmes."
+                  href="https://wa.me/5491136291392?text=Hola%20Veelvet!%20Quiero%20reservar%20un%20turno%20para%20visitar%20el%20showroom%20en%20Quilmes."
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center justify-center text-xs font-bold uppercase tracking-wider bg-white text-navy hover:bg-beige-50 px-6 py-4 rounded-md border border-beige-300 transition-colors"
                 >
-                  Consultar por WhatsApp
+                  Consultar por WhatsApp (11 3629-1392)
                 </a>
               </div>
             </div>

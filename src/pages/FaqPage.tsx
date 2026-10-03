@@ -66,13 +66,13 @@ export function FaqPage() {
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
           <a
-            href="https://wa.me/5491100000000?text=Hola%20Veelvet!%20Tengo%20una%20consulta"
+            href="https://wa.me/5491136291392?text=Hola%20Veelvet!%20Tengo%20una%20consulta"
             target="_blank"
             rel="noopener noreferrer"
             className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 bg-navy text-white px-6 py-3 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-navy-500 transition-colors"
           >
             <MessageCircle className="w-4 h-4" />
-            <span>Hablar por WhatsApp</span>
+            <span>Hablar por WhatsApp (11 3629-1392)</span>
           </a>
           <Link
             to="/showroom"

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Trash2, Plus, Minus, ArrowRight, ShoppingBag, Truck, Tag } from 'lucide-react';
+import { X, Trash2, Plus, Minus, ArrowRight, ShoppingBag, Truck, Tag, MessageCircle } from 'lucide-react';
 import { useCartStore } from '../../store/cartStore';
+import { WHATSAPP_BASE_URL } from '../../config/constants';
 
 export function CartDrawer() {
   const {
@@ -286,6 +287,20 @@ export function CartDrawer() {
                     <span>Iniciar compra</span>
                     <ArrowRight className="w-4 h-4" />
                   </Link>
+
+                  {/* Direct WhatsApp Option */}
+                  <a
+                    href={`${WHATSAPP_BASE_URL}?text=${encodeURIComponent(
+                      `¡Hola Veelvet! 👋 Tengo ${items.length} prenda(s) en mi carrito por un total estimado de ${formatPrice(total)} y quisiera coordinar el pedido:\n` +
+                      items.map((i) => `• ${i.quantity}x ${i.product.name} (Talle: ${i.size})`).join('\n')
+                    )}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-3 bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#128C7E] font-montserrat font-bold text-[11px] uppercase tracking-wider rounded-lg transition-colors flex items-center justify-center space-x-2 border border-[#25D366]/30 cursor-pointer"
+                  >
+                    <MessageCircle className="w-4 h-4 text-[#25D366]" />
+                    <span>Pedir por WhatsApp</span>
+                  </a>
 
                   <p className="text-[10px] text-center text-navy/60">
                     Compra protegida • Cuotas sin interés • Envíos a todo el país

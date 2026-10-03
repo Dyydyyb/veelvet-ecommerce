@@ -3,7 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useCartStore } from '../store/cartStore';
 import { SHIPPING_METHODS, ShippingMethod } from '../data/shippingMethods';
 import { SectionTitle } from '../components/common/SectionTitle';
-import { Truck, MapPin, CheckCircle2, ShieldCheck, CreditCard, ArrowLeft, ArrowRight, Lock } from 'lucide-react';
+import { Truck, MapPin, CheckCircle2, ShieldCheck, CreditCard, ArrowLeft, ArrowRight, Lock, MessageCircle } from 'lucide-react';
+import { WHATSAPP_DISPLAY, getWhatsAppLink } from '../config/constants';
 import confetti from 'canvas-confetti';
 
 export function CheckoutPage() {
@@ -14,6 +15,8 @@ export function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState<'transferencia' | 'tarjeta' | 'mercadopago'>('transferencia');
   const [orderComplete, setOrderComplete] = useState(false);
   const [orderNumber, setOrderNumber] = useState('');
+  const [whatsappOrderUrl, setWhatsappOrderUrl] = useState('');
+  const [orderItemsSnapshot, setOrderItemsSnapshot] = useState<typeof items>([]);
 
   const [formData, setFormData] = useState({
     email: '',
@@ -53,6 +56,47 @@ export function CheckoutPage() {
     e.preventDefault();
     const randomId = 'VVT-' + Math.floor(100000 + Math.random() * 900000);
     setOrderNumber(randomId);
+
+    // Snapshot cart items before clearing
+    const currentItems = [...items];
+    setOrderItemsSnapshot(currentItems);
+
+    const itemsSummary = currentItems
+      .map(
+        (item) =>
+          `• ${item.quantity}x ${item.product.name} (Talle: ${item.size} | Color: ${item.colorName}) - ${formatPrice(
+            item.product.price * item.quantity
+          )}`
+      )
+      .join('\n');
+
+    const paymentLabel =
+      paymentMethod === 'transferencia'
+        ? 'Transferencia Bancaria (10% OFF aplicado)'
+        : paymentMethod === 'tarjeta'
+        ? 'Tarjeta en cuotas'
+        : 'Mercado Pago';
+
+    const orderMessage =
+      `*NUEVO PEDIDO VEELVET* 🛍️\n` +
+      `*Orden:* #${randomId}\n\n` +
+      `👤 *Datos del Comprador:*\n` +
+      `• Nombre: ${formData.name} ${formData.lastName}\n` +
+      `• DNI: ${formData.dni}\n` +
+      `• Teléfono: ${formData.phone}\n` +
+      `• Email: ${formData.email}\n` +
+      `• Entrega: ${formData.street} ${formData.number}${formData.floor ? ' Depto ' + formData.floor : ''}, ${formData.city}, ${formData.province} (CP ${formData.postalCode})\n` +
+      (formData.notes ? `• Notas: ${formData.notes}\n` : '') +
+      `\n📦 *Prendas del Pedido:*\n${itemsSummary}\n\n` +
+      `🚚 *Método de Envío:* ${selectedShipping.name} (${shippingCost === 0 ? 'GRATIS' : formatPrice(shippingCost)})\n` +
+      `💳 *Medio de Pago:* ${paymentLabel}\n` +
+      (transferDiscount > 0 ? `🎁 *Descuento Transferencia:* -${formatPrice(transferDiscount)}\n` : '') +
+      (discount > 0 ? `🎟️ *Descuento Cupón:* -${formatPrice(discount)}\n` : '') +
+      `💰 *TOTAL A PAGAR:* ${formatPrice(finalTotal)}\n\n` +
+      `¡Hola Veelvet! 👋 Acabo de realizar este pedido en la tienda online. Les envío los datos para coordinar el pago y la entrega. ¡Muchas gracias!`;
+
+    const waUrl = getWhatsAppLink(orderMessage);
+    setWhatsappOrderUrl(waUrl);
     setOrderComplete(true);
 
     // Fire celebration confetti
@@ -65,6 +109,13 @@ export function CheckoutPage() {
       });
     } catch {
       // ignore
+    }
+
+    // Automatically redirect to WhatsApp in a new tab/window
+    try {
+      window.open(waUrl, '_blank');
+    } catch (err) {
+      console.warn('Popup blocked, customer can click the button:', err);
     }
 
     clearCart();
@@ -114,7 +165,7 @@ export function CheckoutPage() {
               ¡Gracias por tu compra!
             </h2>
             <p className="text-sm text-navy/80 font-light mt-2 max-w-md mx-auto leading-relaxed">
-              Hemos generado tu orden con éxito. Te enviamos los detalles a <strong>{formData.email || 'tu correo'}</strong> y un mensaje de confirmación por WhatsApp.
+              Hemos generado tu orden con éxito y te enviamos los detalles a WhatsApp oficial de Veelvet para coordinar el pago y despacho.
             </p>
           </div>
 
@@ -136,21 +187,29 @@ export function CheckoutPage() {
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+          {/* Primary Action: Direct WhatsApp CTA Button */}
+          <div className="pt-2 space-y-3">
+            <a
+              href={whatsappOrderUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full py-4 px-6 bg-[#25D366] hover:bg-[#20ba5a] text-white text-xs sm:text-sm font-montserrat font-bold uppercase tracking-wider rounded-xl transition-all shadow-lg flex items-center justify-center space-x-2.5 cursor-pointer transform hover:scale-[1.01]"
+            >
+              <MessageCircle className="w-5 h-5 fill-white stroke-none" />
+              <span>Enviar Pedido a WhatsApp ({WHATSAPP_DISPLAY})</span>
+            </a>
+            <p className="text-[11px] text-navy/60 font-light">
+              Si no se abrió WhatsApp automáticamente, hacé clic en el botón verde para enviar los datos de tu orden al número oficial de Veelvet.
+            </p>
+          </div>
+
+          <div className="pt-3 border-t border-beige-200 flex justify-center">
             <Link
               to="/"
-              className="w-full sm:w-auto px-6 py-3.5 bg-navy text-white text-xs font-bold uppercase tracking-wider rounded-lg hover:bg-navy-500 transition-colors"
+              className="w-full sm:w-auto px-6 py-3 bg-beige-200 text-navy text-xs font-bold uppercase tracking-wider rounded-lg hover:bg-beige-300 transition-colors border border-beige-300"
             >
               Volver al inicio
             </Link>
-            <a
-              href={`https://wa.me/5491100000000?text=Hola%20Veelvet!%20Acabo%20de%20realizar%20la%20orden%20${orderNumber}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full sm:w-auto px-6 py-3.5 bg-beige-200 text-navy text-xs font-bold uppercase tracking-wider rounded-lg hover:bg-beige-300 transition-colors border border-beige-300"
-            >
-              Consultar por WhatsApp
-            </a>
           </div>
         </div>
       ) : (

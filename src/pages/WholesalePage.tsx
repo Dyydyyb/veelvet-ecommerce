@@ -109,12 +109,12 @@ export function WholesalePage() {
               ¿Preferís coordinar directo por WhatsApp?
             </p>
             <a
-              href="https://wa.me/5491100000000?text=Hola%20Veelvet!%20Quiero%20informaci%C3%B3n%20sobre%20compras%20mayoristas."
+              href="https://wa.me/5491136291392?text=Hola%20Veelvet!%20Quiero%20informaci%C3%B3n%20sobre%20compras%20mayoristas."
               target="_blank"
               rel="noopener noreferrer"
               className="inline-block mt-2 font-montserrat font-bold text-xs uppercase text-navy hover:text-navy-500 underline"
             >
-              Chatear con un asesor comercial →
+              Chatear con un asesor comercial (11 3629-1392) →
             </a>
           </div>
         </div>

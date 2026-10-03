@@ -102,13 +102,13 @@ export function ShowroomPage() {
               ¿Querés venir hoy mismo o tenés dudas con el horario?
             </p>
             <a
-              href="https://wa.me/5491100000000?text=Hola%20Veelvet!%20Quisiera%20saber%20si%20tienen%20disponibilidad%20hoy%20en%20el%20showroom%20de%20Quilmes."
+              href="https://wa.me/5491136291392?text=Hola%20Veelvet!%20Quisiera%20saber%20si%20tienen%20disponibilidad%20hoy%20en%20el%20showroom%20de%20Quilmes."
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center space-x-2 mt-3 bg-beige-200 hover:bg-beige-300 text-navy px-4 py-2.5 rounded-lg text-xs font-bold uppercase transition-colors border border-beige-300"
             >
               <MessageCircle className="w-4 h-4" />
-              <span>Consultar disponibilidad inmediata</span>
+              <span>Consultar disponibilidad por WhatsApp (11 3629-1392)</span>
             </a>
           </div>
         </div>

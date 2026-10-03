@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, CheckCircle2, MapPin, Truck, ShieldCheck, CreditCard } from 'lucide-react';
+import { ArrowRight, CheckCircle2, MapPin, Truck, ShieldCheck, CreditCard, MessageCircle } from 'lucide-react';
 import { InstagramIcon } from './Icons';
+import { WHATSAPP_BASE_URL, WHATSAPP_DISPLAY } from '../../config/constants';
 
 export function Footer() {
   const [email, setEmail] = useState('');
@@ -34,7 +35,7 @@ export function Footer() {
             <p className="text-sm text-navy/70 max-w-sm font-light leading-relaxed">
               Marca argentina de indumentaria urbana unisex. Buzos con cierre de frisa pesada, pantalones anchos y conjuntos esenciales diseñados con calce holgado y materiales prémium.
             </p>
-            <div className="pt-2 flex items-center space-x-3 text-xs tracking-wider uppercase font-semibold text-navy/80">
+            <div className="pt-2 flex flex-wrap items-center gap-2.5 text-xs tracking-wider uppercase font-semibold text-navy/80">
               <a
                 href="https://instagram.com/veelvet.shop"
                 target="_blank"
@@ -43,6 +44,15 @@ export function Footer() {
               >
                 <InstagramIcon className="w-4 h-4" />
                 <span>@veelvet.shop</span>
+              </a>
+              <a
+                href={`${WHATSAPP_BASE_URL}?text=Hola%20Veelvet!%20Tengo%20una%20consulta.`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center space-x-2 bg-beige-200 hover:bg-beige-300 px-3.5 py-2 rounded-full border border-beige-300/80 transition-colors"
+              >
+                <MessageCircle className="w-4 h-4 text-[#25D366]" />
+                <span>{WHATSAPP_DISPLAY}</span>
               </a>
               <Link
                 to="/showroom"
