@@ -1,20 +1,36 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Package, Layers, Tag, Settings, ExternalLink, RefreshCw, Sparkles, ShieldCheck } from 'lucide-react';
+import { Package, Layers, Tag, Settings, ExternalLink, RefreshCw, Sparkles, ShieldCheck, LogOut } from 'lucide-react';
 import { ProductsManager } from '../../components/admin/ProductsManager';
 import { CategoriesManager } from '../../components/admin/CategoriesManager';
 import { OfferTypesManager } from '../../components/admin/OfferTypesManager';
 import { R2ConfigGuide } from '../../components/admin/R2ConfigGuide';
+import { AdminLogin } from '../../components/admin/AdminLogin';
 import { SupabaseService } from '../../services/supabaseService';
 import { Producto, Subcategoria, Categoria, TipoOferta } from '../../lib/supabase';
 
 export function AdminPage() {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem('veelvet_admin_auth') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
   const [activeTab, setActiveTab] = useState<'productos' | 'categorias' | 'ofertas' | 'config'>('productos');
   const [productos, setProductos] = useState<Producto[]>([]);
   const [subcategorias, setSubcategorias] = useState<Subcategoria[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [tiposOferta, setTiposOferta] = useState<TipoOferta[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  const handleLogout = () => {
+    try {
+      sessionStorage.removeItem('veelvet_admin_auth');
+    } catch (_) {}
+    setIsAuthenticated(false);
+  };
 
   const loadAllData = async () => {
     try {
@@ -38,8 +54,14 @@ export function AdminPage() {
   };
 
   useEffect(() => {
-    loadAllData();
-  }, []);
+    if (isAuthenticated) {
+      loadAllData();
+    }
+  }, [isAuthenticated]);
+
+  if (!isAuthenticated) {
+    return <AdminLogin onLoginSuccess={() => setIsAuthenticated(true)} />;
+  }
 
   return (
     <div className="min-h-screen bg-[#F7F5F0] text-navy flex flex-col font-sans">
@@ -91,6 +113,22 @@ export function AdminPage() {
               <span>Ver Tienda</span>
               <ExternalLink className="w-3.5 h-3.5" />
             </Link>
+
+            {/* Admin User Badge */}
+            <div className="hidden lg:flex items-center space-x-1.5 text-xs text-navy/80 bg-beige-100 px-3 py-2 rounded-lg border border-beige-300">
+              <span className="w-2 h-2 rounded-full bg-navy animate-pulse" />
+              <span className="font-mono text-[11px] font-bold">VeelvetAdmin</span>
+            </div>
+
+            {/* Logout Button */}
+            <button
+              onClick={handleLogout}
+              className="inline-flex items-center space-x-1.5 text-xs font-bold uppercase tracking-wider bg-red-50 hover:bg-red-100 text-red-700 px-3 py-2 rounded-lg border border-red-200 transition-colors cursor-pointer"
+              title="Cerrar sesión de administrador"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Salir</span>
+            </button>
           </div>
         </div>
 
