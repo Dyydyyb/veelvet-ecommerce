@@ -13,6 +13,7 @@ export interface Categoria {
   id: string;
   nombre: string;
   orden: number;
+  imagen_url?: string;
   destacada?: boolean;
 }
 
@@ -21,6 +22,7 @@ export interface Subcategoria {
   categoria_id: string;
   nombre: string;
   slug: string;
+  imagen_url?: string;
   destacada?: boolean;
   categoria?: Categoria;
 }

@@ -21,7 +21,7 @@ export function Header() {
         setMenuConfig(data);
       }
     });
-  }, []);
+  }, [collectionDropdownOpen]);
 
   const location = useLocation();
   const dropdownContainerRef = useRef<HTMLDivElement>(null);

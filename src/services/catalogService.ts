@@ -315,7 +315,7 @@ export const CatalogService = {
           name: c.nombre,
           shortName: c.nombre,
           description: `Colección oficial Veelvet ${c.nombre} en frisa peinada pesada.`,
-          image: prodImg || defaultImgs[idx % defaultImgs.length],
+          image: c.imagen_url || prodImg || defaultImgs[idx % defaultImgs.length],
           href: `/tienda?cat=${encodeURIComponent(c.nombre.toLowerCase())}`,
         });
       });
@@ -332,7 +332,7 @@ export const CatalogService = {
           name: s.nombre,
           shortName: s.nombre,
           description: `Línea exclusiva ${s.nombre} Veelvet con siluetas oversized unisex.`,
-          image: prodImg || defaultImgs[(featuredCats.length + idx) % defaultImgs.length],
+          image: s.imagen_url || prodImg || defaultImgs[(featuredCats.length + idx) % defaultImgs.length],
           href: `/tienda?sub=${encodeURIComponent(s.slug || s.nombre.toLowerCase())}`,
         });
       });

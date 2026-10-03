@@ -45,12 +45,19 @@ function parseRawProduct(raw: any): Producto {
   };
 }
 
+export interface AppFeaturedConfig {
+  featured_categories: string[];
+  featured_subcategories: string[];
+  category_images?: Record<string, string>;
+  subcategory_images?: Record<string, string>;
+  menu_lateral_subcategories?: Array<{ id: string; orden: number }>;
+}
+
 export const SupabaseService = {
   // ==========================================
+  // Helper: Configuración Persistente en Supabase (Categorías, Subcategorías Destacadas, Imágenes y Menú Lateral)
   // ==========================================
-  // Helper: Configuración Persistente en Supabase (Categorías y Subcategorías Destacadas)
-  // ==========================================
-  async getFeaturedConfig(): Promise<{ featured_categories: string[]; featured_subcategories: string[] }> {
+  async getFeaturedConfig(): Promise<AppFeaturedConfig> {
     try {
       const { data } = await supabase
         .from('tipos_oferta')
@@ -63,15 +70,18 @@ export const SupabaseService = {
         return {
           featured_categories: Array.isArray(parsed.featured_categories) ? parsed.featured_categories : [],
           featured_subcategories: Array.isArray(parsed.featured_subcategories) ? parsed.featured_subcategories : [],
+          category_images: typeof parsed.category_images === 'object' && parsed.category_images !== null ? parsed.category_images : {},
+          subcategory_images: typeof parsed.subcategory_images === 'object' && parsed.subcategory_images !== null ? parsed.subcategory_images : {},
+          menu_lateral_subcategories: Array.isArray(parsed.menu_lateral_subcategories) ? parsed.menu_lateral_subcategories : undefined,
         };
       }
     } catch (err) {
       console.warn('Error al leer configuración de destacados desde Supabase:', err);
     }
-    return { featured_categories: [], featured_subcategories: [] };
+    return { featured_categories: [], featured_subcategories: [], category_images: {}, subcategory_images: {} };
   },
 
-  async saveFeaturedConfig(config: { featured_categories: string[]; featured_subcategories: string[] }): Promise<void> {
+  async saveFeaturedConfig(config: AppFeaturedConfig): Promise<void> {
     try {
       const { data: existing } = await supabase
         .from('tipos_oferta')
@@ -111,39 +121,46 @@ export const SupabaseService = {
     return (cats || []).map((c) => ({
       ...c,
       destacada: Boolean(c.destacada || featuredConfig.featured_categories.includes(c.id)),
+      imagen_url: featuredConfig.category_images?.[c.id] || c.imagen_url || '',
     }));
   },
 
-  async createCategoria(nombre: string, orden: number, destacada: boolean = false): Promise<Categoria> {
+  async createCategoria(nombre: string, orden: number, destacada: boolean = false, imagen_url?: string): Promise<Categoria> {
     let res = await supabase
       .from('categorias')
-      .insert([{ nombre, orden, destacada }])
+      .insert([{ nombre, orden }])
       .select()
       .single();
 
-    // Fallback if column 'destacada' doesn't exist yet in Supabase schema
-    if (res.error && res.error.code === 'PGRST204') {
-      res = await supabase
-        .from('categorias')
-        .insert([{ nombre, orden }])
-        .select()
-        .single();
-    }
-
     if (res.error) throw new Error(res.error.message);
 
-    if (destacada && res.data?.id) {
-      await this.toggleCategoriaDestacada(res.data.id, false);
+    if (res.data?.id) {
+      const config = await this.getFeaturedConfig();
+      let changed = false;
+      if (destacada) {
+        if (!config.featured_categories.includes(res.data.id)) {
+          config.featured_categories.push(res.data.id);
+          changed = true;
+        }
+      }
+      if (imagen_url?.trim()) {
+        if (!config.category_images) config.category_images = {};
+        config.category_images[res.data.id] = imagen_url.trim();
+        changed = true;
+      }
+      if (changed) {
+        await this.saveFeaturedConfig(config);
+      }
     }
-    return res.data;
+    return {
+      ...res.data,
+      destacada,
+      imagen_url: imagen_url?.trim() || '',
+    };
   },
 
-  async updateCategoria(id: string, nombre: string, orden: number, destacada?: boolean): Promise<Categoria> {
+  async updateCategoria(id: string, nombre: string, orden: number, destacada?: boolean, imagen_url?: string): Promise<Categoria> {
     const payload: any = { nombre, orden };
-    if (typeof destacada === 'boolean') {
-      payload.destacada = destacada;
-    }
-
     let res = await supabase
       .from('categorias')
       .update(payload)
@@ -151,30 +168,42 @@ export const SupabaseService = {
       .select()
       .single();
 
-    // Fallback if column 'destacada' doesn't exist yet in Supabase schema
-    if (res.error && res.error.code === 'PGRST204') {
-      delete payload.destacada;
-      res = await supabase
-        .from('categorias')
-        .update(payload)
-        .eq('id', id)
-        .select()
-        .single();
-    }
-
     if (res.error) throw new Error(res.error.message);
 
+    const config = await this.getFeaturedConfig();
+    let changed = false;
+
     if (typeof destacada === 'boolean') {
-      const config = await this.getFeaturedConfig();
       if (destacada) {
         if (!config.featured_categories.includes(id)) config.featured_categories.push(id);
       } else {
         config.featured_categories = config.featured_categories.filter((cid) => cid !== id);
       }
+      changed = true;
+    }
+
+    if (typeof imagen_url === 'string') {
+      if (!config.category_images) config.category_images = {};
+      config.category_images[id] = imagen_url.trim();
+      changed = true;
+    }
+
+    if (changed) {
       await this.saveFeaturedConfig(config);
     }
 
-    return res.data;
+    return {
+      ...res.data,
+      destacada: typeof destacada === 'boolean' ? destacada : config.featured_categories.includes(id),
+      imagen_url: typeof imagen_url === 'string' ? imagen_url.trim() : (config.category_images?.[id] || ''),
+    };
+  },
+
+  async updateCategoriaImagen(id: string, imagen_url: string): Promise<void> {
+    const config = await this.getFeaturedConfig();
+    if (!config.category_images) config.category_images = {};
+    config.category_images[id] = imagen_url.trim();
+    await this.saveFeaturedConfig(config);
   },
 
   async toggleCategoriaDestacada(id: string, currentState: boolean): Promise<Categoria> {
@@ -198,6 +227,7 @@ export const SupabaseService = {
     return {
       ...(data || { id, nombre: '', orden: 1 }),
       destacada: targetState,
+      imagen_url: config.category_images?.[id] || '',
     };
   },
 
@@ -205,10 +235,18 @@ export const SupabaseService = {
     const { error } = await supabase.from('categorias').delete().eq('id', id);
     if (error) throw new Error(error.message);
 
-    // Limpiar de destacados si estaba
+    // Limpiar de configuración si estaba
     const config = await this.getFeaturedConfig();
+    let changed = false;
     if (config.featured_categories.includes(id)) {
       config.featured_categories = config.featured_categories.filter((cid) => cid !== id);
+      changed = true;
+    }
+    if (config.category_images && config.category_images[id]) {
+      delete config.category_images[id];
+      changed = true;
+    }
+    if (changed) {
       await this.saveFeaturedConfig(config);
     }
   },
@@ -232,6 +270,7 @@ export const SupabaseService = {
     return (subs || []).map((s) => ({
       ...s,
       destacada: Boolean(s.destacada || featuredConfig.featured_subcategories.includes(s.id)),
+      imagen_url: featuredConfig.subcategory_images?.[s.id] || s.imagen_url || '',
     }));
   },
 
@@ -261,10 +300,11 @@ export const SupabaseService = {
     return {
       ...(data || { id, categoria_id: '', nombre: '', slug: '' }),
       destacada: targetState,
+      imagen_url: config.subcategory_images?.[id] || '',
     };
   },
 
-  async createSubcategoria(categoria_id: string, nombre: string, slug?: string): Promise<Subcategoria> {
+  async createSubcategoria(categoria_id: string, nombre: string, slug?: string, imagen_url?: string): Promise<Subcategoria> {
     const computedSlug = slug?.trim() || nombre.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
     const { data, error } = await supabase
       .from('subcategorias')
@@ -273,10 +313,21 @@ export const SupabaseService = {
       .single();
 
     if (error) throw new Error(error.message);
-    return data;
+
+    if (data?.id && imagen_url?.trim()) {
+      const config = await this.getFeaturedConfig();
+      if (!config.subcategory_images) config.subcategory_images = {};
+      config.subcategory_images[data.id] = imagen_url.trim();
+      await this.saveFeaturedConfig(config);
+    }
+
+    return {
+      ...data,
+      imagen_url: imagen_url?.trim() || '',
+    };
   },
 
-  async updateSubcategoria(id: string, categoria_id: string, nombre: string, slug?: string): Promise<Subcategoria> {
+  async updateSubcategoria(id: string, categoria_id: string, nombre: string, slug?: string, imagen_url?: string): Promise<Subcategoria> {
     const computedSlug = slug?.trim() || nombre.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
     const { data, error } = await supabase
       .from('subcategorias')
@@ -286,19 +337,81 @@ export const SupabaseService = {
       .single();
 
     if (error) throw new Error(error.message);
-    return data;
+
+    const config = await this.getFeaturedConfig();
+    let changed = false;
+
+    if (typeof imagen_url === 'string') {
+      if (!config.subcategory_images) config.subcategory_images = {};
+      config.subcategory_images[id] = imagen_url.trim();
+      changed = true;
+    }
+
+    if (changed) {
+      await this.saveFeaturedConfig(config);
+    }
+
+    return {
+      ...data,
+      destacada: config.featured_subcategories.includes(id),
+      imagen_url: typeof imagen_url === 'string' ? imagen_url.trim() : (config.subcategory_images?.[id] || ''),
+    };
+  },
+
+  async updateSubcategoriaImagen(id: string, imagen_url: string): Promise<void> {
+    const config = await this.getFeaturedConfig();
+    if (!config.subcategory_images) config.subcategory_images = {};
+    config.subcategory_images[id] = imagen_url.trim();
+    await this.saveFeaturedConfig(config);
   },
 
   async deleteSubcategoria(id: string): Promise<void> {
     const { error } = await supabase.from('subcategorias').delete().eq('id', id);
     if (error) throw new Error(error.message);
 
-    // Limpiar de destacados si estaba
+    // Limpiar de configuración si estaba
     const config = await this.getFeaturedConfig();
+    let changed = false;
     if (config.featured_subcategories.includes(id)) {
       config.featured_subcategories = config.featured_subcategories.filter((sid) => sid !== id);
+      changed = true;
+    }
+    if (config.subcategory_images && config.subcategory_images[id]) {
+      delete config.subcategory_images[id];
+      changed = true;
+    }
+    if (config.menu_lateral_subcategories) {
+      const filtered = config.menu_lateral_subcategories.filter((item) => item.id !== id);
+      if (filtered.length !== config.menu_lateral_subcategories.length) {
+        config.menu_lateral_subcategories = filtered;
+        changed = true;
+      }
+    }
+    if (changed) {
       await this.saveFeaturedConfig(config);
     }
+  },
+
+  // ==========================================
+  // Helper: Gestión del Menú Lateral de Colección (Header Mega Menú)
+  // ==========================================
+  async getMenuLateralSubcategorias(): Promise<Array<{ id: string; orden: number }>> {
+    const config = await this.getFeaturedConfig();
+    if (Array.isArray(config.menu_lateral_subcategories)) {
+      return [...config.menu_lateral_subcategories].sort((a, b) => a.orden - b.orden);
+    }
+    // Si aún no está configurado, devolver las primeras subcategorías
+    const subs = await this.getSubcategorias();
+    return subs.slice(0, 4).map((s, idx) => ({ id: s.id, orden: idx + 1 }));
+  },
+
+  async saveMenuLateralSubcategorias(items: Array<{ id: string; orden: number }>): Promise<void> {
+    const config = await this.getFeaturedConfig();
+    config.menu_lateral_subcategories = items.map((it, idx) => ({
+      id: it.id,
+      orden: typeof it.orden === 'number' ? it.orden : idx + 1,
+    }));
+    await this.saveFeaturedConfig(config);
   },
 
   // ==========================================
@@ -652,18 +765,19 @@ export const SupabaseService = {
    */
   async buildMegaMenuFromSupabase(): Promise<MegaMenuConfig | null> {
     try {
-      const [categorias, subcategorias, tiposOferta] = await Promise.all([
+      const [categorias, subcategorias, tiposOferta, featuredConfig] = await Promise.all([
         this.getCategorias(),
         this.getSubcategorias(),
         this.getTiposOferta(),
+        this.getFeaturedConfig(),
       ]);
 
       if (categorias.length === 0 && subcategorias.length === 0) {
         return null; // fallback a megaMenuData local
       }
 
-      // Columna 1: Destacados y Tipos de Oferta
-      const col1Items = tiposOferta.map((to) => ({
+      // Columna 1: Tipos de Oferta y Subcategorías de la sección lateral izquierda
+      const col1OfferItems = tiposOferta.map((to) => ({
         name: to.nombre,
         href: `/tienda?filter=${encodeURIComponent(to.etiqueta_badge.toLowerCase())}`,
         badge: to.etiqueta_badge,
@@ -671,16 +785,34 @@ export const SupabaseService = {
         highlight: true,
       }));
 
-      // Agregar algunas subcategorías destacadas si hay espacio
-      const topSubs = subcategorias.slice(0, 5).map((s) => ({
-        name: s.nombre,
-        href: `/tienda?cat=${s.categoria?.nombre.toLowerCase() || 'todos'}&sub=${s.slug}`,
-      }));
+      // Subcategorías de la sección lateral izquierda:
+      // Si el usuario configuró menu_lateral_subcategories, respetamos rigurosamente su orden y selección.
+      // Si una subcategoría fue eliminada de esta sección, no se muestra acá.
+      let lateralSubsList: Array<{ name: string; href: string }> = [];
+
+      if (Array.isArray(featuredConfig.menu_lateral_subcategories)) {
+        const sorted = [...featuredConfig.menu_lateral_subcategories].sort((a, b) => a.orden - b.orden);
+        lateralSubsList = sorted
+          .map((item) => {
+            const sub = subcategorias.find((s) => s.id === item.id);
+            if (!sub) return null;
+            return {
+              name: sub.nombre,
+              href: `/tienda?cat=${sub.categoria?.nombre.toLowerCase() || 'todos'}&sub=${sub.slug}`,
+            };
+          })
+          .filter((item): item is { name: string; href: string } => item !== null);
+      } else {
+        lateralSubsList = subcategorias.slice(0, 5).map((s) => ({
+          name: s.nombre,
+          href: `/tienda?cat=${s.categoria?.nombre.toLowerCase() || 'todos'}&sub=${s.slug}`,
+        }));
+      }
 
       const columns: MegaMenuConfig['columns'] = [
         {
           id: 'destacados',
-          items: [...col1Items, ...topSubs],
+          items: [...col1OfferItems, ...lateralSubsList],
         },
       ];
 
