@@ -21,6 +21,7 @@ import { WholesalePage } from './pages/WholesalePage';
 import { ShowroomPage } from './pages/ShowroomPage';
 import { CheckoutPage } from './pages/CheckoutPage';
 import { NotFoundPage } from './pages/NotFoundPage';
+import { AdminPage } from './pages/admin/AdminPage';
 
 // Scroll to top helper on route change
 function ScrollToTop() {
@@ -37,44 +38,63 @@ function ScrollToTop() {
   return null;
 }
 
-export function App() {
+// Layout Switcher for Public Store vs Internal Backoffice
+function AppContent() {
+  const { pathname } = useLocation();
+  const isAdmin = pathname.startsWith('/admin');
+
   return (
-    <BrowserRouter>
-      {/* 3D Cinematic Intro Loader (Curtain reveal) */}
-      <Intro3DLoader />
+    <>
+      {/* 3D Intro only on public store home */}
+      {!isAdmin && <Intro3DLoader />}
 
       {/* Desktop Custom Cursor */}
-      <CustomCursor />
+      {!isAdmin && <CustomCursor />}
 
-      {/* Global Modals, Drawers and Floating Support */}
+      {/* Global Modals and Drawers */}
       <CartDrawer />
       <SizeGuideModal />
       <Toast />
-      <FloatingWhatsApp />
+      {!isAdmin && <FloatingWhatsApp />}
       <ScrollToTop />
 
-      <div className="flex flex-col min-h-screen bg-white text-navy selection:bg-beige-300 selection:text-navy">
-        <Header />
+      {isAdmin ? (
+        <Routes>
+          <Route path="/admin" element={<AdminPage />} />
+          <Route path="/admin/*" element={<AdminPage />} />
+        </Routes>
+      ) : (
+        <div className="flex flex-col min-h-screen bg-white text-navy selection:bg-beige-300 selection:text-navy">
+          <Header />
 
-        <main className="flex-grow">
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/tienda" element={<ShopPage />} />
-            <Route path="/producto/:id" element={<ProductDetailPage />} />
-            <Route path="/guia-de-talles" element={<SizeGuidePage />} />
-            <Route path="/cuidados" element={<CarePage />} />
-            <Route path="/envios" element={<ShippingPage />} />
-            <Route path="/preguntas-frecuentes" element={<FaqPage />} />
-            <Route path="/mayoristas" element={<WholesalePage />} />
-            <Route path="/showroom" element={<ShowroomPage />} />
-            <Route path="/contacto" element={<ShowroomPage />} />
-            <Route path="/checkout" element={<CheckoutPage />} />
-            <Route path="*" element={<NotFoundPage />} />
-          </Routes>
-        </main>
+          <main className="flex-grow">
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/tienda" element={<ShopPage />} />
+              <Route path="/producto/:id" element={<ProductDetailPage />} />
+              <Route path="/guia-de-talles" element={<SizeGuidePage />} />
+              <Route path="/cuidados" element={<CarePage />} />
+              <Route path="/envios" element={<ShippingPage />} />
+              <Route path="/preguntas-frecuentes" element={<FaqPage />} />
+              <Route path="/mayoristas" element={<WholesalePage />} />
+              <Route path="/showroom" element={<ShowroomPage />} />
+              <Route path="/contacto" element={<ShowroomPage />} />
+              <Route path="/checkout" element={<CheckoutPage />} />
+              <Route path="*" element={<NotFoundPage />} />
+            </Routes>
+          </main>
 
-        <Footer />
-      </div>
+          <Footer />
+        </div>
+      )}
+    </>
+  );
+}
+
+export function App() {
+  return (
+    <BrowserRouter>
+      <AppContent />
     </BrowserRouter>
   );
 }

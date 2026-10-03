@@ -1,16 +1,11 @@
 /**
  * catalogService.ts
- * Capa de abstracción y servicio API para el catálogo de Veelvet.
- * 
- * Permite alternar entre los datos locales tipados y un Backend / CRM / Headless CMS
- * mediante la variable de entorno `VITE_API_URL`.
- * 
- * Cuando se implemente el backend (Strapi, Supabase, Shopify, NestJS, etc.),
- * solo se activa `VITE_API_URL` y las funciones ya tienen los contratos listos.
+ * Servicio unificado del catálogo conectado a Supabase con fallback local.
  */
 
 import { Product, PRODUCTS, CategoryItem, CATEGORIES } from '../data/products';
 import { MEGA_MENU_DATA, MegaMenuConfig } from '../data/megaMenuData';
+import { SupabaseService } from './supabaseService';
 
 export interface ProductQueryParams {
   category?: string;
@@ -22,36 +17,59 @@ export interface ProductQueryParams {
   search?: string;
 }
 
-export interface ApiResponse<T> {
-  data: T;
-  total?: number;
-  message?: string;
-}
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || '';
-
 export const CatalogService = {
   /**
-   * Obtiene la lista de productos con filtros aplicados.
+   * Obtiene la lista de productos dinámicamente desde Supabase.
+   * Si no hay productos en la base de datos, recurre al catálogo local de reserva.
    */
   async getProducts(params?: ProductQueryParams): Promise<Product[]> {
-    if (API_BASE_URL) {
-      try {
-        const query = new URLSearchParams();
-        if (params?.category && params.category !== 'todos') query.set('cat', params.category);
-        if (params?.subcategory) query.set('sub', params.subcategory);
-        if (params?.filter) query.set('filter', params.filter);
-        if (params?.size) query.set('size', params.size);
-        if (params?.color) query.set('color', params.color);
-        if (params?.sortBy) query.set('sort', params.sortBy);
+    try {
+      const supaProducts = await SupabaseService.getProductos();
 
-        const res = await fetch(`${API_BASE_URL}/products?${query.toString()}`);
-        if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-        const json: ApiResponse<Product[]> = await res.json();
-        return json.data;
-      } catch (err) {
-        console.warn('Fallo al conectar con el backend, usando datos locales:', err);
+      if (supaProducts && supaProducts.length > 0) {
+        let adapted = supaProducts.map((p) => SupabaseService.adaptSupabaseProductToFrontend(p));
+
+        // Filtro por categoría principal
+        if (params?.category && params.category !== 'todos' && params.category !== 'top' && params.category !== 'accesorios') {
+          adapted = adapted.filter((p) => p.category === params.category);
+        }
+
+        // Filtro por subcategoría
+        if (params?.subcategory) {
+          const q = params.subcategory.toLowerCase();
+          adapted = adapted.filter(
+            (p) =>
+              p.name.toLowerCase().includes(q) ||
+              p.subtitle.toLowerCase().includes(q) ||
+              p.slug.toLowerCase().includes(q)
+          );
+        }
+
+        // Filtro por tipo de oferta
+        if (params?.filter) {
+          const f = params.filter.toLowerCase();
+          if (f === 'precios-unicos' || f === 'sale-60') {
+            adapted = adapted.filter((p) => Boolean(p.compareAtPrice));
+          } else {
+            adapted = adapted.filter(
+              (p) => p.tag?.toLowerCase().includes(f) || Boolean(p.compareAtPrice)
+            );
+          }
+        }
+
+        // Ordenamiento
+        if (params?.sortBy === 'price-asc') {
+          adapted.sort((a, b) => a.price - b.price);
+        } else if (params?.sortBy === 'price-desc') {
+          adapted.sort((a, b) => b.price - a.price);
+        } else if (params?.sortBy === 'rating') {
+          adapted.sort((a, b) => b.rating - a.rating);
+        }
+
+        return adapted;
       }
+    } catch (err) {
+      console.warn('Usando catálogo local por error de conexión con Supabase:', err);
     }
 
     // Fallback a datos locales
@@ -80,56 +98,56 @@ export const CatalogService = {
   },
 
   /**
-   * Obtiene un producto por su slug único.
+   * Obtiene una prenda por su slug o ID desde Supabase.
    */
-  async getProductBySlug(slug: string): Promise<Product | null> {
-    if (API_BASE_URL) {
-      try {
-        const res = await fetch(`${API_BASE_URL}/products/${slug}`);
-        if (res.ok) {
-          const json: ApiResponse<Product> = await res.json();
-          return json.data;
-        }
-      } catch (err) {
-        console.warn('Fallback a datos locales para producto:', err);
+  async getProductBySlug(slugOrId: string): Promise<Product | null> {
+    try {
+      const supaProducts = await SupabaseService.getProductos();
+      const match = supaProducts.find(
+        (p) => p.id === slugOrId || p.nombre.toLowerCase().replace(/\s+/g, '-') === slugOrId
+      );
+      if (match) {
+        return SupabaseService.adaptSupabaseProductToFrontend(match);
       }
+    } catch (err) {
+      console.warn('Fallback a productos locales:', err);
     }
-    return PRODUCTS.find((p) => p.slug === slug) || null;
+
+    return PRODUCTS.find((p) => p.slug === slugOrId || p.id === slugOrId) || null;
   },
 
   /**
-   * Obtiene la estructura completa del Mega Menú de Colección
-   * (columnas, categorías padre, subcategorías y etiquetas).
+   * Obtiene la configuración del Mega Menú (Colección) dinámicamente desde Supabase.
    */
   async getMegaMenuConfig(): Promise<MegaMenuConfig> {
-    if (API_BASE_URL) {
-      try {
-        const res = await fetch(`${API_BASE_URL}/categories/mega-menu`);
-        if (res.ok) {
-          const json: ApiResponse<MegaMenuConfig> = await res.json();
-          return json.data;
-        }
-      } catch (err) {
-        console.warn('Fallback a megaMenuData local:', err);
+    try {
+      const dynamicMenu = await SupabaseService.buildMegaMenuFromSupabase();
+      if (dynamicMenu && dynamicMenu.columns.length > 0) {
+        return dynamicMenu;
       }
+    } catch (err) {
+      console.warn('Usando megaMenuData local:', err);
     }
     return MEGA_MENU_DATA;
   },
 
   /**
-   * Obtiene las categorías principales del catálogo.
+   * Obtiene las categorías principales para la Home y filtros.
    */
   async getCategories(): Promise<CategoryItem[]> {
-    if (API_BASE_URL) {
-      try {
-        const res = await fetch(`${API_BASE_URL}/categories`);
-        if (res.ok) {
-          const json: ApiResponse<CategoryItem[]> = await res.json();
-          return json.data;
-        }
-      } catch (err) {
-        console.warn('Fallback a CATEGORIES local:', err);
+    try {
+      const supaCats = await SupabaseService.getCategorias();
+      if (supaCats && supaCats.length > 0) {
+        return supaCats.map((c) => ({
+          id: c.nombre.toLowerCase(),
+          name: c.nombre,
+          shortName: c.nombre,
+          description: `Colección de prendas ${c.nombre} Veelvet.`,
+          href: `/tienda?cat=${encodeURIComponent(c.nombre.toLowerCase())}`,
+        }));
       }
+    } catch (err) {
+      console.warn('Fallback categorías:', err);
     }
     return CATEGORIES;
   },
@@ -137,20 +155,7 @@ export const CatalogService = {
   /**
    * Suscribe un email al newsletter / Club Veelvet.
    */
-  async subscribeNewsletter(email: string): Promise<{ success: boolean; message: string }> {
-    if (API_BASE_URL) {
-      try {
-        const res = await fetch(`${API_BASE_URL}/newsletter`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email }),
-        });
-        if (res.ok) return { success: true, message: 'Suscripción exitosa' };
-      } catch (err) {
-        console.warn('Fallback suscripción:', err);
-      }
-    }
-    // Simulación exitosa local
+  async subscribeNewsletter(_email: string): Promise<{ success: boolean; message: string }> {
     return { success: true, message: '¡Te sumaste al Club Veelvet! Revisá tu casilla.' };
   },
 };

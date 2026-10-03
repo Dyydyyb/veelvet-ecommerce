@@ -4,13 +4,24 @@ import { ShoppingBag, Menu, X, ArrowRight, MapPin, ChevronDown, Sparkles } from 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCartStore } from '../../store/cartStore';
 import { InstagramIcon } from './Icons';
-import { MEGA_MENU_DATA } from '../../data/megaMenuData';
+import { MEGA_MENU_DATA, MegaMenuConfig } from '../../data/megaMenuData';
+import { CatalogService } from '../../services/catalogService';
 
 export function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [collectionDropdownOpen, setCollectionDropdownOpen] = useState(false);
   const [mobileCollectionOpen, setMobileCollectionOpen] = useState(true);
+  const [menuConfig, setMenuConfig] = useState<MegaMenuConfig>(MEGA_MENU_DATA);
+
+  // Load dynamic mega menu from Supabase
+  useEffect(() => {
+    CatalogService.getMegaMenuConfig().then((data) => {
+      if (data && data.columns && data.columns.length > 0) {
+        setMenuConfig(data);
+      }
+    });
+  }, []);
 
   const location = useLocation();
   const dropdownContainerRef = useRef<HTMLDivElement>(null);
@@ -220,7 +231,7 @@ export function Header() {
             >
               <div className="max-w-7xl mx-auto px-6 sm:px-10 lg:px-12 py-9">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-8 lg:gap-14">
-                  {MEGA_MENU_DATA.columns.map((column) => (
+                  {menuConfig.columns.map((column) => (
                     <div key={column.id} className="flex flex-col">
                       {column.title ? (
                         <div className="mb-4">
@@ -390,7 +401,7 @@ export function Header() {
                           transition={{ duration: 0.25 }}
                           className="overflow-hidden pl-3 pr-2 py-2 space-y-4 bg-beige-50/70 rounded-xl my-2"
                         >
-                          {MEGA_MENU_DATA.columns.map((col) => (
+                          {menuConfig.columns.map((col) => (
                             <div key={col.id} className="space-y-1.5">
                               {col.title ? (
                                 <p className="text-[11px] font-black uppercase tracking-wider text-navy border-b border-beige-200 pb-1">

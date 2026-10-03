@@ -4,7 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Filter, X, ArrowUpDown, SlidersHorizontal } from 'lucide-react';
 import { ProductCard } from '../components/product/ProductCard';
 import { SectionTitle } from '../components/common/SectionTitle';
-import { PRODUCTS, CATEGORIES, PRODUCT_COLORS } from '../data/products';
+import { Product, PRODUCTS, CATEGORIES, PRODUCT_COLORS } from '../data/products';
+import { CatalogService } from '../services/catalogService';
 
 export function ShopPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -12,6 +13,7 @@ export function ShopPage() {
   const subParam = searchParams.get('sub') || '';
   const filterParam = searchParams.get('filter') || '';
 
+  const [allProducts, setAllProducts] = useState<Product[]>(PRODUCTS);
   const [selectedCategory, setSelectedCategory] = useState<string>(categoryParam);
   const [selectedSub, setSelectedSub] = useState<string>(subParam);
   const [selectedFilter, setSelectedFilter] = useState<string>(filterParam);
@@ -19,6 +21,15 @@ export function ShopPage() {
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<'featured' | 'price-asc' | 'price-desc' | 'rating'>('featured');
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+
+  // Load products dynamically from Supabase
+  React.useEffect(() => {
+    CatalogService.getProducts().then((data) => {
+      if (data && data.length > 0) {
+        setAllProducts(data);
+      }
+    });
+  }, []);
 
   // Sync state with URL query params
   React.useEffect(() => {
@@ -70,7 +81,7 @@ export function ShopPage() {
 
   // Filter and Sort Products
   const filteredProducts = useMemo(() => {
-    return PRODUCTS.filter((prod) => {
+    return allProducts.filter((prod) => {
       // Category filter (if not top/accesorios which map to multiple items)
       if (selectedCategory !== 'todos' && selectedCategory !== 'top' && selectedCategory !== 'accesorios') {
         if (prod.category !== selectedCategory) return false;
@@ -123,7 +134,7 @@ export function ShopPage() {
       if (sortBy === 'rating') return b.rating - a.rating;
       return 0; // default order
     });
-  }, [selectedCategory, selectedSub, selectedFilter, selectedSizes, selectedColors, sortBy]);
+  }, [allProducts, selectedCategory, selectedSub, selectedFilter, selectedSizes, selectedColors, sortBy]);
 
   const activeFiltersCount =
     (selectedCategory !== 'todos' ? 1 : 0) + selectedSizes.length + selectedColors.length;

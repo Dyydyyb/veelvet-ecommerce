@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ShoppingBag, Ruler, Truck, ShieldCheck, Heart, Share2, Plus, Minus, ArrowRight, Check } from 'lucide-react';
 import { PRODUCTS, Product } from '../data/products';
+import { CatalogService } from '../services/catalogService';
 import { useCartStore } from '../store/cartStore';
 import { useUIStore } from '../store/uiStore';
 import { Accordion } from '../components/common/Accordion';
@@ -14,7 +15,8 @@ export function ProductDetailPage() {
   const { addItem } = useCartStore();
   const { openSizeGuide, showToast } = useUIStore();
 
-  const product = PRODUCTS.find((p) => p.slug === id || p.id === id) || PRODUCTS[0];
+  const initialProduct = PRODUCTS.find((p) => p.slug === id || p.id === id) || PRODUCTS[0];
+  const [product, setProduct] = useState<Product>(initialProduct);
 
   const [activeImage, setActiveImage] = useState(product.images.primary);
   const [selectedSize, setSelectedSize] = useState<'S' | 'M' | 'L' | 'XL'>('M');
@@ -24,12 +26,25 @@ export function ProductDetailPage() {
   const [zoomPos, setZoomPos] = useState({ x: 0, y: 0 });
   const [isAdded, setIsAdded] = useState(false);
 
+  // Load product dynamically from Supabase if available
+  React.useEffect(() => {
+    if (id) {
+      CatalogService.getProductBySlug(id).then((found) => {
+        if (found) {
+          setProduct(found);
+          setActiveImage(found.images.primary);
+          setSelectedColor(found.colors[0]);
+        }
+      });
+    }
+    window.scrollTo(0, 0);
+  }, [id]);
+
   // Sync state if product changes
   React.useEffect(() => {
     setActiveImage(product.images.primary);
     setSelectedColor(product.colors[0]);
     setQuantity(1);
-    window.scrollTo(0, 0);
   }, [product]);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
