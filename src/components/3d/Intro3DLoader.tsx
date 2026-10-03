@@ -1,6 +1,6 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { Environment, ContactShadows, useProgress } from '@react-three/drei';
+import { ContactShadows, useProgress, Html } from '@react-three/drei';
 import { motion, AnimatePresence } from 'framer-motion';
 import { VeelvetModel } from './VeelvetModel';
 
@@ -16,16 +16,16 @@ export function Intro3DLoader({ onFinish }: IntroLoaderProps) {
   const [hasWebGLError, setHasWebGLError] = useState(false);
   const [displayPercent, setDisplayPercent] = useState(0);
 
-  // Quick minimum duration (700ms instead of 2500ms) for snappy, fast loading
+  // Garantizar que en celulares y en primer inicio el logo 3D se aprecie con suficiente tiempo (1.2s)
   useEffect(() => {
     const timer = setTimeout(() => {
       setMinTimeElapsed(true);
-    }, 700);
+    }, 1200);
 
     return () => clearTimeout(timer);
   }, []);
 
-  // Fast smooth percentage progress
+  // Progreso suave y rápido
   useEffect(() => {
     const target = Math.max(progress, minTimeElapsed ? 100 : Math.min(95, Math.floor(displayPercent + 8)));
     const interval = setInterval(() => {
@@ -37,20 +37,20 @@ export function Intro3DLoader({ onFinish }: IntroLoaderProps) {
     return () => clearInterval(interval);
   }, [progress, minTimeElapsed, displayPercent]);
 
-  // When both minTime and loading complete -> quick burst and curtain opening
+  // Al completar tiempo y carga -> burst y apertura de cortinas
   useEffect(() => {
     if (minTimeElapsed && (progress >= 100 || displayPercent >= 100)) {
       setIsFinishing(true);
       const burstTimer = setTimeout(() => {
         setIsCurtainOpen(true);
         if (onFinish) onFinish();
-      }, 250);
+      }, 300);
 
       return () => clearTimeout(burstTimer);
     }
   }, [minTimeElapsed, progress, displayPercent, onFinish]);
 
-  // Allow ESC key or click to skip
+  // Permitir saltar con Escape
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -87,7 +87,7 @@ export function Intro3DLoader({ onFinish }: IntroLoaderProps) {
             exit={{ opacity: 0, scale: 1.15, transition: { duration: 0.5 } }}
             className="relative z-20 flex flex-col items-center justify-center w-full h-full max-w-xl px-6"
           >
-            {/* 3D Canvas or SVG Fallback */}
+            {/* 3D Canvas or Fallback */}
             <div className="w-72 h-72 sm:w-80 sm:h-80 md:w-96 md:h-96 relative flex items-center justify-center">
               {!hasWebGLError ? (
                 <ErrorBoundary onCatch={() => setHasWebGLError(true)}>
@@ -95,15 +95,27 @@ export function Intro3DLoader({ onFinish }: IntroLoaderProps) {
                     camera={{ position: [0, 0, 4.5], fov: 42 }}
                     shadows
                     dpr={[1, 2]}
-                    gl={{ antialias: true, alpha: true }}
+                    gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
                     className="w-full h-full"
                   >
-                    <ambientLight intensity={0.7} />
-                    <directionalLight position={[4, 7, 5]} intensity={1.5} castShadow />
-                    <directionalLight position={[-4, -2, -3]} intensity={0.4} />
+                    <ambientLight intensity={0.9} />
+                    <directionalLight position={[4, 7, 5]} intensity={1.8} castShadow />
+                    <directionalLight position={[-4, -2, -3]} intensity={0.8} />
+                    <pointLight position={[0, 3, 2]} intensity={0.6} />
 
-                    <Suspense fallback={null}>
-                      <Environment preset="studio" />
+                    <Suspense
+                      fallback={
+                        <Html center>
+                          <div className="flex flex-col items-center justify-center pointer-events-none select-none">
+                            <img
+                              src="/assets/logo.png"
+                              alt="Cargando Veelvet..."
+                              className="w-48 h-auto object-contain animate-[spin_3s_linear_infinite] drop-shadow-xl"
+                            />
+                          </div>
+                        </Html>
+                      }
+                    >
                       <VeelvetModel speed={1.8} isFinishing={isFinishing} scale={1.2} />
                       <ContactShadows
                         position={[0, -1.35, 0]}

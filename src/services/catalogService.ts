@@ -278,41 +278,66 @@ export const CatalogService = {
   },
 
   /**
-   * Obtiene las categorías destacadas (destacada = true) desde Supabase.
+   * Obtiene las categorías y subcategorías destacadas (destacada = true) desde Supabase.
    */
   async getFeaturedCategories(): Promise<CategoryItem[]> {
     try {
-      const [cats, prods] = await Promise.all([
+      const [cats, subs, prods] = await Promise.all([
         SupabaseService.getCategorias(),
+        SupabaseService.getSubcategorias(),
         SupabaseService.getProductos(),
       ]);
 
-      if (!cats || cats.length === 0) return [];
+      const featuredCats = (cats || []).filter((c) => Boolean(c.destacada));
+      const featuredSubs = (subs || []).filter((s) => Boolean(s.destacada));
 
-      // Filtrar categorías destacadas de forma estricta (destacada = true)
-      let featured = cats.filter((c) => Boolean(c.destacada));
-      if (featured.length === 0) return [];
+      if (featuredCats.length === 0 && featuredSubs.length === 0) return [];
 
       const defaultImgs = [
+        '/assets/images/hero-look.jpg',
         '/assets/images/buzo-negro.jpg',
         '/assets/images/pantalon-beige.jpg',
-        '/assets/images/hero-look.jpg',
       ];
 
-      return featured.map((c, idx) => {
-        // Asociar foto real de un producto de esta categoría si existe
-        const catProd = prods.find((p) => p.subcategoria?.categoria?.id === c.id || p.subcategoria?.categoria_id === c.id);
-        const prodImg = catProd?.imagenes_url?.[0];
+      const result: CategoryItem[] = [];
 
-        return {
-          id: c.nombre.toLowerCase().replace(/\s+/g, '-'),
+      // Categorías principales destacadas
+      featuredCats.forEach((c, idx) => {
+        const catProd = prods.find(
+          (p) => p.subcategoria?.categoria?.id === c.id || p.subcategoria?.categoria_id === c.id
+        );
+        const prodImg = Array.isArray(catProd?.imagenes_url)
+          ? catProd.imagenes_url[0]
+          : (catProd?.imagenes_url as any)?.urls?.[0];
+
+        result.push({
+          id: `cat-${c.id}`,
           name: c.nombre,
           shortName: c.nombre,
           description: `Colección oficial Veelvet ${c.nombre} en frisa peinada pesada.`,
           image: prodImg || defaultImgs[idx % defaultImgs.length],
           href: `/tienda?cat=${encodeURIComponent(c.nombre.toLowerCase())}`,
-        };
+        });
       });
+
+      // Subcategorías destacadas
+      featuredSubs.forEach((s, idx) => {
+        const subProd = prods.find((p) => p.subcategoria_id === s.id || p.subcategoria?.id === s.id);
+        const prodImg = Array.isArray(subProd?.imagenes_url)
+          ? subProd.imagenes_url[0]
+          : (subProd?.imagenes_url as any)?.urls?.[0];
+
+        result.push({
+          id: `sub-${s.id}`,
+          name: s.nombre,
+          shortName: s.nombre,
+          description: `Línea exclusiva ${s.nombre} Veelvet con siluetas oversized unisex.`,
+          image: prodImg || defaultImgs[(featuredCats.length + idx) % defaultImgs.length],
+          href: `/tienda?sub=${encodeURIComponent(s.slug || s.nombre.toLowerCase())}`,
+        });
+      });
+
+      return result;
     } catch (err) {
       console.error('Error al obtener categorías destacadas desde Supabase:', err);
       return [];

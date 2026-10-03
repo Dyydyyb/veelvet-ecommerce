@@ -21,6 +21,7 @@ export interface Subcategoria {
   categoria_id: string;
   nombre: string;
   slug: string;
+  destacada?: boolean;
   categoria?: Categoria;
 }
 

@@ -164,6 +164,19 @@ export function CategoriesManager({
     }
   };
 
+  const handleToggleSubDestacada = async (sub: Subcategoria) => {
+    try {
+      setLoading(true);
+      setError(null);
+      await SupabaseService.toggleSubcategoriaDestacada(sub.id, Boolean(sub.destacada));
+      await onRefresh();
+    } catch (err: any) {
+      setError(err.message || 'Error al actualizar subcategoría destacada.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDeleteSubcategoria = async (id: string, name: string) => {
     if (!window.confirm(`¿Eliminar la subcategoría "${name}"?`)) return;
     try {
@@ -528,16 +541,34 @@ export function CategoriesManager({
                       </div>
                     ) : (
                       <>
-                        <div>
-                          <span className="font-montserrat font-bold text-navy">
-                            {sub.nombre}
-                          </span>
-                          <span className="ml-2 text-[10px] text-navy/50 font-mono">
-                            /{sub.slug}
-                          </span>
-                          <span className="ml-2 px-1.5 py-0.5 rounded bg-beige-100 text-navy/70 text-[9px] font-semibold uppercase">
-                            {sub.categoria?.nombre || 'General'}
-                          </span>
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={() => handleToggleSubDestacada(sub)}
+                            className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
+                              sub.destacada
+                                ? 'bg-amber-50 border-amber-300 text-amber-600'
+                                : 'bg-white border-beige-200 text-navy/30 hover:text-navy hover:border-beige-300'
+                            }`}
+                            title={sub.destacada ? 'Subcategoría destacada en Home (clic para quitar)' : 'Clic para destacar en Home'}
+                          >
+                            <Star className={`w-3.5 h-3.5 ${sub.destacada ? 'fill-amber-500' : ''}`} />
+                          </button>
+                          <div>
+                            <span className="font-montserrat font-bold text-navy">
+                              {sub.nombre}
+                            </span>
+                            <span className="ml-2 text-[10px] text-navy/50 font-mono">
+                              /{sub.slug}
+                            </span>
+                            <span className="ml-2 px-1.5 py-0.5 rounded bg-beige-100 text-navy/70 text-[9px] font-semibold uppercase">
+                              {sub.categoria?.nombre || 'General'}
+                            </span>
+                            {sub.destacada && (
+                              <span className="ml-2 px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[9px] font-bold uppercase tracking-wider">
+                                Destacada en Home
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <div className="flex items-center space-x-1">
                           <button

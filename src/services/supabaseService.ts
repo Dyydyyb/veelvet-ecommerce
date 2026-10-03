@@ -47,19 +47,71 @@ function parseRawProduct(raw: any): Producto {
 
 export const SupabaseService = {
   // ==========================================
+  // ==========================================
+  // Helper: Configuración Persistente en Supabase (Categorías y Subcategorías Destacadas)
+  // ==========================================
+  async getFeaturedConfig(): Promise<{ featured_categories: string[]; featured_subcategories: string[] }> {
+    try {
+      const { data } = await supabase
+        .from('tipos_oferta')
+        .select('etiqueta_badge')
+        .eq('nombre', '__CONFIG_FEATURED__')
+        .maybeSingle();
+
+      if (data?.etiqueta_badge) {
+        const parsed = JSON.parse(data.etiqueta_badge);
+        return {
+          featured_categories: Array.isArray(parsed.featured_categories) ? parsed.featured_categories : [],
+          featured_subcategories: Array.isArray(parsed.featured_subcategories) ? parsed.featured_subcategories : [],
+        };
+      }
+    } catch (err) {
+      console.warn('Error al leer configuración de destacados desde Supabase:', err);
+    }
+    return { featured_categories: [], featured_subcategories: [] };
+  },
+
+  async saveFeaturedConfig(config: { featured_categories: string[]; featured_subcategories: string[] }): Promise<void> {
+    try {
+      const { data: existing } = await supabase
+        .from('tipos_oferta')
+        .select('id')
+        .eq('nombre', '__CONFIG_FEATURED__')
+        .maybeSingle();
+
+      const payload = {
+        nombre: '__CONFIG_FEATURED__',
+        etiqueta_badge: JSON.stringify(config),
+        color_badge: '#000000',
+      };
+
+      if (existing?.id) {
+        await supabase.from('tipos_oferta').update(payload).eq('id', existing.id);
+      } else {
+        await supabase.from('tipos_oferta').insert([payload]);
+      }
+    } catch (err) {
+      console.error('Error al guardar configuración de destacados en Supabase:', err);
+    }
+  },
+
+  // ==========================================
   // 1. Categorías
   // ==========================================
   async getCategorias(): Promise<Categoria[]> {
-    const { data, error } = await supabase
-      .from('categorias')
-      .select('*')
-      .order('orden', { ascending: true });
+    const [{ data: cats, error }, featuredConfig] = await Promise.all([
+      supabase.from('categorias').select('*').order('orden', { ascending: true }),
+      this.getFeaturedConfig(),
+    ]);
 
     if (error) {
       console.warn('Error fetching categorias de Supabase:', error.message);
       return [];
     }
-    return data || [];
+    return (cats || []).map((c) => ({
+      ...c,
+      destacada: Boolean(c.destacada || featuredConfig.featured_categories.includes(c.id)),
+    }));
   },
 
   async createCategoria(nombre: string, orden: number, destacada: boolean = false): Promise<Categoria> {
@@ -79,6 +131,10 @@ export const SupabaseService = {
     }
 
     if (res.error) throw new Error(res.error.message);
+
+    if (destacada && res.data?.id) {
+      await this.toggleCategoriaDestacada(res.data.id, false);
+    }
     return res.data;
   },
 
@@ -107,45 +163,105 @@ export const SupabaseService = {
     }
 
     if (res.error) throw new Error(res.error.message);
+
+    if (typeof destacada === 'boolean') {
+      const config = await this.getFeaturedConfig();
+      if (destacada) {
+        if (!config.featured_categories.includes(id)) config.featured_categories.push(id);
+      } else {
+        config.featured_categories = config.featured_categories.filter((cid) => cid !== id);
+      }
+      await this.saveFeaturedConfig(config);
+    }
+
     return res.data;
   },
 
   async toggleCategoriaDestacada(id: string, currentState: boolean): Promise<Categoria> {
-    const { data, error } = await supabase
-      .from('categorias')
-      .update({ destacada: !currentState })
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) {
-      if (error.code === 'PGRST204') {
-        throw new Error('La columna "destacada" no existe aún en tu tabla categorias. Ejecutá el SQL de configuración en Supabase.');
+    const targetState = !currentState;
+    const config = await this.getFeaturedConfig();
+    if (targetState) {
+      if (!config.featured_categories.includes(id)) {
+        config.featured_categories.push(id);
       }
-      throw new Error(error.message);
+    } else {
+      config.featured_categories = config.featured_categories.filter((cid) => cid !== id);
     }
-    return data;
+    await this.saveFeaturedConfig(config);
+
+    // Intento de actualizar columna nativa si existe en postgres (ignorar error si no existe)
+    try {
+      await supabase.from('categorias').update({ destacada: targetState }).eq('id', id);
+    } catch (_) {}
+
+    const { data } = await supabase.from('categorias').select('*').eq('id', id).single();
+    return {
+      ...(data || { id, nombre: '', orden: 1 }),
+      destacada: targetState,
+    };
   },
 
   async deleteCategoria(id: string): Promise<void> {
     const { error } = await supabase.from('categorias').delete().eq('id', id);
     if (error) throw new Error(error.message);
+
+    // Limpiar de destacados si estaba
+    const config = await this.getFeaturedConfig();
+    if (config.featured_categories.includes(id)) {
+      config.featured_categories = config.featured_categories.filter((cid) => cid !== id);
+      await this.saveFeaturedConfig(config);
+    }
   },
 
   // ==========================================
   // 2. Subcategorías
   // ==========================================
   async getSubcategorias(): Promise<Subcategoria[]> {
-    const { data, error } = await supabase
-      .from('subcategorias')
-      .select('*, categoria:categorias(*)')
-      .order('nombre', { ascending: true });
+    const [{ data: subs, error }, featuredConfig] = await Promise.all([
+      supabase
+        .from('subcategorias')
+        .select('*, categoria:categorias(*)')
+        .order('nombre', { ascending: true }),
+      this.getFeaturedConfig(),
+    ]);
 
     if (error) {
       console.warn('Error fetching subcategorias de Supabase:', error.message);
       return [];
     }
-    return data || [];
+    return (subs || []).map((s) => ({
+      ...s,
+      destacada: Boolean(s.destacada || featuredConfig.featured_subcategories.includes(s.id)),
+    }));
+  },
+
+  async toggleSubcategoriaDestacada(id: string, currentState: boolean): Promise<Subcategoria> {
+    const targetState = !currentState;
+    const config = await this.getFeaturedConfig();
+    if (targetState) {
+      if (!config.featured_subcategories.includes(id)) {
+        config.featured_subcategories.push(id);
+      }
+    } else {
+      config.featured_subcategories = config.featured_subcategories.filter((sid) => sid !== id);
+    }
+    await this.saveFeaturedConfig(config);
+
+    // Intento de actualizar columna nativa si existe en postgres
+    try {
+      await supabase.from('subcategorias').update({ destacada: targetState }).eq('id', id);
+    } catch (_) {}
+
+    const { data } = await supabase
+      .from('subcategorias')
+      .select('*, categoria:categorias(*)')
+      .eq('id', id)
+      .single();
+
+    return {
+      ...(data || { id, categoria_id: '', nombre: '', slug: '' }),
+      destacada: targetState,
+    };
   },
 
   async createSubcategoria(categoria_id: string, nombre: string, slug?: string): Promise<Subcategoria> {
@@ -176,6 +292,13 @@ export const SupabaseService = {
   async deleteSubcategoria(id: string): Promise<void> {
     const { error } = await supabase.from('subcategorias').delete().eq('id', id);
     if (error) throw new Error(error.message);
+
+    // Limpiar de destacados si estaba
+    const config = await this.getFeaturedConfig();
+    if (config.featured_subcategories.includes(id)) {
+      config.featured_subcategories = config.featured_subcategories.filter((sid) => sid !== id);
+      await this.saveFeaturedConfig(config);
+    }
   },
 
   // ==========================================
@@ -185,6 +308,7 @@ export const SupabaseService = {
     const { data, error } = await supabase
       .from('tipos_oferta')
       .select('*')
+      .not('nombre', 'like', '__%')
       .order('nombre', { ascending: true });
 
     if (error) {

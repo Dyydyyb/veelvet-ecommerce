@@ -439,15 +439,6 @@ export function HomePage() {
                   alt="Showroom Veelvet Quilmes"
                   className="w-full h-full object-cover filter contrast-[1.03]"
                 />
-                <div className="absolute inset-0 bg-navy/20" />
-                <div className="absolute bottom-4 left-4 right-4 bg-white/95 backdrop-blur-md p-3.5 rounded-xl border border-beige-300 text-center">
-                  <p className="font-montserrat font-bold text-xs uppercase text-navy">
-                    Atención personalizada con cita previa
-                  </p>
-                  <p className="text-[11px] text-navy/60 mt-0.5">
-                    Quilmes Centro • Todos los medios de pago
-                  </p>
-                </div>
               </div>
             </div>
           </div>
