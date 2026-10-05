@@ -98,9 +98,9 @@ export function Header() {
           {/* Brand Logo - Visibly Large & Crisp */}
           <Link to="/" className="flex items-center group py-0.5" aria-label="Veelvet Inicio">
             <img
-              src="/assets/logo-transparent.png"
+              src="/assets/logo-header-footer.png"
               alt="Veelvet. Simplemente Veelvet."
-              className="h-12 sm:h-14 md:h-16 lg:h-20 w-auto min-w-[130px] sm:min-w-[170px] md:min-w-[200px] max-w-[240px] sm:max-w-[300px] object-contain transition-transform duration-300 group-hover:scale-105"
+              className="h-10 sm:h-12 md:h-14 lg:h-16 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
             />
           </Link>
 
@@ -363,9 +363,9 @@ export function Header() {
                 <div className="flex items-center justify-between pb-6 border-b border-beige-300">
                   <Link to="/" onClick={() => setMobileMenuOpen(false)} className="flex items-center">
                     <img
-                      src="/assets/logo-transparent.png"
+                      src="/assets/logo-header-footer.png"
                       alt="Veelvet."
-                      className="h-12 sm:h-14 w-auto min-w-[130px] object-contain"
+                      className="h-10 sm:h-12 w-auto object-contain"
                     />
                   </Link>
                   <button

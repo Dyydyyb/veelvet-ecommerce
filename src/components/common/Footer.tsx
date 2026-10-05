@@ -24,9 +24,9 @@ export function Footer() {
           <div className="lg:col-span-2 space-y-4">
             <Link to="/" className="inline-block group py-1" aria-label="Veelvet Inicio">
               <img
-                src="/assets/logo-transparent.png"
+                src="/assets/logo-header-footer.png"
                 alt="Veelvet. Simplemente Veelvet."
-                className="h-16 sm:h-20 md:h-24 lg:h-28 w-auto min-w-[180px] sm:min-w-[220px] md:min-w-[260px] max-w-[320px] object-contain transition-transform duration-300 group-hover:scale-105"
+                className="h-14 sm:h-16 md:h-20 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
               />
             </Link>
             <p className="text-sm font-semibold tracking-wider uppercase text-navy/90">
