@@ -324,7 +324,7 @@ export function ProductsManager({
         {/* Footer info */}
         <div className="px-4 py-3 bg-beige-50 border-t border-beige-200 flex items-center justify-between text-xs text-navy/60 font-light">
           <span>Total de productos en base de datos: {productos.length}</span>
-          <span>Sincronizado con Supabase y Cloudflare R2</span>
+          <span>Sincronizado en tiempo real</span>
         </div>
       </div>
 

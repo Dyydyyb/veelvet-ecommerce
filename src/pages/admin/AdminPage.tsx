@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Package, Layers, Tag, Settings, ExternalLink, RefreshCw, Sparkles, ShieldCheck, LogOut } from 'lucide-react';
+import { Package, Layers, Tag, ExternalLink, RefreshCw, Sparkles, ShieldCheck, LogOut } from 'lucide-react';
 import { ProductsManager } from '../../components/admin/ProductsManager';
 import { CategoriesManager } from '../../components/admin/CategoriesManager';
 import { OfferTypesManager } from '../../components/admin/OfferTypesManager';
-import { R2ConfigGuide } from '../../components/admin/R2ConfigGuide';
 import { AdminLogin } from '../../components/admin/AdminLogin';
 import { SupabaseService } from '../../services/supabaseService';
 import { Producto, Subcategoria, Categoria, TipoOferta } from '../../lib/supabase';
@@ -18,7 +17,7 @@ export function AdminPage() {
     }
   });
 
-  const [activeTab, setActiveTab] = useState<'productos' | 'categorias' | 'ofertas' | 'config'>('productos');
+  const [activeTab, setActiveTab] = useState<'productos' | 'categorias' | 'ofertas'>('productos');
   const [productos, setProductos] = useState<Producto[]>([]);
   const [subcategorias, setSubcategorias] = useState<Subcategoria[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
@@ -190,18 +189,6 @@ export function AdminPage() {
               {tiposOferta.length}
             </span>
           </button>
-
-          <button
-            onClick={() => setActiveTab('config')}
-            className={`flex items-center space-x-2 px-4 py-2.5 text-xs font-montserrat font-bold uppercase tracking-wider rounded-lg transition-all cursor-pointer ${
-              activeTab === 'config'
-                ? 'bg-navy text-white shadow-xs'
-                : 'text-navy/70 hover:text-navy hover:bg-beige-100'
-            }`}
-          >
-            <Settings className="w-4 h-4" />
-            <span>Supabase & Cloudflare R2</span>
-          </button>
         </div>
       </header>
 
@@ -239,10 +226,6 @@ export function AdminPage() {
                 tiposOferta={tiposOferta}
                 onRefresh={loadAllData}
               />
-            )}
-
-            {activeTab === 'config' && (
-              <R2ConfigGuide onRefresh={loadAllData} />
             )}
           </>
         )}
