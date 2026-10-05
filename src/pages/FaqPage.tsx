@@ -10,7 +10,7 @@ export function FaqPage() {
 
   const categories = [
     { id: 'todos', name: 'Todas' },
-    { id: 'showroom', name: 'Showroom Quilmes' },
+    { id: 'showroom', name: 'Showroom Quilmes Oeste' },
     { id: 'productos', name: 'Prendas & Talles' },
     { id: 'compras', name: 'Compras & Pagos' },
     { id: 'envios', name: 'Envíos' },
@@ -29,7 +29,7 @@ export function FaqPage() {
       <SectionTitle
         overline="Centro de Ayuda"
         title="Preguntas Frecuentes"
-        subtitle="Respuestas claras a las dudas más habituales sobre nuestras prendas unisex, showroom en Quilmes, envíos y formas de pago."
+        subtitle="Respuestas claras a las dudas más habituales sobre nuestras prendas unisex, showroom en Quilmes Oeste, envíos y formas de pago."
         align="center"
       />
 

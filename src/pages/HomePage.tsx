@@ -171,7 +171,7 @@ export function HomePage() {
       </section>
 
       {/* 2. INFINITE MARQUEE */}
-      <Marquee text="ENVÍO A TODO EL PAÍS • MAYORISTA Y MINORISTA • SHOWROOM EN QUILMES • UNISEX" />
+      <Marquee text="ENVÍO A TODO EL PAÍS • MAYORISTA Y MINORISTA • SHOWROOM EN QUILMES OESTE • UNISEX" />
 
       {/* 3. FEATURED CATEGORIES */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-beige-50">
@@ -390,18 +390,18 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* 6. SHOWROOM QUILMES SECTION */}
+      {/* 6. SHOWROOM QUILMES OESTE SECTION */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-7xl mx-auto bg-beige-200 rounded-3xl p-8 sm:p-12 lg:p-16 border border-beige-300 shadow-md">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
             <div className="lg:col-span-7 space-y-6">
               <span className="inline-flex items-center space-x-2 bg-white px-3.5 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider text-navy border border-beige-300">
                 <MapPin className="w-3.5 h-3.5 text-navy" />
-                <span>Quilmes, Buenos Aires</span>
+                <span>Quilmes Oeste, Buenos Aires</span>
               </span>
 
               <h2 className="text-3xl sm:text-4xl md:text-5xl font-black font-montserrat uppercase tracking-tight text-navy leading-[1.05]">
-                Showroom Quilmes:<br />Viví la Experiencia Veelvet
+                Showroom Quilmes Oeste:<br />Viví la Experiencia Veelvet
               </h2>
 
               <p className="text-base sm:text-lg text-navy/80 font-light leading-relaxed max-w-xl">
@@ -421,7 +421,7 @@ export function HomePage() {
                 </Link>
 
                 <a
-                  href="https://wa.me/5491136291392?text=Hola%20Veelvet!%20Quiero%20reservar%20un%20turno%20para%20visitar%20el%20showroom%20en%20Quilmes."
+                  href="https://wa.me/5491136291392?text=Hola%20Veelvet!%20Quiero%20reservar%20un%20turno%20para%20visitar%20el%20showroom%20en%20Quilmes%20Oeste."
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center justify-center text-xs font-bold uppercase tracking-wider bg-white text-navy hover:bg-beige-50 px-6 py-4 rounded-md border border-beige-300 transition-colors"
@@ -436,7 +436,7 @@ export function HomePage() {
               <div className="relative aspect-square rounded-2xl overflow-hidden shadow-xl border-4 border-white bg-beige-300">
                 <img
                   src="/assets/images/showroom-quilmes.png"
-                  alt="Showroom Veelvet Quilmes"
+                  alt="Showroom Veelvet Quilmes Oeste"
                   className="w-full h-full object-cover filter contrast-[1.03]"
                 />
               </div>
@@ -472,7 +472,7 @@ export function HomePage() {
               { img: '/assets/images/instagram-1.png', tag: '#SimplementeVeelvet' },
               { img: '/assets/images/instagram-2.png', tag: '#VeelvetEarth' },
               { img: '/assets/images/instagram-3.png', tag: '#VeelvetHeavyBuzo' },
-              { img: '/assets/images/instagram-4.png', tag: '#ShowroomQuilmes' },
+              { img: '/assets/images/instagram-4.png', tag: '#ShowroomQuilmesOeste' },
             ].map((post, idx) => (
               <a
                 key={idx}

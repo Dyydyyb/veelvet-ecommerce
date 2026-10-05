@@ -182,7 +182,7 @@ export function Header() {
               className="hidden sm:inline-flex items-center space-x-1.5 text-[11px] font-semibold tracking-wider uppercase bg-beige-200 text-navy hover:bg-beige-300 px-3.5 py-1.5 rounded-full transition-all duration-200 border border-beige-300/80 shadow-xs"
             >
               <MapPin className="w-3.5 h-3.5 stroke-[2]" />
-              <span>Quilmes</span>
+              <span>Quilmes Oeste</span>
             </Link>
 
             {/* Instagram link */}
@@ -473,7 +473,7 @@ export function Header() {
                     onClick={() => setMobileMenuOpen(false)}
                     className="text-base font-montserrat font-bold tracking-tight uppercase text-navy hover:text-navy-500 py-2.5 border-b border-beige-100 flex items-center justify-between"
                   >
-                    <span>Showroom Quilmes</span>
+                    <span>Showroom Quilmes Oeste</span>
                     <ArrowRight className="w-4 h-4 text-navy/30" />
                   </Link>
 
@@ -500,7 +500,7 @@ export function Header() {
               <div className="pt-6 border-t border-beige-300">
                 <div className="bg-beige-100 p-4 rounded-xl flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-bold uppercase text-navy">Showroom Quilmes</p>
+                    <p className="text-xs font-bold uppercase text-navy">Showroom Quilmes Oeste</p>
                     <p className="text-[11px] text-navy/70 mt-0.5">Atención personalizada con turno</p>
                   </div>
                   <Link

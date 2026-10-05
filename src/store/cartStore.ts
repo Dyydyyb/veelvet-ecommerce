@@ -113,7 +113,7 @@ export const useCartStore = create<CartState>((set, get) => ({
       return { success: true, message: '¡Cupón del 10% OFF aplicado con éxito!' };
     } else if (trimmed === 'SHOWROOM') {
       set({ promoCode: trimmed, discountPercentage: 0.15 });
-      return { success: true, message: '¡Cupón del 15% OFF Showroom Quilmes aplicado!' };
+      return { success: true, message: '¡Cupón del 15% OFF Showroom Quilmes Oeste aplicado!' };
     }
     return { success: false, message: 'El cupón ingresado no es válido o ha expirado.' };
   },

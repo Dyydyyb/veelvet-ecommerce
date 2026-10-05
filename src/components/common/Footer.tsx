@@ -59,7 +59,7 @@ export function Footer() {
                 className="inline-flex items-center space-x-2 bg-beige-200 hover:bg-beige-300 px-3.5 py-2 rounded-full border border-beige-300/80 transition-colors"
               >
                 <MapPin className="w-4 h-4" />
-                <span>Showroom Quilmes</span>
+                <span>Showroom Quilmes Oeste</span>
               </Link>
             </div>
           </div>
@@ -143,7 +143,7 @@ export function Footer() {
           <div className="flex items-center space-x-3">
             <MapPin className="w-5 h-5 stroke-[1.75]" />
             <div>
-              <p className="text-xs font-bold uppercase">Showroom en Quilmes</p>
+              <p className="text-xs font-bold uppercase">Showroom en Quilmes Oeste</p>
               <p className="text-[11px] text-navy/60 font-light">Vení a probarte con turno</p>
             </div>
           </div>
@@ -171,7 +171,7 @@ export function Footer() {
             <span>•</span>
             <Link to="/guia-de-talles" className="hover:text-navy">Medidas</Link>
             <span>•</span>
-            <Link to="/showroom" className="hover:text-navy">Quilmes, Bs. As.</Link>
+            <Link to="/showroom" className="hover:text-navy">Quilmes Oeste, Bs. As.</Link>
           </div>
         </div>
       </div>

@@ -400,7 +400,7 @@ export function CheckoutPage() {
                       required
                       value={formData.city}
                       onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                      placeholder="Ej: Quilmes"
+                      placeholder="Ej: Quilmes Oeste"
                       className="w-full text-xs bg-beige-50 border border-beige-300 rounded-lg px-3.5 py-2.5 text-navy focus:outline-none focus:border-navy"
                     />
                   </div>

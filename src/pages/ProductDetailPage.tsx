@@ -226,7 +226,7 @@ export function ProductDetailPage() {
             <strong>Quilmes y GBA Sur:</strong> Envío rápido por Veelvet en 24 a 48 hs hábiles.
           </p>
           <p>
-            <strong>Showroom Quilmes:</strong> Retiro inmediato gratuito reservando tu turno online.
+            <strong>Showroom Quilmes Oeste:</strong> Retiro inmediato gratuito reservando tu turno online.
           </p>
         </div>
       ),

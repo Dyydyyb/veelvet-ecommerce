@@ -113,7 +113,7 @@ export function ShippingPage() {
             required
             value={postalCode}
             onChange={(e) => setPostalCode(e.target.value)}
-            placeholder="Ej: 1878 (Quilmes)"
+            placeholder="Ej: 1879 (Quilmes Oeste)"
             className="flex-1 text-xs bg-white border border-beige-300 rounded-lg px-4 py-3 text-navy font-mono placeholder:font-sans focus:outline-none focus:border-navy"
           />
           <button

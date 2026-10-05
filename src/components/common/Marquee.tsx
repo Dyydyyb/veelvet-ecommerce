@@ -8,7 +8,7 @@ interface MarqueeProps {
 }
 
 export function Marquee({
-  text = 'ENVÍO A TODO EL PAÍS • MAYORISTA Y MINORISTA • SHOWROOM EN QUILMES • UNISEX',
+  text = 'ENVÍO A TODO EL PAÍS • MAYORISTA Y MINORISTA • SHOWROOM EN QUILMES OESTE • UNISEX',
   reverse = false,
   className = '',
 }: MarqueeProps) {

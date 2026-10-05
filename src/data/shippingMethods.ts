@@ -52,7 +52,7 @@ export const SHIPPING_METHODS: ShippingMethod[] = [
   },
   {
     id: 'ship-showroom-retiro',
-    name: 'Retiro Gratis en Showroom Quilmes',
+    name: 'Retiro Gratis en Showroom Quilmes Oeste',
     carrier: 'showroom',
     tagline: 'Coordiná tu visita, probátelo y retiralo en el acto.',
     deliveryTime: 'Inmediato (con turno)',

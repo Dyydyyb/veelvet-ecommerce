@@ -15,7 +15,7 @@ El frontend ya cuenta con el cliente unificado en [`src/services/catalogService.
 | `GET` | `/api/v1/categories/mega-menu` | Estructura dinámica de las 4 columnas del Mega Menú ("Colección") |
 | `GET` | `/api/v1/categories` | Lista de categorías principales con imágenes y badges |
 | `POST` | `/api/v1/newsletter` | Registro de suscriptores al Club Veelvet |
-| `POST` | `/api/v1/showroom/bookings` | Reserva de turnos en el showroom de Quilmes |
+| `POST` | `/api/v1/showroom/bookings` | Reserva de turnos en el showroom de Quilmes Oeste |
 | `POST` | `/api/v1/wholesale/inquiries` | Formulario de pedidos y consultas mayoristas |
 
 ---

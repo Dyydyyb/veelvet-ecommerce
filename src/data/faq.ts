@@ -15,7 +15,7 @@ export const FAQ_ITEMS: FAQItem[] = [
   {
     id: 'faq-02',
     question: '¿Dónde están ubicados?',
-    answer: 'Nuestro showroom está ubicado en Quilmes. Al reservar tu turno te enviamos la dirección exacta.',
+    answer: 'Nuestro showroom está ubicado en Quilmes Oeste. Al reservar tu turno te enviamos la dirección exacta.',
     category: 'showroom',
   },
   {

@@ -2,7 +2,7 @@
 
 > **"Simplemente Veelvet."**  
 > Marca argentina de indumentaria urbana unisex. Buzos con cierre pesados, pantalones anchos y conjuntos esenciales.  
-> Instagram oficial: [@veelvet.shop](https://instagram.com/veelvet.shop) • Showroom en **Quilmes, Buenos Aires**.
+> Instagram oficial: [@veelvet.shop](https://instagram.com/veelvet.shop) • Showroom en **Quilmes Oeste, Buenos Aires**.
 
 ---
 
@@ -45,7 +45,7 @@
    - Checkout con distribución optimizada para pantalla vertical.
 
 5. **Páginas y Vistas Completas**:
-   - `/`: **Home** (Hero 3D centrado, Marquee, Categorías, Destacados, Por qué Veelvet, Showroom Quilmes, Instagram, Newsletter).
+   - `/`: **Home** (Hero 3D centrado, Marquee, Categorías, Destacados, Por qué Veelvet, Showroom Quilmes Oeste, Instagram, Newsletter).
    - `/tienda`: **Colección** con filtros dinámicos (categoría, talle S-XL, color, ordenamiento).
    - `/producto/:id`: **Ficha de Producto** con galería con zoom, selectores de talle y color, disparador de tabla de talles y acordeones informativos.
    - `/guia-de-talles`: **Tabla de Medidas** (página y modal) con ilustraciones vectoriales esquemáticas (A, B, C, D) y tablas exactas de Buzo con Cierre y Pantalón.
@@ -53,7 +53,7 @@
    - `/envios`: **Logística** (Andreani, Correo Argentino, Envío por Veelvet y retiro en Showroom con simulador de CP).
    - `/preguntas-frecuentes`: **FAQ** en acordeón animado.
    - `/mayoristas`: **B2B** con beneficios comerciales y formulario validado visualmente.
-   - `/showroom`: **Reserva de Turno** en Quilmes con selector de fecha y horario.
+   - `/showroom`: **Reserva de Turno** en Quilmes Oeste con selector de fecha y horario.
    - `/checkout`: **Checkout UI** con selector de transporte, formas de pago (transferencia 10% OFF, cuotas), resumen y confirmación con confeti.
    - `*`: **Error 404** con estrella 3D giratoria.
 
@@ -124,4 +124,4 @@ Al conectar una API REST o GraphQL en el futuro, simplemente reemplazá la const
 
 ## 🇦🇷 Diseñado para Veelvet
 *Simplemente Veelvet.*
-Quilmes, Buenos Aires, Argentina.
+Quilmes Oeste, Buenos Aires, Argentina.

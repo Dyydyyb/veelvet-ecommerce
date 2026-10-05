@@ -38,7 +38,7 @@ export function ShowroomPage() {
     <div className="pt-28 pb-20 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto min-h-screen">
       <SectionTitle
         overline="Experiencia Exclusiva"
-        title="Showroom en Quilmes"
+        title="Showroom en Quilmes Oeste"
         subtitle="Vení a ver y probarte nuestros productos. Al reservar tu turno te enviamos la dirección exacta por WhatsApp para brindarte una atención 100% personalizada."
         align="center"
       />
@@ -54,10 +54,10 @@ export function ShowroomPage() {
               </div>
               <div>
                 <h3 className="font-montserrat font-black text-base text-navy uppercase">
-                  Ubicación: Quilmes Centro
+                  Ubicación: Quilmes Oeste
                 </h3>
                 <p className="text-xs text-navy/70">
-                  Buenos Aires, Argentina (a 4 cuadras de la estación)
+                  Buenos Aires, Argentina
                 </p>
               </div>
             </div>
@@ -102,7 +102,7 @@ export function ShowroomPage() {
               ¿Querés venir hoy mismo o tenés dudas con el horario?
             </p>
             <a
-              href="https://wa.me/5491136291392?text=Hola%20Veelvet!%20Quisiera%20saber%20si%20tienen%20disponibilidad%20hoy%20en%20el%20showroom%20de%20Quilmes."
+              href="https://wa.me/5491136291392?text=Hola%20Veelvet!%20Quisiera%20saber%20si%20tienen%20disponibilidad%20hoy%20en%20el%20showroom%20de%20Quilmes%20Oeste."
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center space-x-2 mt-3 bg-beige-200 hover:bg-beige-300 text-navy px-4 py-2.5 rounded-lg text-xs font-bold uppercase transition-colors border border-beige-300"
