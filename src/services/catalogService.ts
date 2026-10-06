@@ -334,9 +334,15 @@ export const CatalogService = {
 
       // Categorías principales destacadas
       featuredCats.forEach((c, idx) => {
-        const catProd = prods.find(
-          (p) => p.subcategoria?.categoria?.id === c.id || p.subcategoria?.categoria_id === c.id
-        );
+        const catProd = prods.find((p) => {
+          if (p.subcategoria?.categoria?.id === c.id || p.subcategoria?.categoria_id === c.id) return true;
+          if (Array.isArray(p.categorias_ids) && p.categorias_ids.includes(c.id)) return true;
+          const prodSubs = Array.isArray(p.subcategorias_ids) ? p.subcategorias_ids : p.subcategoria_id ? [p.subcategoria_id] : [];
+          return prodSubs.some((sid) => {
+            const s = subs.find((sub) => sub.id === sid);
+            return s?.categoria_id === c.id || s?.categorias_ids?.includes(c.id);
+          });
+        });
         const prodImg = Array.isArray(catProd?.imagenes_url)
           ? catProd.imagenes_url[0]
           : (catProd?.imagenes_url as any)?.urls?.[0];

@@ -50,6 +50,12 @@ function parseRawProduct(raw: any): Producto {
   if (raw.subcategoria?.categoria_id && !categorias_ids.includes(raw.subcategoria.categoria_id)) {
     categorias_ids.push(raw.subcategoria.categoria_id);
   }
+  // Si la subcategoría tiene múltiples categorías asociadas
+  if (Array.isArray(raw.subcategoria?.categorias_ids)) {
+    raw.subcategoria.categorias_ids.forEach((cid: string) => {
+      if (cid && !categorias_ids.includes(cid)) categorias_ids.push(cid);
+    });
+  }
 
   return {
     ...raw,
@@ -69,6 +75,7 @@ export interface AppFeaturedConfig {
   featured_subcategories: string[];
   category_images?: Record<string, string>;
   subcategory_images?: Record<string, string>;
+  subcategory_categorias?: Record<string, string[]>; // id_subcategoria -> [id_cat1, id_cat2, ...]
   menu_lateral_subcategories?: MenuLateralItem[];
   menu_lateral_items?: MenuLateralItem[];
 }
@@ -92,6 +99,7 @@ export const SupabaseService = {
           featured_subcategories: Array.isArray(parsed.featured_subcategories) ? parsed.featured_subcategories : [],
           category_images: typeof parsed.category_images === 'object' && parsed.category_images !== null ? parsed.category_images : {},
           subcategory_images: typeof parsed.subcategory_images === 'object' && parsed.subcategory_images !== null ? parsed.subcategory_images : {},
+          subcategory_categorias: typeof parsed.subcategory_categorias === 'object' && parsed.subcategory_categorias !== null ? parsed.subcategory_categorias : {},
           menu_lateral_subcategories: Array.isArray(parsed.menu_lateral_subcategories) ? parsed.menu_lateral_subcategories : undefined,
           menu_lateral_items: Array.isArray(parsed.menu_lateral_items)
             ? parsed.menu_lateral_items
@@ -103,7 +111,7 @@ export const SupabaseService = {
     } catch (err) {
       console.warn('Error al leer configuración de destacados desde Supabase:', err);
     }
-    return { featured_categories: [], featured_subcategories: [], category_images: {}, subcategory_images: {} };
+    return { featured_categories: [], featured_subcategories: [], category_images: {}, subcategory_images: {}, subcategory_categorias: {} };
   },
 
   async saveFeaturedConfig(config: AppFeaturedConfig): Promise<void> {
@@ -271,6 +279,14 @@ export const SupabaseService = {
       delete config.category_images[id];
       changed = true;
     }
+    if (config.subcategory_categorias) {
+      for (const [subId, catList] of Object.entries(config.subcategory_categorias)) {
+        if (catList.includes(id)) {
+          config.subcategory_categorias[subId] = catList.filter((cid) => cid !== id);
+          changed = true;
+        }
+      }
+    }
     if (config.menu_lateral_subcategories) {
       const filtered = config.menu_lateral_subcategories.filter((item) => item.id !== id);
       if (filtered.length !== config.menu_lateral_subcategories.length) {
@@ -288,23 +304,34 @@ export const SupabaseService = {
   // 2. Subcategorías
   // ==========================================
   async getSubcategorias(): Promise<Subcategoria[]> {
-    const [{ data: subs, error }, featuredConfig] = await Promise.all([
+    const [{ data: subs, error }, featuredConfig, cats] = await Promise.all([
       supabase
         .from('subcategorias')
         .select('*, categoria:categorias(*)')
         .order('nombre', { ascending: true }),
       this.getFeaturedConfig(),
+      this.getCategorias(),
     ]);
 
     if (error) {
       console.warn('Error fetching subcategorias de Supabase:', error.message);
       return [];
     }
-    return (subs || []).map((s) => ({
-      ...s,
-      destacada: Boolean(s.destacada || featuredConfig.featured_subcategories.includes(s.id)),
-      imagen_url: featuredConfig.subcategory_images?.[s.id] || s.imagen_url || '',
-    }));
+    return (subs || []).map((s) => {
+      const extraCatIds = featuredConfig.subcategory_categorias?.[s.id] || [];
+      const allCatIds = Array.from(new Set([s.categoria_id, ...extraCatIds].filter(Boolean)));
+      const resolvedCats = allCatIds
+        .map((cid) => cats.find((c) => c.id === cid))
+        .filter(Boolean) as Categoria[];
+
+      return {
+        ...s,
+        destacada: Boolean(s.destacada || featuredConfig.featured_subcategories.includes(s.id)),
+        imagen_url: featuredConfig.subcategory_images?.[s.id] || s.imagen_url || '',
+        categorias_ids: allCatIds,
+        categorias: resolvedCats,
+      };
+    });
   },
 
   async toggleSubcategoriaDestacada(id: string, currentState: boolean): Promise<Subcategoria> {
@@ -324,47 +351,99 @@ export const SupabaseService = {
       await supabase.from('subcategorias').update({ destacada: targetState }).eq('id', id);
     } catch (_) {}
 
-    const { data } = await supabase
-      .from('subcategorias')
-      .select('*, categoria:categorias(*)')
-      .eq('id', id)
-      .single();
+    const [cats, { data }] = await Promise.all([
+      this.getCategorias(),
+      supabase
+        .from('subcategorias')
+        .select('*, categoria:categorias(*)')
+        .eq('id', id)
+        .single(),
+    ]);
+
+    const extraCatIds = config.subcategory_categorias?.[id] || [];
+    const allCatIds = Array.from(new Set([data?.categoria_id, ...extraCatIds].filter(Boolean)));
+    const resolvedCats = allCatIds
+      .map((cid) => cats.find((c) => c.id === cid))
+      .filter(Boolean) as Categoria[];
 
     return {
       ...(data || { id, categoria_id: '', nombre: '', slug: '' }),
       destacada: targetState,
       imagen_url: config.subcategory_images?.[id] || '',
+      categorias_ids: allCatIds,
+      categorias: resolvedCats,
     };
   },
 
-  async createSubcategoria(categoria_id: string, nombre: string, slug?: string, imagen_url?: string): Promise<Subcategoria> {
+  async createSubcategoria(
+    categoria_id: string,
+    nombre: string,
+    slug?: string,
+    imagen_url?: string,
+    categorias_ids?: string[]
+  ): Promise<Subcategoria> {
     const computedSlug = slug?.trim() || nombre.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    const cleanCatIds = Array.isArray(categorias_ids) && categorias_ids.length > 0
+      ? Array.from(new Set(categorias_ids.filter(Boolean)))
+      : [categoria_id];
+    const primaryCatId = cleanCatIds[0] || categoria_id;
+
     const { data, error } = await supabase
       .from('subcategorias')
-      .insert([{ categoria_id, nombre, slug: computedSlug }])
+      .insert([{ categoria_id: primaryCatId, nombre, slug: computedSlug }])
       .select('*, categoria:categorias(*)')
       .single();
 
     if (error) throw new Error(error.message);
 
-    if (data?.id && imagen_url?.trim()) {
+    if (data?.id) {
       const config = await this.getFeaturedConfig();
-      if (!config.subcategory_images) config.subcategory_images = {};
-      config.subcategory_images[data.id] = imagen_url.trim();
-      await this.saveFeaturedConfig(config);
+      let changed = false;
+      if (imagen_url?.trim()) {
+        if (!config.subcategory_images) config.subcategory_images = {};
+        config.subcategory_images[data.id] = imagen_url.trim();
+        changed = true;
+      }
+      if (cleanCatIds.length > 0) {
+        if (!config.subcategory_categorias) config.subcategory_categorias = {};
+        config.subcategory_categorias[data.id] = cleanCatIds;
+        changed = true;
+      }
+      if (changed) {
+        await this.saveFeaturedConfig(config);
+      }
     }
+
+    const cats = await this.getCategorias();
+    const resolvedCats = cleanCatIds
+      .map((cid) => cats.find((c) => c.id === cid))
+      .filter(Boolean) as Categoria[];
 
     return {
       ...data,
       imagen_url: imagen_url?.trim() || '',
+      categorias_ids: cleanCatIds,
+      categorias: resolvedCats,
     };
   },
 
-  async updateSubcategoria(id: string, categoria_id: string, nombre: string, slug?: string, imagen_url?: string): Promise<Subcategoria> {
+  async updateSubcategoria(
+    id: string,
+    categoria_id: string,
+    nombre: string,
+    slug?: string,
+    imagen_url?: string,
+    categorias_ids?: string[]
+  ): Promise<Subcategoria> {
     const computedSlug = slug?.trim() || nombre.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    const cleanCatIds = Array.isArray(categorias_ids) && categorias_ids.length > 0
+      ? Array.from(new Set(categorias_ids.filter(Boolean)))
+      : [categoria_id];
+    const primaryCatId = cleanCatIds[0] || categoria_id;
+
     const { data, error } = await supabase
       .from('subcategorias')
-      .update({ categoria_id, nombre, slug: computedSlug })
+      .update({ categoria_id: primaryCatId, nombre, slug: computedSlug })
       .eq('id', id)
       .select('*, categoria:categorias(*)')
       .single();
@@ -380,14 +459,25 @@ export const SupabaseService = {
       changed = true;
     }
 
+    if (!config.subcategory_categorias) config.subcategory_categorias = {};
+    config.subcategory_categorias[id] = cleanCatIds;
+    changed = true;
+
     if (changed) {
       await this.saveFeaturedConfig(config);
     }
+
+    const cats = await this.getCategorias();
+    const resolvedCats = cleanCatIds
+      .map((cid) => cats.find((c) => c.id === cid))
+      .filter(Boolean) as Categoria[];
 
     return {
       ...data,
       destacada: config.featured_subcategories.includes(id),
       imagen_url: typeof imagen_url === 'string' ? imagen_url.trim() : (config.subcategory_images?.[id] || ''),
+      categorias_ids: cleanCatIds,
+      categorias: resolvedCats,
     };
   },
 
@@ -411,6 +501,10 @@ export const SupabaseService = {
     }
     if (config.subcategory_images && config.subcategory_images[id]) {
       delete config.subcategory_images[id];
+      changed = true;
+    }
+    if (config.subcategory_categorias && config.subcategory_categorias[id]) {
+      delete config.subcategory_categorias[id];
       changed = true;
     }
     if (config.menu_lateral_subcategories) {
@@ -785,54 +879,71 @@ export const SupabaseService = {
     const subcategoryNames: string[] = [];
     const subcategorySlugs: string[] = [];
 
-    // 1. Primaria
+    // Helper para registrar una categoría
+    const registerCat = (cid: string, cname?: string) => {
+      if (!cid) return;
+      if (!categoryIds.includes(cid)) categoryIds.push(cid);
+      let name = cname;
+      if (!name && allCats) {
+        const found = allCats.find((c) => c.id === cid);
+        if (found) name = found.nombre;
+      }
+      if (name) {
+        if (!categoryNames.includes(name)) categoryNames.push(name);
+        const slug = name.toLowerCase().replace(/\s+/g, '-');
+        if (!categories.includes(slug)) categories.push(slug);
+      }
+    };
+
+    // Helper para registrar una subcategoría y HEREDAR AUTOMÁTICAMENTE todas sus categorías a la prenda
+    const registerSub = (sid: string, sname?: string, sslug?: string) => {
+      if (!sid) return;
+      if (!subcategoryIds.includes(sid)) subcategoryIds.push(sid);
+      const sObj = allSubs
+        ? allSubs.find((s) => s.id === sid)
+        : p.subcategoria?.id === sid
+        ? p.subcategoria
+        : undefined;
+      const name = sname || sObj?.nombre;
+      const slug = sslug || sObj?.slug;
+      if (name && !subcategoryNames.includes(name)) subcategoryNames.push(name);
+      if (slug && !subcategorySlugs.includes(slug)) subcategorySlugs.push(slug);
+
+      // Heredar todas las categorías de la subcategoría:
+      // 1. Primaria
+      if (sObj?.categoria_id) {
+        registerCat(sObj.categoria_id, sObj.categoria?.nombre);
+      }
+      // 2. Múltiples categorías (categorias_ids y categorias)
+      if (Array.isArray(sObj?.categorias_ids)) {
+        sObj.categorias_ids.forEach((cid) => {
+          const cObj = sObj.categorias?.find((c) => c.id === cid);
+          registerCat(cid, cObj?.nombre);
+        });
+      }
+    };
+
+    // 1. Subcategoría y Categoría primaria del producto
     if (sub) {
-      subcategoryIds.push(sub.id);
-      if (sub.nombre) subcategoryNames.push(sub.nombre);
-      if (sub.slug) subcategorySlugs.push(sub.slug);
+      registerSub(sub.id, sub.nombre, sub.slug);
+    } else if (p.subcategoria_id) {
+      registerSub(p.subcategoria_id);
     }
     if (cat) {
-      categoryIds.push(cat.id);
-      if (cat.nombre) {
-        categoryNames.push(cat.nombre);
-        categories.push(cat.nombre.toLowerCase().replace(/\s+/g, '-'));
-      }
+      registerCat(cat.id, cat.nombre);
     }
 
-    // 2. Subcategorías asignadas adicionales
+    // 2. Subcategorías asignadas adicionales (con herencia de todas sus categorías)
     if (Array.isArray(parsed.subcategorias_ids)) {
       parsed.subcategorias_ids.forEach((sid) => {
-        if (!subcategoryIds.includes(sid)) subcategoryIds.push(sid);
-        if (allSubs) {
-          const sObj = allSubs.find((s) => s.id === sid);
-          if (sObj) {
-            if (sObj.nombre && !subcategoryNames.includes(sObj.nombre)) subcategoryNames.push(sObj.nombre);
-            if (sObj.slug && !subcategorySlugs.includes(sObj.slug)) subcategorySlugs.push(sObj.slug);
-            const sCat = sObj.categoria || (allCats ? allCats.find((c) => c.id === sObj.categoria_id) : undefined);
-            if (sCat) {
-              if (!categoryIds.includes(sCat.id)) categoryIds.push(sCat.id);
-              if (sCat.nombre && !categoryNames.includes(sCat.nombre)) {
-                categoryNames.push(sCat.nombre);
-                categories.push(sCat.nombre.toLowerCase().replace(/\s+/g, '-'));
-              }
-            }
-          }
-        }
+        registerSub(sid);
       });
     }
 
-    // 3. Categorías enteras asignadas adicionales
+    // 3. Categorías asignadas adicionales directamente
     if (Array.isArray(parsed.categorias_ids)) {
       parsed.categorias_ids.forEach((cid) => {
-        if (!categoryIds.includes(cid)) categoryIds.push(cid);
-        if (allCats) {
-          const cObj = allCats.find((c) => c.id === cid);
-          if (cObj && cObj.nombre) {
-            if (!categoryNames.includes(cObj.nombre)) categoryNames.push(cObj.nombre);
-            const cSlug = cObj.nombre.toLowerCase().replace(/\s+/g, '-');
-            if (!categories.includes(cSlug)) categories.push(cSlug);
-          }
-        }
+        registerCat(cid);
       });
     }
 
@@ -995,7 +1106,9 @@ export const SupabaseService = {
 
       // Columnas 2, 3, 4 basadas en las categorías principales (Top, Bottom, Accesorios)
       categorias.forEach((cat) => {
-        const catSubs = subcategorias.filter((s) => s.categoria_id === cat.id);
+        const catSubs = subcategorias.filter(
+          (s) => s.categoria_id === cat.id || s.categorias_ids?.includes(cat.id)
+        );
         columns.push({
           id: cat.nombre.toLowerCase().replace(/\s+/g, '-'),
           title: cat.nombre,

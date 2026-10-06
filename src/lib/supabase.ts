@@ -20,11 +20,13 @@ export interface Categoria {
 export interface Subcategoria {
   id: string;
   categoria_id: string;
+  categorias_ids?: string[]; // Múltiples categorías a las que pertenece
   nombre: string;
   slug: string;
   imagen_url?: string;
   destacada?: boolean;
   categoria?: Categoria;
+  categorias?: Categoria[]; // Lista resuelta de todas las categorías asignadas
 }
 
 export interface TipoOferta {

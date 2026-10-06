@@ -95,7 +95,17 @@ export function ProductModal({
         : product.subcategoria?.categoria_id
         ? [product.subcategoria.categoria_id]
         : [];
-      setSelectedCategoriasIds(rawCatIds);
+
+      // Asegurar que todas las categorías de las subcategorías asignadas estén presentes
+      const allSubCatIds = new Set<string>(rawCatIds);
+      rawSubIds.forEach((sid) => {
+        const s = subcategorias.find((sub) => sub.id === sid);
+        if (s) {
+          if (s.categoria_id) allSubCatIds.add(s.categoria_id);
+          if (Array.isArray(s.categorias_ids)) s.categorias_ids.forEach((cid) => allSubCatIds.add(cid));
+        }
+      });
+      setSelectedCategoriasIds(Array.from(allSubCatIds));
 
       setTipoOfertaId(product.tipo_oferta_id || '');
       setDestacado(Boolean(product.destacado));
@@ -233,8 +243,15 @@ export function ProductModal({
         return prev.filter((id) => id !== subId);
       } else {
         const sub = subcategorias.find((s) => s.id === subId);
-        if (sub && sub.categoria_id && !selectedCategoriasIds.includes(sub.categoria_id)) {
-          setSelectedCategoriasIds((catsPrev) => [...catsPrev, sub.categoria_id]);
+        if (sub) {
+          const subCatIds = Array.from(new Set([sub.categoria_id, ...(sub.categorias_ids || [])].filter(Boolean)));
+          setSelectedCategoriasIds((catsPrev) => {
+            const nextCats = [...catsPrev];
+            subCatIds.forEach((cid) => {
+              if (!nextCats.includes(cid)) nextCats.push(cid);
+            });
+            return nextCats;
+          });
         }
         return [...prev, subId];
       }
@@ -640,7 +657,9 @@ export function ProductModal({
             <div className="space-y-3 pt-1">
               {categorias.map((cat) => {
                 const isCatSelected = selectedCategoriasIds.includes(cat.id);
-                const subsOfCat = subcategorias.filter((s) => s.categoria_id === cat.id);
+                const subsOfCat = subcategorias.filter(
+                  (s) => s.categoria_id === cat.id || s.categorias_ids?.includes(cat.id)
+                );
 
                 return (
                   <div

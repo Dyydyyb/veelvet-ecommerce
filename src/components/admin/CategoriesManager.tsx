@@ -45,7 +45,7 @@ export function CategoriesManager({
 
   // Estado para crear Subcategoría
   const [newSubNombre, setNewSubNombre] = useState('');
-  const [newSubCatId, setNewSubCatId] = useState('');
+  const [newSubCatIds, setNewSubCatIds] = useState<string[]>([]);
   const [newSubSlug, setNewSubSlug] = useState('');
   const [newSubImagen, setNewSubImagen] = useState('');
   const [newSubDestacada, setNewSubDestacada] = useState(false);
@@ -53,7 +53,7 @@ export function CategoriesManager({
   // Estado para editar Subcategoría
   const [editingSubId, setEditingSubId] = useState<string | null>(null);
   const [editSubNombre, setEditSubNombre] = useState('');
-  const [editSubCatId, setEditSubCatId] = useState('');
+  const [editSubCatIds, setEditSubCatIds] = useState<string[]>([]);
   const [editSubSlug, setEditSubSlug] = useState('');
   const [editSubImagen, setEditSubImagen] = useState('');
 
@@ -91,10 +91,32 @@ export function CategoriesManager({
 
   // Set default category when available
   useEffect(() => {
-    if (categorias.length > 0 && !newSubCatId) {
-      setNewSubCatId(categorias[0].id);
+    if (categorias.length > 0 && newSubCatIds.length === 0) {
+      setNewSubCatIds([categorias[0].id]);
     }
-  }, [categorias, newSubCatId]);
+  }, [categorias, newSubCatIds]);
+
+  const toggleNewSubCat = (catId: string) => {
+    setNewSubCatIds((prev) => {
+      if (prev.includes(catId)) {
+        if (prev.length === 1) return prev; // Mantener al menos una categoría seleccionada
+        return prev.filter((id) => id !== catId);
+      } else {
+        return [...prev, catId];
+      }
+    });
+  };
+
+  const toggleEditSubCat = (catId: string) => {
+    setEditSubCatIds((prev) => {
+      if (prev.includes(catId)) {
+        if (prev.length === 1) return prev; // Mantener al menos una categoría seleccionada
+        return prev.filter((id) => id !== catId);
+      } else {
+        return [...prev, catId];
+      }
+    });
+  };
 
   // Handlers Categorías
   const handleCreateCategoria = async (e: React.FormEvent) => {
@@ -179,15 +201,16 @@ export function CategoriesManager({
   // Handlers Subcategorías
   const handleCreateSubcategoria = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newSubNombre.trim() || !newSubCatId) return;
+    if (!newSubNombre.trim() || newSubCatIds.length === 0) return;
     try {
       setLoading(true);
       setError(null);
       const created = await SupabaseService.createSubcategoria(
-        newSubCatId,
+        newSubCatIds[0],
         newSubNombre.trim(),
         newSubSlug.trim(),
-        newSubImagen.trim()
+        newSubImagen.trim(),
+        newSubCatIds
       );
       if (newSubDestacada && created?.id) {
         await SupabaseService.toggleSubcategoriaDestacada(created.id, false);
@@ -196,6 +219,7 @@ export function CategoriesManager({
       setNewSubSlug('');
       setNewSubImagen('');
       setNewSubDestacada(false);
+      setNewSubCatIds(categorias.length > 0 ? [categorias[0].id] : []);
       await onRefresh();
     } catch (err: any) {
       setError(err.message || 'Error al crear subcategoría.');
@@ -207,20 +231,28 @@ export function CategoriesManager({
   const handleStartEditSub = (sub: Subcategoria) => {
     setEditingSubId(sub.id);
     setEditSubNombre(sub.nombre);
-    setEditSubCatId(sub.categoria_id);
+    const existingCats = Array.isArray(sub.categorias_ids) && sub.categorias_ids.length > 0
+      ? sub.categorias_ids
+      : sub.categoria_id ? [sub.categoria_id] : [];
+    setEditSubCatIds(existingCats);
     setEditSubSlug(sub.slug);
     setEditSubImagen(sub.imagen_url || '');
   };
 
   const handleSaveEditSub = async (id: string) => {
+    if (editSubCatIds.length === 0) {
+      setError('Debés asignar al menos una categoría a la subcategoría.');
+      return;
+    }
     try {
       setLoading(true);
       await SupabaseService.updateSubcategoria(
         id,
-        editSubCatId,
+        editSubCatIds[0],
         editSubNombre,
         editSubSlug,
-        editSubImagen.trim()
+        editSubImagen.trim(),
+        editSubCatIds
       );
       setEditingSubId(null);
       await onRefresh();
@@ -695,22 +727,43 @@ export function CategoriesManager({
 
             {/* Form Crear Subcategoría */}
             <form onSubmit={handleCreateSubcategoria} className="space-y-3 bg-beige-50/70 p-4 rounded-xl border border-beige-200">
-              <span className="block text-[11px] font-bold uppercase tracking-wider text-navy">
-                + Nueva Subcategoría
-              </span>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                <select
-                  value={newSubCatId}
-                  onChange={(e) => setNewSubCatId(e.target.value)}
-                  className="text-xs bg-white border border-beige-300 rounded-lg px-2.5 py-2 text-navy focus:outline-none focus:border-navy"
-                >
-                  {categorias.map((cat) => (
-                    <option key={cat.id} value={cat.id}>
-                      Categoría: {cat.nombre}
-                    </option>
-                  ))}
-                </select>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                <span className="block text-[11px] font-bold uppercase tracking-wider text-navy">
+                  + Nueva Subcategoría
+                </span>
+                <span className="text-[10px] text-navy/60">
+                  Podés asignarla a una o más categorías (sus productos se incluirán en todas).
+                </span>
+              </div>
 
+              {/* Selector de Múltiples Categorías */}
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-navy/70">
+                  Categorías Asignadas (hacé clic para sumar o quitar categorías):
+                </label>
+                <div className="flex flex-wrap items-center gap-1.5 p-2 bg-white rounded-lg border border-beige-300">
+                  {categorias.map((cat) => {
+                    const isSelected = newSubCatIds.includes(cat.id);
+                    return (
+                      <button
+                        key={`new-sub-cat-${cat.id}`}
+                        type="button"
+                        onClick={() => toggleNewSubCat(cat.id)}
+                        className={`inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-navy text-white shadow-2xs'
+                            : 'bg-beige-100/70 text-navy/70 hover:bg-beige-200 hover:text-navy border border-beige-200'
+                        }`}
+                      >
+                        {isSelected ? <Check className="w-3 h-3 stroke-[3]" /> : <Plus className="w-3 h-3 opacity-60" />}
+                        <span>{cat.nombre}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <input
                   type="text"
                   required
@@ -721,7 +774,7 @@ export function CategoriesManager({
                       setNewSubSlug(e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''));
                     }
                   }}
-                  placeholder="Nombre (ej: Camperas)"
+                  placeholder="Nombre (ej: Camperas, Remeras)"
                   className="text-xs bg-white border border-beige-300 rounded-lg px-3 py-2 text-navy focus:outline-none focus:border-navy"
                 />
 
@@ -729,7 +782,7 @@ export function CategoriesManager({
                   type="text"
                   value={newSubSlug}
                   onChange={(e) => setNewSubSlug(e.target.value)}
-                  placeholder="Slug URL"
+                  placeholder="Slug URL (ej: campera, remeras)"
                   className="text-xs bg-white border border-beige-300 rounded-lg px-2.5 py-2 text-navy focus:outline-none focus:border-navy"
                 />
               </div>
@@ -758,11 +811,12 @@ export function CategoriesManager({
                 )}
                 <button
                   type="submit"
-                  disabled={loading || !newSubCatId}
-                  className="bg-navy hover:bg-navy-500 text-white px-3 py-2 rounded-lg transition-colors cursor-pointer flex-shrink-0"
+                  disabled={loading || newSubCatIds.length === 0}
+                  className="bg-navy hover:bg-navy-500 text-white px-3 py-2 rounded-lg transition-colors cursor-pointer flex-shrink-0 flex items-center space-x-1"
                   title="Crear subcategoría"
                 >
                   <Plus className="w-4 h-4" />
+                  <span className="text-xs font-semibold hidden sm:inline">Agregar</span>
                 </button>
               </div>
 
@@ -790,32 +844,48 @@ export function CategoriesManager({
                 subcategorias.map((sub) => (
                   <div key={sub.id} className="py-2.5 flex items-center justify-between text-xs">
                     {editingSubId === sub.id ? (
-                      <div className="flex-1 flex flex-col space-y-2 mr-2 bg-beige-50 p-2.5 rounded-lg border border-beige-300">
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                          <select
-                            value={editSubCatId}
-                            onChange={(e) => setEditSubCatId(e.target.value)}
-                            className="text-xs bg-white border border-beige-300 rounded px-2 py-1"
-                          >
-                            {categorias.map((c) => (
-                              <option key={c.id} value={c.id}>
-                                {c.nombre}
-                              </option>
-                            ))}
-                          </select>
+                      <div className="flex-1 flex flex-col space-y-2.5 mr-2 bg-beige-50 p-3 rounded-lg border border-beige-300">
+                        {/* Selector de categorías para editar */}
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-navy/70 block">
+                            Categorías asignadas (clic para sumar/quitar):
+                          </span>
+                          <div className="flex flex-wrap items-center gap-1.5 p-1.5 bg-white rounded border border-beige-300">
+                            {categorias.map((c) => {
+                              const isAssigned = editSubCatIds.includes(c.id);
+                              return (
+                                <button
+                                  key={`edit-sub-cat-${c.id}`}
+                                  type="button"
+                                  onClick={() => toggleEditSubCat(c.id)}
+                                  className={`inline-flex items-center space-x-1 px-2 py-0.5 rounded text-[11px] font-semibold transition-all cursor-pointer ${
+                                    isAssigned
+                                      ? 'bg-navy text-white shadow-2xs'
+                                      : 'bg-beige-100 text-navy/60 hover:bg-beige-200 hover:text-navy border border-beige-200'
+                                  }`}
+                                >
+                                  {isAssigned ? <Check className="w-3 h-3 stroke-[3]" /> : <Plus className="w-3 h-3 opacity-60" />}
+                                  <span>{c.nombre}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                           <input
                             type="text"
                             value={editSubNombre}
                             onChange={(e) => setEditSubNombre(e.target.value)}
                             placeholder="Nombre"
-                            className="text-xs bg-white border border-beige-300 rounded px-2 py-1"
+                            className="text-xs bg-white border border-beige-300 rounded px-2.5 py-1.5 text-navy focus:outline-none focus:border-navy"
                           />
                           <input
                             type="text"
                             value={editSubSlug}
                             onChange={(e) => setEditSubSlug(e.target.value)}
                             placeholder="Slug"
-                            className="text-xs bg-white border border-beige-300 rounded px-2 py-1"
+                            className="text-xs bg-white border border-beige-300 rounded px-2.5 py-1.5 text-navy focus:outline-none focus:border-navy"
                           />
                         </div>
 
@@ -826,7 +896,7 @@ export function CategoriesManager({
                             value={editSubImagen}
                             onChange={(e) => setEditSubImagen(e.target.value)}
                             placeholder="URL imagen principal (Cloudflare R2)"
-                            className="flex-1 text-xs bg-white border border-beige-300 rounded px-2 py-1"
+                            className="flex-1 text-xs bg-white border border-beige-300 rounded px-2.5 py-1.5 text-navy focus:outline-none focus:border-navy"
                           />
                           {editSubImagen.trim() && (
                             <img
@@ -840,17 +910,18 @@ export function CategoriesManager({
                           )}
                           <button
                             onClick={() => handleSaveEditSub(sub.id)}
-                            className="text-green-700 hover:text-green-800 p-1 cursor-pointer"
-                            title="Guardar"
+                            className="bg-navy hover:bg-navy-500 text-white px-2.5 py-1.5 rounded text-xs font-semibold cursor-pointer flex items-center space-x-1"
+                            title="Guardar cambios"
                           >
-                            <Check className="w-4 h-4" />
+                            <Check className="w-3.5 h-3.5" />
+                            <span>Guardar</span>
                           </button>
                           <button
                             onClick={() => setEditingSubId(null)}
-                            className="text-navy/40 hover:text-navy p-1 cursor-pointer"
+                            className="bg-beige-200 hover:bg-beige-300 text-navy px-2 py-1.5 rounded text-xs cursor-pointer"
                             title="Cancelar"
                           >
-                            <X className="w-4 h-4" />
+                            <X className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </div>
@@ -889,20 +960,47 @@ export function CategoriesManager({
                           )}
 
                           <div>
-                            <span className="font-montserrat font-bold text-navy">
-                              {sub.nombre}
-                            </span>
-                            <span className="ml-2 text-[10px] text-navy/50 font-mono">
-                              /{sub.slug}
-                            </span>
-                            <span className="ml-2 px-1.5 py-0.5 rounded bg-beige-100 text-navy/70 text-[9px] font-semibold uppercase">
-                              {sub.categoria?.nombre || 'General'}
-                            </span>
-                            {sub.destacada && (
-                              <span className="ml-2 px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[9px] font-bold uppercase tracking-wider">
-                                Destacada en Home
+                            <div className="flex items-center space-x-2">
+                              <span className="font-montserrat font-bold text-navy">
+                                {sub.nombre}
                               </span>
-                            )}
+                              <span className="text-[10px] text-navy/50 font-mono">
+                                /{sub.slug}
+                              </span>
+                              {sub.destacada && (
+                                <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[9px] font-bold uppercase tracking-wider">
+                                  Destacada en Home
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Badges de todas las categorías asignadas a esta subcategoría */}
+                            <div className="flex flex-wrap items-center gap-1 mt-1">
+                              {(() => {
+                                const assignedCats = Array.isArray(sub.categorias) && sub.categorias.length > 0
+                                  ? sub.categorias
+                                  : Array.isArray(sub.categorias_ids) && sub.categorias_ids.length > 0
+                                  ? (sub.categorias_ids.map((cid) => categorias.find((c) => c.id === cid)).filter(Boolean) as Categoria[])
+                                  : sub.categoria ? [sub.categoria] : [];
+
+                                if (assignedCats.length === 0) {
+                                  return (
+                                    <span className="px-1.5 py-0.5 rounded bg-beige-100 text-navy/70 text-[9px] font-semibold uppercase">
+                                      General
+                                    </span>
+                                  );
+                                }
+
+                                return assignedCats.map((c) => (
+                                  <span
+                                    key={`sub-assigned-cat-${sub.id}-${c.id}`}
+                                    className="px-1.5 py-0.5 rounded bg-navy text-white text-[9px] font-bold uppercase tracking-wider shadow-2xs"
+                                  >
+                                    {c.nombre}
+                                  </span>
+                                ));
+                              })()}
+                            </div>
                           </div>
                         </div>
 

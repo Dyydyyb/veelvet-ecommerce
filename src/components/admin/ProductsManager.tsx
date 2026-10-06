@@ -45,9 +45,18 @@ export function ProductsManager({
     const matchesSub =
       p.subcategoria_id === selectedSubcat ||
       (Array.isArray(p.subcategorias_ids) && p.subcategorias_ids.includes(selectedSubcat));
+
+    const prodSubIds = Array.isArray(p.subcategorias_ids) && p.subcategorias_ids.length > 0
+      ? p.subcategorias_ids
+      : p.subcategoria_id ? [p.subcategoria_id] : [];
+
     const matchesCat =
       p.subcategoria?.categoria_id === selectedSubcat ||
-      (Array.isArray(p.categorias_ids) && p.categorias_ids.includes(selectedSubcat));
+      (Array.isArray(p.categorias_ids) && p.categorias_ids.includes(selectedSubcat)) ||
+      prodSubIds.some((sid) => {
+        const s = subcategorias.find((sub) => sub.id === sid);
+        return s?.categoria_id === selectedSubcat || s?.categorias_ids?.includes(selectedSubcat);
+      });
 
     return matchesSub || matchesCat;
   });
@@ -253,9 +262,23 @@ export function ProductsManager({
                                 ? [prod.subcategoria.categoria_id]
                                 : [];
 
-                              if (assignedCatIds.length === 0) return null;
+                              const allCatIdsSet = new Set<string>(assignedCatIds);
+                              const prodSubIds = Array.isArray(prod.subcategorias_ids) && prod.subcategorias_ids.length > 0
+                                ? prod.subcategorias_ids
+                                : prod.subcategoria_id ? [prod.subcategoria_id] : [];
 
-                              return assignedCatIds.map((cid) => {
+                              prodSubIds.forEach((sid) => {
+                                const s = subcategorias.find((sub) => sub.id === sid);
+                                if (s) {
+                                  if (s.categoria_id) allCatIdsSet.add(s.categoria_id);
+                                  if (Array.isArray(s.categorias_ids)) s.categorias_ids.forEach((cid) => allCatIdsSet.add(cid));
+                                }
+                              });
+
+                              const finalCatIds = Array.from(allCatIdsSet);
+                              if (finalCatIds.length === 0) return null;
+
+                              return finalCatIds.map((cid) => {
                                 const catObj =
                                   categorias.find((c) => c.id === cid) ||
                                   (prod.subcategoria?.categoria?.id === cid ? prod.subcategoria?.categoria : undefined);
