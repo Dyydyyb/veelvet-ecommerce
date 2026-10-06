@@ -229,7 +229,7 @@ export function Header() {
               transition={{ duration: 0.22, ease: 'easeOut' }}
               className="w-full bg-white border-t border-b border-beige-300/80 shadow-xl overflow-hidden mt-2 sm:mt-3"
             >
-              <div className="max-w-7xl mx-auto px-6 sm:px-10 lg:px-12 py-9">
+              <div className="max-w-7xl 2xl:max-w-screen-2xl mx-auto px-6 sm:px-10 lg:px-12 py-8">
                 {menuConfig.columns.length === 0 ? (
                   <div className="py-8 text-center max-w-md mx-auto">
                     <p className="text-xs text-navy/60 font-light mb-4">
@@ -245,52 +245,124 @@ export function Header() {
                     </Link>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-8 lg:gap-14">
-                    {menuConfig.columns.map((column) => (
-                      <div key={column.id} className="flex flex-col">
-                        {column.title ? (
-                          <div className="mb-4">
-                            <h3 className="text-xl md:text-2xl font-black font-montserrat tracking-tight text-navy">
-                              {column.title}
-                            </h3>
-                            {column.hasUnderline && (
-                              <div className="w-full h-[1px] bg-navy/20 mt-2" />
-                            )}
-                          </div>
-                        ) : (
-                          // Height placeholder to align items with neighboring columns that have titles
-                          <div className="hidden md:block h-[37px] mb-4" />
-                        )}
+                  (() => {
+                    const lateralColumn = menuConfig.columns.find((c) => c.id === 'destacados' || !c.title);
+                    const categoryColumns = menuConfig.columns.filter((c) => c !== lateralColumn);
 
-                        <ul className="space-y-3">
-                          {column.items.map((item, idx) => (
-                            <li key={idx}>
-                              <Link
-                                to={item.href}
-                                onClick={() => setCollectionDropdownOpen(false)}
-                                className={`group/item inline-flex items-center space-x-2 text-sm transition-all duration-150 ${
-                                  item.highlight
-                                    ? 'font-bold text-navy hover:text-navy-500'
-                                    : 'font-medium text-navy/80 hover:text-navy hover:translate-x-1'
-                                }`}
-                              >
-                                <span className="font-montserrat">{item.name}</span>
-                                {item.badge && (
-                                  <span
-                                    className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
-                                      item.badgeColor || 'bg-beige-200 text-navy'
+                    const catCount = categoryColumns.length;
+                    let categoryGridClass = 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 lg:gap-8 gap-y-8';
+                    if (catCount === 1) categoryGridClass = 'grid-cols-1 max-w-xs';
+                    else if (catCount === 2) categoryGridClass = 'grid-cols-1 sm:grid-cols-2 gap-8 lg:gap-12 max-w-xl';
+                    else if (catCount === 3) categoryGridClass = 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-10';
+                    else if (catCount === 4) categoryGridClass = 'grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-5 lg:gap-8';
+                    else if (catCount === 5) categoryGridClass = 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 lg:gap-6';
+
+                    return (
+                      <div className="flex flex-col lg:flex-row items-start gap-8 lg:gap-10 xl:gap-12">
+                        {/* 1. Columna Izquierda: Menú Lateral / Destacados */}
+                        {lateralColumn && lateralColumn.items.length > 0 && (
+                          <div className="w-full lg:w-56 xl:w-64 flex-shrink-0 lg:border-r border-beige-200/80 lg:pr-8">
+                            <div className="mb-4">
+                              <span className="text-[11px] font-black font-montserrat uppercase tracking-wider text-navy/40 block pb-1">
+                                Colección & Drops
+                              </span>
+                              <div className="w-full h-[1px] bg-navy/15 mt-1" />
+                            </div>
+
+                            <ul className="space-y-3">
+                              {lateralColumn.items.map((item, idx) => (
+                                <li key={idx}>
+                                  <Link
+                                    to={item.href}
+                                    onClick={() => setCollectionDropdownOpen(false)}
+                                    className={`group/item inline-flex items-center space-x-2 text-sm transition-all duration-150 ${
+                                      item.highlight
+                                        ? 'font-bold text-navy hover:text-navy-500'
+                                        : 'font-medium text-navy/80 hover:text-navy hover:translate-x-1'
                                     }`}
                                   >
-                                    {item.badge}
-                                  </span>
-                                )}
-                              </Link>
-                            </li>
-                          ))}
-                        </ul>
+                                    <span className="font-montserrat">{item.name}</span>
+                                    {item.badge && (
+                                      <span
+                                        className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
+                                          item.badgeColor || 'bg-beige-200 text-navy'
+                                        }`}
+                                      >
+                                        {item.badge}
+                                      </span>
+                                    )}
+                                  </Link>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {/* 2. Área Derecha: Categorías de Colección */}
+                        <div className="flex-1 min-w-0 w-full">
+                          {categoryColumns.length === 0 ? (
+                            <p className="text-xs text-navy/50 italic py-4">No hay categorías configuradas aún.</p>
+                          ) : (
+                            <div className={`grid ${categoryGridClass}`}>
+                              {categoryColumns.map((column) => (
+                                <div key={column.id} className="flex flex-col min-w-0">
+                                  <div className="mb-4">
+                                    <Link
+                                      to={`/tienda?cat=${encodeURIComponent((column.title || column.id).toLowerCase())}`}
+                                      onClick={() => setCollectionDropdownOpen(false)}
+                                      className="group/title inline-block"
+                                    >
+                                      <h3 className="text-lg lg:text-xl font-black font-montserrat tracking-tight text-navy group-hover/title:text-navy-500 transition-colors">
+                                        {column.title || column.id}
+                                      </h3>
+                                    </Link>
+                                    {column.hasUnderline && (
+                                      <div className="w-full h-[1.5px] bg-navy/20 mt-2" />
+                                    )}
+                                  </div>
+
+                                  <ul className="space-y-2.5">
+                                    {column.items.length === 0 ? (
+                                      <li>
+                                        <Link
+                                          to={`/tienda?cat=${encodeURIComponent((column.title || column.id).toLowerCase())}`}
+                                          onClick={() => setCollectionDropdownOpen(false)}
+                                          className="text-xs font-medium text-navy/45 hover:text-navy hover:underline transition-colors italic"
+                                        >
+                                          Ver prendas →
+                                        </Link>
+                                      </li>
+                                    ) : (
+                                      column.items.map((item, idx) => (
+                                        <li key={idx}>
+                                          <Link
+                                            to={item.href}
+                                            onClick={() => setCollectionDropdownOpen(false)}
+                                            className="group/item inline-flex items-center space-x-1.5 text-sm font-medium text-navy/80 hover:text-navy hover:translate-x-1 transition-all duration-150"
+                                          >
+                                            <span className="font-montserrat truncate">{item.name}</span>
+                                            {item.badge && (
+                                              <span
+                                                className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded flex-shrink-0 ${
+                                                  item.badgeColor || 'bg-beige-200 text-navy'
+                                                }`}
+                                              >
+                                                {item.badge}
+                                              </span>
+                                            )}
+                                          </Link>
+                                        </li>
+                                      ))
+                                    )}
+                                  </ul>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    ))}
-                  </div>
+                    );
+                  })()
                 )}
 
                 {/* Bottom Highlight Bar */}
