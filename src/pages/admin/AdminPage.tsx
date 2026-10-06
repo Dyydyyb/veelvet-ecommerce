@@ -206,6 +206,7 @@ export function AdminPage() {
             {activeTab === 'productos' && (
               <ProductsManager
                 productos={productos}
+                categorias={categorias}
                 subcategorias={subcategorias}
                 tiposOferta={tiposOferta}
                 onRefresh={loadAllData}

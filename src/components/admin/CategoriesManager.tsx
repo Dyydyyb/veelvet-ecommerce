@@ -16,7 +16,7 @@ import {
   SlidersHorizontal,
   Sparkles,
 } from 'lucide-react';
-import { Categoria, Subcategoria } from '../../lib/supabase';
+import { Categoria, Subcategoria, MenuLateralItem } from '../../lib/supabase';
 import { SupabaseService } from '../../services/supabaseService';
 
 interface CategoriesManagerProps {
@@ -58,8 +58,9 @@ export function CategoriesManager({
   const [editSubImagen, setEditSubImagen] = useState('');
 
   // Estado para Menú Lateral Izquierdo de Colección (Header Mega Menú)
-  const [menuLateralItems, setMenuLateralItems] = useState<Array<{ id: string; orden: number }>>([]);
-  const [selectedSubToAdd, setSelectedSubToAdd] = useState('');
+  const [menuLateralItems, setMenuLateralItems] = useState<MenuLateralItem[]>([]);
+  const [tipoItemToAdd, setTipoItemToAdd] = useState<'categoria' | 'subcategoria'>('categoria');
+  const [selectedItemToAdd, setSelectedItemToAdd] = useState('');
   const [savingLateral, setSavingLateral] = useState(false);
   const [lateralNotice, setLateralNotice] = useState<string | null>(null);
 
@@ -77,7 +78,7 @@ export function CategoriesManager({
   // Cargar configuración del Menú Lateral
   const loadMenuLateral = async () => {
     try {
-      const items = await SupabaseService.getMenuLateralSubcategorias();
+      const items = await SupabaseService.getMenuLateralItems();
       setMenuLateralItems(items);
     } catch (e) {
       console.warn('Error al cargar menú lateral:', e);
@@ -86,7 +87,7 @@ export function CategoriesManager({
 
   useEffect(() => {
     loadMenuLateral();
-  }, [subcategorias]);
+  }, [subcategorias, categorias]);
 
   // Set default category when available
   useEffect(() => {
@@ -273,7 +274,7 @@ export function CategoriesManager({
 
     try {
       setSavingLateral(true);
-      await SupabaseService.saveMenuLateralSubcategorias(updated);
+      await SupabaseService.saveMenuLateralItems(updated);
       setLateralNotice('Posición jerárquica actualizada con éxito.');
       setTimeout(() => setLateralNotice(null), 3000);
     } catch (err: any) {
@@ -291,7 +292,7 @@ export function CategoriesManager({
 
     try {
       setSavingLateral(true);
-      await SupabaseService.saveMenuLateralSubcategorias(normalized);
+      await SupabaseService.saveMenuLateralItems(normalized);
       setLateralNotice('Posición jerárquica guardada.');
       setTimeout(() => setLateralNotice(null), 3000);
     } catch (err: any) {
@@ -301,7 +302,7 @@ export function CategoriesManager({
     }
   };
 
-  const handleRemoveFromLateral = async (id: string, subName: string) => {
+  const handleRemoveFromLateral = async (id: string, itemName: string) => {
     const updated = menuLateralItems
       .filter((it) => it.id !== id)
       .map((it, idx) => ({ ...it, orden: idx + 1 }));
@@ -309,8 +310,8 @@ export function CategoriesManager({
 
     try {
       setSavingLateral(true);
-      await SupabaseService.saveMenuLateralSubcategorias(updated);
-      setLateralNotice(`"${subName}" fue quitada de la sección lateral (sigue activa en la tienda).`);
+      await SupabaseService.saveMenuLateralItems(updated);
+      setLateralNotice(`"${itemName}" fue quitada de la sección lateral (sigue activa en la tienda).`);
       setTimeout(() => setLateralNotice(null), 3500);
     } catch (err: any) {
       setError(err.message || 'Error al remover del menú lateral.');
@@ -320,19 +321,27 @@ export function CategoriesManager({
   };
 
   const handleAddToLateral = async () => {
-    if (!selectedSubToAdd) return;
-    if (menuLateralItems.some((it) => it.id === selectedSubToAdd)) return;
+    if (!selectedItemToAdd) return;
+    if (menuLateralItems.some((it) => it.id === selectedItemToAdd)) return;
 
     const nextOrden = menuLateralItems.length + 1;
-    const updated = [...menuLateralItems, { id: selectedSubToAdd, orden: nextOrden }];
+    const newItem: MenuLateralItem = {
+      id: selectedItemToAdd,
+      orden: nextOrden,
+      tipo: tipoItemToAdd,
+    };
+    const updated = [...menuLateralItems, newItem];
     setMenuLateralItems(updated);
-    setSelectedSubToAdd('');
+    setSelectedItemToAdd('');
 
     try {
       setSavingLateral(true);
-      await SupabaseService.saveMenuLateralSubcategorias(updated);
-      const subObj = subcategorias.find((s) => s.id === selectedSubToAdd);
-      setLateralNotice(`"${subObj?.nombre || 'Subcategoría'}" agregada a la sección lateral de Colección.`);
+      await SupabaseService.saveMenuLateralItems(updated);
+      const itemLabel =
+        tipoItemToAdd === 'categoria'
+          ? categorias.find((c) => c.id === selectedItemToAdd)?.nombre || 'Categoría'
+          : subcategorias.find((s) => s.id === selectedItemToAdd)?.nombre || 'Subcategoría';
+      setLateralNotice(`"${itemLabel}" agregada a la sección lateral de Colección.`);
       setTimeout(() => setLateralNotice(null), 3500);
     } catch (err: any) {
       setError(err.message || 'Error al agregar al menú lateral.');
@@ -344,7 +353,7 @@ export function CategoriesManager({
   const handleSaveAllLateral = async () => {
     try {
       setSavingLateral(true);
-      await SupabaseService.saveMenuLateralSubcategorias(menuLateralItems);
+      await SupabaseService.saveMenuLateralItems(menuLateralItems);
       setLateralNotice('Configuración del Menú Lateral guardada en Supabase.');
       setTimeout(() => setLateralNotice(null), 3000);
     } catch (err: any) {
@@ -354,7 +363,10 @@ export function CategoriesManager({
     }
   };
 
-  // Subcategorías que aún no están en el menú lateral
+  // Categorías y subcategorías que aún no están en el menú lateral
+  const availableCatsForLateral = categorias.filter(
+    (c) => !menuLateralItems.some((it) => it.id === c.id)
+  );
   const availableSubsForLateral = subcategorias.filter(
     (s) => !menuLateralItems.some((it) => it.id === s.id)
   );
@@ -933,7 +945,7 @@ export function CategoriesManager({
               </h3>
             </div>
             <p className="text-xs text-navy/60 font-light mt-1">
-              Asigná la posición jerárquica de las subcategorías en la primera columna del menú desplegable "Colección", o eliminalas de esa sección si no querés que aparezcan allí.
+              Asigná la posición jerárquica de las categorías completas y subcategorías en la primera columna del menú desplegable "Colección", o quitalas de esa sección si no querés que aparezcan allí.
             </p>
           </div>
 
@@ -955,27 +967,38 @@ export function CategoriesManager({
           </div>
         </div>
 
-        {/* Lista de Subcategorías en la Columna Lateral */}
+        {/* Lista de Elementos en la Columna Lateral */}
         <div className="space-y-2.5">
           <span className="text-[11px] font-bold uppercase tracking-wider text-navy/70 block">
-            Subcategorías activas en la columna lateral izquierda:
+            Elementos activos en la columna lateral izquierda (Categorías y Subcategorías):
           </span>
 
           {menuLateralItems.length === 0 ? (
             <div className="text-center py-8 bg-beige-50/60 rounded-xl border border-dashed border-beige-300 p-6">
               <p className="text-xs text-navy/60 font-light">
-                No hay ninguna subcategoría asignada a la sección lateral izquierda.
+                No hay ninguna categoría ni subcategoría asignada a la sección lateral izquierda.
               </p>
               <p className="text-[11px] text-navy/40 mt-1">
-                Usá el selector inferior para agregar subcategorías y definir su orden jerárquico.
+                Usá el selector inferior para agregar categorías completas o subcategorías y definir su orden jerárquico.
               </p>
             </div>
           ) : (
             <div className="divide-y divide-beige-200 rounded-xl border border-beige-300 overflow-hidden bg-white shadow-xs">
               {menuLateralItems.map((item, index) => {
-                const sub = subcategorias.find((s) => s.id === item.id);
-                const subName = sub ? sub.nombre : `Subcategoría (${item.id.slice(0, 6)})`;
-                const catName = sub?.categoria?.nombre || 'General';
+                const isCat =
+                  item.tipo === 'categoria' ||
+                  (categorias.some((c) => c.id === item.id) && !subcategorias.some((s) => s.id === item.id));
+                const catObj = isCat ? categorias.find((c) => c.id === item.id) : undefined;
+                const subObj = !isCat ? subcategorias.find((s) => s.id === item.id) : undefined;
+
+                const itemName = isCat
+                  ? catObj?.nombre || `Categoría (${item.id.slice(0, 6)})`
+                  : subObj?.nombre || `Subcategoría (${item.id.slice(0, 6)})`;
+                const catParentName = !isCat ? subObj?.categoria?.nombre || 'General' : 'Categoría Entera';
+                const itemRoute = isCat
+                  ? `/tienda?cat=${encodeURIComponent(catObj?.nombre.toLowerCase() || '')}`
+                  : `/tienda?sub=${subObj?.slug || ''}`;
+                const itemImg = isCat ? catObj?.imagen_url : subObj?.imagen_url;
 
                 return (
                   <div
@@ -989,10 +1012,10 @@ export function CategoriesManager({
                       </span>
 
                       {/* Mini thumbnail */}
-                      {sub?.imagen_url ? (
+                      {itemImg ? (
                         <img
-                          src={sub.imagen_url}
-                          alt={subName}
+                          src={itemImg}
+                          alt={itemName}
                           className="w-8 h-8 rounded-md object-cover border border-beige-300 flex-shrink-0"
                           onError={(e) => {
                             (e.target as HTMLImageElement).src = '/assets/images/hero-look.jpg';
@@ -1007,14 +1030,20 @@ export function CategoriesManager({
                       <div>
                         <div className="flex items-center space-x-2">
                           <span className="font-montserrat font-bold text-navy text-sm">
-                            {subName}
+                            {itemName}
                           </span>
-                          <span className="px-2 py-0.5 rounded bg-beige-200 text-navy/80 text-[10px] font-semibold uppercase">
-                            {catName}
-                          </span>
+                          {isCat ? (
+                            <span className="px-2 py-0.5 rounded bg-navy text-white text-[9px] font-bold uppercase tracking-wider">
+                              Categoría Entera
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded bg-beige-200 text-navy/80 text-[10px] font-semibold uppercase">
+                              {catParentName}
+                            </span>
+                          )}
                         </div>
                         <span className="text-[10px] text-navy/50 font-mono">
-                          Ruta: /tienda?sub={sub?.slug || ''}
+                          Ruta: {itemRoute}
                         </span>
                       </div>
                     </div>
@@ -1056,7 +1085,7 @@ export function CategoriesManager({
                       {/* Botón Eliminar de esta sección lateral */}
                       <button
                         type="button"
-                        onClick={() => handleRemoveFromLateral(item.id, subName)}
+                        onClick={() => handleRemoveFromLateral(item.id, itemName)}
                         disabled={savingLateral}
                         className="p-1.5 rounded-lg text-navy/40 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200 transition-all cursor-pointer ml-1"
                         title="Eliminar de la sección lateral de Colección"
@@ -1071,42 +1100,93 @@ export function CategoriesManager({
           )}
         </div>
 
-        {/* Formulario para Agregar Subcategorías al Menú Lateral */}
-        <div className="pt-4 border-t border-beige-200 bg-beige-50/60 p-4 rounded-xl flex flex-col sm:flex-row items-center gap-3">
-          <div className="flex-1 w-full">
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-navy mb-1.5">
-              + Agregar Subcategoría a la Sección Lateral:
-            </label>
-            <select
-              value={selectedSubToAdd}
-              onChange={(e) => setSelectedSubToAdd(e.target.value)}
-              className="w-full text-xs bg-white border border-beige-300 rounded-lg px-3 py-2 text-navy focus:outline-none focus:border-navy"
-            >
-              <option value="">-- Seleccionar subcategoría disponible --</option>
-              {availableSubsForLateral.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.nombre} ({s.categoria?.nombre || 'General'})
-                </option>
-              ))}
-            </select>
-          </div>
+        {/* Formulario para Agregar al Menú Lateral (Categoría Entera o Subcategoría) */}
+        <div className="pt-4 border-t border-beige-200 bg-beige-50/60 p-4 rounded-xl space-y-3">
+          <span className="block text-[11px] font-bold uppercase tracking-wider text-navy">
+            + Agregar Elemento a la Sección Lateral Izquierda:
+          </span>
 
-          <button
-            type="button"
-            onClick={handleAddToLateral}
-            disabled={!selectedSubToAdd || savingLateral}
-            className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 bg-navy hover:bg-navy-500 text-white text-xs font-montserrat font-bold uppercase tracking-wider px-5 py-2.5 rounded-lg transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed self-end"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Agregar al Menú Lateral</span>
-          </button>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            {/* Selector de Tipo: Categoría o Subcategoría */}
+            <div className="flex rounded-lg bg-white p-1 border border-beige-300 flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setTipoItemToAdd('categoria');
+                  setSelectedItemToAdd('');
+                }}
+                className={`px-3 py-1.5 rounded-md text-xs font-montserrat font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                  tipoItemToAdd === 'categoria'
+                    ? 'bg-navy text-white shadow-2xs'
+                    : 'text-navy/70 hover:text-navy hover:bg-beige-100'
+                }`}
+              >
+                📁 Categoría Entera
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setTipoItemToAdd('subcategoria');
+                  setSelectedItemToAdd('');
+                }}
+                className={`px-3 py-1.5 rounded-md text-xs font-montserrat font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                  tipoItemToAdd === 'subcategoria'
+                    ? 'bg-navy text-white shadow-2xs'
+                    : 'text-navy/70 hover:text-navy hover:bg-beige-100'
+                }`}
+              >
+                🏷️ Subcategoría
+              </button>
+            </div>
+
+            {/* Selector de Elemento según el tipo elegido */}
+            <div className="flex-1">
+              {tipoItemToAdd === 'categoria' ? (
+                <select
+                  value={selectedItemToAdd}
+                  onChange={(e) => setSelectedItemToAdd(e.target.value)}
+                  className="w-full text-xs bg-white border border-beige-300 rounded-lg px-3 py-2 text-navy focus:outline-none focus:border-navy"
+                >
+                  <option value="">-- Seleccionar categoría completa disponible --</option>
+                  {availableCatsForLateral.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      Categoría: {c.nombre}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <select
+                  value={selectedItemToAdd}
+                  onChange={(e) => setSelectedItemToAdd(e.target.value)}
+                  className="w-full text-xs bg-white border border-beige-300 rounded-lg px-3 py-2 text-navy focus:outline-none focus:border-navy"
+                >
+                  <option value="">-- Seleccionar subcategoría disponible --</option>
+                  {availableSubsForLateral.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      Subcategoría: {s.nombre} ({s.categoria?.nombre || 'General'})
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={handleAddToLateral}
+              disabled={!selectedItemToAdd || savingLateral}
+              className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 bg-navy hover:bg-navy-500 text-white text-xs font-montserrat font-bold uppercase tracking-wider px-5 py-2.5 rounded-lg transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Agregar al Menú Lateral</span>
+            </button>
+          </div>
         </div>
 
         {/* Nota informativa clara */}
         <div className="p-3.5 bg-blue-50/60 border border-blue-200/80 rounded-xl text-xs text-navy/80 flex items-start space-x-2">
           <Sparkles className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
           <p className="font-light leading-relaxed">
-            <strong>Aclaración:</strong> Al eliminar una subcategoría de esta sección lateral izquierda, <strong>NO</strong> se borra de la tienda ni de la base de datos. Seguirá figurando en su columna habitual de categoría (Top, Bottom, Accesorios, etc.) y en los filtros de la tienda.
+            <strong>Aclaración:</strong> Al eliminar una categoría o subcategoría de esta sección lateral izquierda, <strong>NO</strong> se borra de la tienda ni de la base de datos. Seguirá figurando en sus columnas habituales de categorías y en los filtros de la tienda.
           </p>
         </div>
       </div>

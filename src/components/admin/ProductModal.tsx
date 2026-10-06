@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Trash2, Image as ImageIcon, Sparkles, AlertCircle, Palette, Check, Tag, CreditCard, Percent } from 'lucide-react';
-import { Producto, Subcategoria, TipoOferta, ColorVariant } from '../../lib/supabase';
+import { X, Plus, Trash2, Image as ImageIcon, Sparkles, AlertCircle, Palette, Check, Tag, CreditCard, Percent, Layers, FolderCheck } from 'lucide-react';
+import { Producto, Subcategoria, Categoria, TipoOferta, ColorVariant } from '../../lib/supabase';
 
 interface ProductModalProps {
   isOpen: boolean;
@@ -10,6 +10,8 @@ interface ProductModalProps {
     precio: number;
     precio_anterior?: number | null;
     subcategoria_id?: string | null;
+    subcategorias_ids?: string[];
+    categorias_ids?: string[];
     tipo_oferta_id?: string | null;
     imagenes_url: string[];
     colores?: ColorVariant[];
@@ -21,6 +23,7 @@ interface ProductModalProps {
     stock: number;
   }) => Promise<void>;
   product?: Producto | null;
+  categorias: Categoria[];
   subcategorias: Subcategoria[];
   tiposOferta: TipoOferta[];
 }
@@ -49,6 +52,7 @@ export function ProductModal({
   onClose,
   onSave,
   product,
+  categorias,
   subcategorias,
   tiposOferta,
 }: ProductModalProps) {
@@ -56,7 +60,8 @@ export function ProductModal({
   const [descripcion, setDescripcion] = useState('');
   const [precio, setPrecio] = useState<number | ''>('');
   const [precioAnterior, setPrecioAnterior] = useState<number | ''>('');
-  const [subcategoriaId, setSubcategoriaId] = useState('');
+  const [selectedSubcategoriasIds, setSelectedSubcategoriasIds] = useState<string[]>([]);
+  const [selectedCategoriasIds, setSelectedCategoriasIds] = useState<string[]>([]);
   const [tipoOfertaId, setTipoOfertaId] = useState('');
   const [destacado, setDestacado] = useState(false);
   const [stock, setStock] = useState<number | ''>(10);
@@ -75,7 +80,23 @@ export function ProductModal({
       setDescripcion(product.descripcion || '');
       setPrecio(product.precio || '');
       setPrecioAnterior(product.precio_anterior || '');
-      setSubcategoriaId(product.subcategoria_id || '');
+      
+      // Cargar múltiples subcategorías
+      const rawSubIds = Array.isArray(product.subcategorias_ids) && product.subcategorias_ids.length > 0
+        ? product.subcategorias_ids
+        : product.subcategoria_id
+        ? [product.subcategoria_id]
+        : [];
+      setSelectedSubcategoriasIds(rawSubIds);
+
+      // Cargar múltiples categorías
+      const rawCatIds = Array.isArray(product.categorias_ids) && product.categorias_ids.length > 0
+        ? product.categorias_ids
+        : product.subcategoria?.categoria_id
+        ? [product.subcategoria.categoria_id]
+        : [];
+      setSelectedCategoriasIds(rawCatIds);
+
       setTipoOfertaId(product.tipo_oferta_id || '');
       setDestacado(Boolean(product.destacado));
       setStock(product.stock ?? 0);
@@ -109,7 +130,8 @@ export function ProductModal({
       setDescripcion('');
       setPrecio('');
       setPrecioAnterior('');
-      setSubcategoriaId(subcategorias[0]?.id || '');
+      setSelectedSubcategoriasIds(subcategorias.length > 0 ? [subcategorias[0].id] : []);
+      setSelectedCategoriasIds(categorias.length > 0 ? [categorias[0].id] : []);
       setTipoOfertaId('');
       setDestacado(false);
       setStock(15);
@@ -120,7 +142,7 @@ export function ProductModal({
       setColores([]);
     }
     setError(null);
-  }, [product, subcategorias, isOpen]);
+  }, [product, subcategorias, categorias, isOpen]);
 
   if (!isOpen) return null;
 
@@ -204,6 +226,27 @@ export function ProductModal({
     setColores(updated);
   };
 
+  // Manejo de Multiselección de Categorías y Subcategorías
+  const toggleSubcategoria = (subId: string) => {
+    setSelectedSubcategoriasIds((prev) => {
+      if (prev.includes(subId)) {
+        return prev.filter((id) => id !== subId);
+      } else {
+        const sub = subcategorias.find((s) => s.id === subId);
+        if (sub && sub.categoria_id && !selectedCategoriasIds.includes(sub.categoria_id)) {
+          setSelectedCategoriasIds((catsPrev) => [...catsPrev, sub.categoria_id]);
+        }
+        return [...prev, subId];
+      }
+    });
+  };
+
+  const toggleCategoria = (catId: string) => {
+    setSelectedCategoriasIds((prev) =>
+      prev.includes(catId) ? prev.filter((id) => id !== catId) : [...prev, catId]
+    );
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!nombre.trim()) {
@@ -216,6 +259,10 @@ export function ProductModal({
     }
     if (talles.length === 0) {
       setError('Seleccioná al menos un talle disponible para el producto.');
+      return;
+    }
+    if (selectedSubcategoriasIds.length === 0 && selectedCategoriasIds.length === 0) {
+      setError('Por favor asigná al menos una categoría o subcategoría para la prenda.');
       return;
     }
 
@@ -247,7 +294,9 @@ export function ProductModal({
         descripcion: descripcion.trim() || null,
         precio: Number(precio),
         precio_anterior: precioAnterior ? Number(precioAnterior) : null,
-        subcategoria_id: subcategoriaId || null,
+        subcategoria_id: selectedSubcategoriasIds[0] || null,
+        subcategorias_ids: selectedSubcategoriasIds,
+        categorias_ids: selectedCategoriasIds,
         tipo_oferta_id: tipoOfertaId || null,
         imagenes_url: allCollectedUrls,
         colores: cleanColores,
@@ -502,35 +551,170 @@ export function ProductModal({
             </div>
           </div>
 
-          {/* 6. Subcategoría & Tipo de Oferta */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-navy mb-1">
-                Categoría / Subcategoría *
-              </label>
-              <select
-                value={subcategoriaId}
-                onChange={(e) => setSubcategoriaId(e.target.value)}
-                className="w-full text-xs bg-beige-50 border border-beige-300 rounded-lg px-3.5 py-2.5 text-navy focus:outline-none focus:border-navy font-medium"
-              >
-                <option value="">-- Sin subcategoría asignada --</option>
-                {subcategorias.map((sub) => (
-                  <option key={sub.id} value={sub.id}>
-                    {sub.categoria?.nombre ? `[${sub.categoria.nombre}] ` : ''}
-                    {sub.nombre}
-                  </option>
-                ))}
-              </select>
+          {/* 6. Categorías y Subcategorías Asignadas (Multiselección) */}
+          <div className="p-4 bg-beige-50/80 rounded-xl border border-beige-200 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <div className="flex items-center space-x-2">
+                  <Layers className="w-4 h-4 text-navy" />
+                  <label className="block text-xs font-bold uppercase tracking-wider text-navy">
+                    Categorías y Subcategorías Asignadas *
+                  </label>
+                </div>
+                <p className="text-[11px] text-navy/60 font-light mt-0.5">
+                  Podés asignar la prenda a más de una categoría o subcategoría para que aparezca en todas ellas en la tienda y menús.
+                </p>
+              </div>
+
+              {/* Conteo activo */}
+              <div className="flex items-center space-x-2 text-[11px] text-navy/70">
+                <span className="px-2 py-0.5 bg-white border border-beige-300 rounded font-semibold">
+                  {selectedCategoriasIds.length} categoría(s)
+                </span>
+                <span className="px-2 py-0.5 bg-white border border-beige-300 rounded font-semibold">
+                  {selectedSubcategoriasIds.length} subcat(s)
+                </span>
+              </div>
             </div>
 
-            <div>
+            {/* Badges de Asignaciones Actuales (con opción de remover) */}
+            <div className="flex flex-wrap items-center gap-1.5 p-2.5 bg-white rounded-lg border border-beige-300 min-h-[42px]">
+              {selectedCategoriasIds.length === 0 && selectedSubcategoriasIds.length === 0 ? (
+                <span className="text-[11px] text-navy/40 italic">
+                  Ninguna categoría ni subcategoría seleccionada aún.
+                </span>
+              ) : (
+                <>
+                  {/* Badges de Categorías */}
+                  {selectedCategoriasIds.map((catId) => {
+                    const c = categorias.find((cat) => cat.id === catId);
+                    return (
+                      <span
+                        key={`cat-badge-${catId}`}
+                        className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold bg-navy text-white shadow-2xs"
+                      >
+                        <span className="text-[9px] uppercase tracking-wider text-beige-300 font-normal">
+                          Cat:
+                        </span>
+                        <span>{c?.nombre || 'Categoría'}</span>
+                        <button
+                          type="button"
+                          onClick={() => toggleCategoria(catId)}
+                          className="hover:text-red-300 transition-colors cursor-pointer ml-0.5"
+                          title="Quitar categoría"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    );
+                  })}
+
+                  {/* Badges de Subcategorías */}
+                  {selectedSubcategoriasIds.map((subId) => {
+                    const s = subcategorias.find((sub) => sub.id === subId);
+                    return (
+                      <span
+                        key={`sub-badge-${subId}`}
+                        className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold bg-beige-200 text-navy border border-beige-300"
+                      >
+                        <span className="text-[9px] uppercase tracking-wider text-navy/60 font-normal">
+                          Sub:
+                        </span>
+                        <span>{s?.nombre || 'Subcategoría'}</span>
+                        <button
+                          type="button"
+                          onClick={() => toggleSubcategoria(subId)}
+                          className="hover:text-red-600 transition-colors cursor-pointer ml-0.5"
+                          title="Quitar subcategoría"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    );
+                  })}
+                </>
+              )}
+            </div>
+
+            {/* Listado de Categorías y sus Subcategorías para seleccionar */}
+            <div className="space-y-3 pt-1">
+              {categorias.map((cat) => {
+                const isCatSelected = selectedCategoriasIds.includes(cat.id);
+                const subsOfCat = subcategorias.filter((s) => s.categoria_id === cat.id);
+
+                return (
+                  <div
+                    key={cat.id}
+                    className={`p-3 rounded-xl border transition-all ${
+                      isCatSelected
+                        ? 'bg-white border-navy/50 shadow-xs'
+                        : 'bg-white/70 border-beige-300 hover:border-beige-400'
+                    }`}
+                  >
+                    {/* Header de Categoría con Checkbox de Categoría Entera */}
+                    <div className="flex items-center justify-between pb-2 border-b border-beige-200">
+                      <label className="flex items-center space-x-2.5 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={isCatSelected}
+                          onChange={() => toggleCategoria(cat.id)}
+                          className="w-4 h-4 rounded text-navy focus:ring-navy border-beige-300 cursor-pointer"
+                        />
+                        <span className="text-xs font-montserrat font-bold text-navy uppercase tracking-wide">
+                          Categoría: {cat.nombre}
+                        </span>
+                      </label>
+                      <span className="text-[10px] text-navy/50">
+                        {isCatSelected ? 'Categoría entera activa' : 'Clic para asignar categoría entera'}
+                      </span>
+                    </div>
+
+                    {/* Subcategorías de esta categoría */}
+                    {subsOfCat.length > 0 && (
+                      <div className="pt-2">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-navy/60 block mb-1.5">
+                          Subcategorías de {cat.nombre}:
+                        </span>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {subsOfCat.map((sub) => {
+                            const isSubSelected = selectedSubcategoriasIds.includes(sub.id);
+                            return (
+                              <button
+                                key={sub.id}
+                                type="button"
+                                onClick={() => toggleSubcategoria(sub.id)}
+                                className={`inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all cursor-pointer ${
+                                  isSubSelected
+                                    ? 'bg-navy text-white border-navy font-bold shadow-2xs'
+                                    : 'bg-beige-50 text-navy/80 border-beige-300 hover:bg-beige-100 hover:border-navy/40'
+                                }`}
+                              >
+                                {isSubSelected ? (
+                                  <Check className="w-3 h-3 stroke-[3]" />
+                                ) : (
+                                  <Plus className="w-3 h-3 text-navy/40" />
+                                )}
+                                <span>{sub.nombre}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Tipo de Oferta / Badge */}
+            <div className="pt-3 border-t border-beige-200">
               <label className="block text-xs font-bold uppercase tracking-wider text-navy mb-1">
-                Tipo de Oferta / Badge
+                Tipo de Oferta / Badge (Opcional)
               </label>
               <select
                 value={tipoOfertaId}
                 onChange={(e) => setTipoOfertaId(e.target.value)}
-                className="w-full text-xs bg-beige-50 border border-beige-300 rounded-lg px-3.5 py-2.5 text-navy focus:outline-none focus:border-navy"
+                className="w-full sm:w-1/2 text-xs bg-white border border-beige-300 rounded-lg px-3.5 py-2.5 text-navy focus:outline-none focus:border-navy"
               >
                 <option value="">-- Sin oferta especial --</option>
                 {tiposOferta.map((to) => (

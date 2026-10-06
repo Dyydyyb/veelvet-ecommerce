@@ -1,4 +1,4 @@
-import { supabase, Categoria, Subcategoria, TipoOferta, Producto, ColorVariant } from '../lib/supabase';
+import { supabase, Categoria, Subcategoria, TipoOferta, Producto, ColorVariant, MenuLateralItem } from '../lib/supabase';
 import { Product, PRODUCT_COLORS } from '../data/products';
 import { MegaMenuConfig } from '../data/megaMenuData';
 
@@ -10,6 +10,8 @@ function parseRawProduct(raw: any): Producto {
   let permite_cuotas: boolean = raw.permite_cuotas !== undefined ? Boolean(raw.permite_cuotas) : true;
   let permite_transferencia_descuento: boolean =
     raw.permite_transferencia_descuento !== undefined ? Boolean(raw.permite_transferencia_descuento) : true;
+  let subcategorias_ids: string[] = Array.isArray(raw.subcategorias_ids) ? [...raw.subcategorias_ids] : [];
+  let categorias_ids: string[] = Array.isArray(raw.categorias_ids) ? [...raw.categorias_ids] : [];
 
   if (Array.isArray(raw.imagenes_url)) {
     urls = raw.imagenes_url.filter(Boolean);
@@ -32,6 +34,21 @@ function parseRawProduct(raw: any): Producto {
     if (raw.imagenes_url.permite_transferencia_descuento !== undefined) {
       permite_transferencia_descuento = Boolean(raw.imagenes_url.permite_transferencia_descuento);
     }
+    if (Array.isArray(raw.imagenes_url.subcategorias_ids)) {
+      subcategorias_ids = Array.from(new Set([...subcategorias_ids, ...raw.imagenes_url.subcategorias_ids]));
+    }
+    if (Array.isArray(raw.imagenes_url.categorias_ids)) {
+      categorias_ids = Array.from(new Set([...categorias_ids, ...raw.imagenes_url.categorias_ids]));
+    }
+  }
+
+  // Si tiene subcategoria_id pero no estaba en la lista, asegurar que esté
+  if (raw.subcategoria_id && !subcategorias_ids.includes(raw.subcategoria_id)) {
+    subcategorias_ids.push(raw.subcategoria_id);
+  }
+  // Si tiene categoría padre asociada y no estaba en la lista, asegurar que esté
+  if (raw.subcategoria?.categoria_id && !categorias_ids.includes(raw.subcategoria.categoria_id)) {
+    categorias_ids.push(raw.subcategoria.categoria_id);
   }
 
   return {
@@ -42,6 +59,8 @@ function parseRawProduct(raw: any): Producto {
     talles: talles.length > 0 ? talles : ['S', 'M', 'L', 'XL'],
     permite_cuotas,
     permite_transferencia_descuento,
+    subcategorias_ids,
+    categorias_ids,
   };
 }
 
@@ -50,7 +69,8 @@ export interface AppFeaturedConfig {
   featured_subcategories: string[];
   category_images?: Record<string, string>;
   subcategory_images?: Record<string, string>;
-  menu_lateral_subcategories?: Array<{ id: string; orden: number }>;
+  menu_lateral_subcategories?: MenuLateralItem[];
+  menu_lateral_items?: MenuLateralItem[];
 }
 
 export const SupabaseService = {
@@ -73,6 +93,11 @@ export const SupabaseService = {
           category_images: typeof parsed.category_images === 'object' && parsed.category_images !== null ? parsed.category_images : {},
           subcategory_images: typeof parsed.subcategory_images === 'object' && parsed.subcategory_images !== null ? parsed.subcategory_images : {},
           menu_lateral_subcategories: Array.isArray(parsed.menu_lateral_subcategories) ? parsed.menu_lateral_subcategories : undefined,
+          menu_lateral_items: Array.isArray(parsed.menu_lateral_items)
+            ? parsed.menu_lateral_items
+            : Array.isArray(parsed.menu_lateral_subcategories)
+            ? parsed.menu_lateral_subcategories
+            : undefined,
         };
       }
     } catch (err) {
@@ -246,6 +271,14 @@ export const SupabaseService = {
       delete config.category_images[id];
       changed = true;
     }
+    if (config.menu_lateral_subcategories) {
+      const filtered = config.menu_lateral_subcategories.filter((item) => item.id !== id);
+      if (filtered.length !== config.menu_lateral_subcategories.length) {
+        config.menu_lateral_subcategories = filtered;
+        config.menu_lateral_items = filtered;
+        changed = true;
+      }
+    }
     if (changed) {
       await this.saveFeaturedConfig(config);
     }
@@ -394,24 +427,37 @@ export const SupabaseService = {
 
   // ==========================================
   // Helper: Gestión del Menú Lateral de Colección (Header Mega Menú)
+  // Soporta tanto categorías enteras como subcategorías individuales
   // ==========================================
-  async getMenuLateralSubcategorias(): Promise<Array<{ id: string; orden: number }>> {
+  async getMenuLateralItems(): Promise<MenuLateralItem[]> {
     const config = await this.getFeaturedConfig();
-    if (Array.isArray(config.menu_lateral_subcategories)) {
-      return [...config.menu_lateral_subcategories].sort((a, b) => a.orden - b.orden);
+    const rawItems = config.menu_lateral_items || config.menu_lateral_subcategories;
+    if (Array.isArray(rawItems) && rawItems.length > 0) {
+      return [...rawItems].sort((a, b) => a.orden - b.orden);
     }
     // Si aún no está configurado, devolver las primeras subcategorías
     const subs = await this.getSubcategorias();
-    return subs.slice(0, 4).map((s, idx) => ({ id: s.id, orden: idx + 1 }));
+    return subs.slice(0, 4).map((s, idx) => ({ id: s.id, orden: idx + 1, tipo: 'subcategoria' as const }));
   },
 
-  async saveMenuLateralSubcategorias(items: Array<{ id: string; orden: number }>): Promise<void> {
+  async getMenuLateralSubcategorias(): Promise<MenuLateralItem[]> {
+    return this.getMenuLateralItems();
+  },
+
+  async saveMenuLateralItems(items: MenuLateralItem[]): Promise<void> {
     const config = await this.getFeaturedConfig();
-    config.menu_lateral_subcategories = items.map((it, idx) => ({
+    const normalized = items.map((it, idx) => ({
       id: it.id,
       orden: typeof it.orden === 'number' ? it.orden : idx + 1,
+      tipo: it.tipo || 'subcategoria',
     }));
+    config.menu_lateral_items = normalized;
+    config.menu_lateral_subcategories = normalized;
     await this.saveFeaturedConfig(config);
+  },
+
+  async saveMenuLateralSubcategorias(items: MenuLateralItem[]): Promise<void> {
+    return this.saveMenuLateralItems(items);
   },
 
   // ==========================================
@@ -500,6 +546,8 @@ export const SupabaseService = {
     precio: number;
     precio_anterior?: number | null;
     subcategoria_id?: string | null;
+    subcategorias_ids?: string[];
+    categorias_ids?: string[];
     tipo_oferta_id?: string | null;
     imagenes_url: string[];
     colores?: ColorVariant[];
@@ -520,11 +568,18 @@ export const SupabaseService = {
         ? Boolean(payload.permite_transferencia_descuento)
         : true;
 
+    const cleanSubIds = Array.isArray(payload.subcategorias_ids)
+      ? Array.from(new Set(payload.subcategorias_ids.filter(Boolean)))
+      : payload.subcategoria_id ? [payload.subcategoria_id] : [];
+    const cleanCatIds = Array.isArray(payload.categorias_ids)
+      ? Array.from(new Set(payload.categorias_ids.filter(Boolean)))
+      : [];
+
     const insertObj: any = {
       nombre: payload.nombre.trim(),
       precio: payload.precio,
       precio_anterior: payload.precio_anterior || null,
-      subcategoria_id: payload.subcategoria_id || null,
+      subcategoria_id: cleanSubIds[0] || payload.subcategoria_id || null,
       tipo_oferta_id: payload.tipo_oferta_id || null,
       destacado: Boolean(payload.destacado),
       stock: Number(payload.stock) || 0,
@@ -535,6 +590,8 @@ export const SupabaseService = {
         talles: cleanTalles,
         permite_cuotas: permiteCuotas,
         permite_transferencia_descuento: permiteTransferencia,
+        subcategorias_ids: cleanSubIds,
+        categorias_ids: cleanCatIds,
       },
     };
 
@@ -573,6 +630,8 @@ export const SupabaseService = {
       precio?: number;
       precio_anterior?: number | null;
       subcategoria_id?: string | null;
+      subcategorias_ids?: string[];
+      categorias_ids?: string[];
       tipo_oferta_id?: string | null;
       imagenes_url?: string[];
       colores?: ColorVariant[];
@@ -588,7 +647,11 @@ export const SupabaseService = {
     if (payload.nombre !== undefined) updateObj.nombre = payload.nombre.trim();
     if (payload.precio !== undefined) updateObj.precio = payload.precio;
     if (payload.precio_anterior !== undefined) updateObj.precio_anterior = payload.precio_anterior;
-    if (payload.subcategoria_id !== undefined) updateObj.subcategoria_id = payload.subcategoria_id;
+    if (payload.subcategorias_ids !== undefined && payload.subcategorias_ids.length > 0) {
+      updateObj.subcategoria_id = payload.subcategorias_ids[0];
+    } else if (payload.subcategoria_id !== undefined) {
+      updateObj.subcategoria_id = payload.subcategoria_id;
+    }
     if (payload.tipo_oferta_id !== undefined) updateObj.tipo_oferta_id = payload.tipo_oferta_id;
     if (payload.destacado !== undefined) updateObj.destacado = Boolean(payload.destacado);
     if (payload.stock !== undefined) updateObj.stock = Number(payload.stock);
@@ -599,7 +662,9 @@ export const SupabaseService = {
       payload.descripcion !== undefined ||
       payload.talles !== undefined ||
       payload.permite_cuotas !== undefined ||
-      payload.permite_transferencia_descuento !== undefined
+      payload.permite_transferencia_descuento !== undefined ||
+      payload.subcategorias_ids !== undefined ||
+      payload.categorias_ids !== undefined
     ) {
       const cleanUrls = (payload.imagenes_url || []).map((u) => u.trim()).filter(Boolean);
       const cleanColores = (payload.colores || []).filter((c) => c && c.name?.trim());
@@ -611,6 +676,13 @@ export const SupabaseService = {
           ? Boolean(payload.permite_transferencia_descuento)
           : true;
 
+      const cleanSubIds = Array.isArray(payload.subcategorias_ids)
+        ? Array.from(new Set(payload.subcategorias_ids.filter(Boolean)))
+        : payload.subcategoria_id ? [payload.subcategoria_id] : [];
+      const cleanCatIds = Array.isArray(payload.categorias_ids)
+        ? Array.from(new Set(payload.categorias_ids.filter(Boolean)))
+        : [];
+
       updateObj.imagenes_url = {
         urls: cleanUrls,
         colores: cleanColores,
@@ -618,6 +690,8 @@ export const SupabaseService = {
         talles: cleanTalles,
         permite_cuotas: permiteCuotas,
         permite_transferencia_descuento: permiteTransferencia,
+        subcategorias_ids: cleanSubIds,
+        categorias_ids: cleanCatIds,
       };
     }
 
@@ -660,7 +734,7 @@ export const SupabaseService = {
   // ==========================================
   // 5. Adaptador de Supabase al Frontend Público
   // ==========================================
-  adaptSupabaseProductToFrontend(p: Producto): Product {
+  adaptSupabaseProductToFrontend(p: Producto, allCats?: Categoria[], allSubs?: Subcategoria[]): Product {
     const defaultImg = '/assets/images/hero-look.jpg';
     const parsed = parseRawProduct(p);
 
@@ -703,6 +777,65 @@ export const SupabaseService = {
     const rawCatName = cat?.nombre || '';
     const categorySlug = rawCatName ? rawCatName.toLowerCase().replace(/\s+/g, '-') : 'general';
 
+    // Múltiples categorías y subcategorías
+    const categoryIds: string[] = [];
+    const categoryNames: string[] = [];
+    const categories: string[] = [];
+    const subcategoryIds: string[] = [];
+    const subcategoryNames: string[] = [];
+    const subcategorySlugs: string[] = [];
+
+    // 1. Primaria
+    if (sub) {
+      subcategoryIds.push(sub.id);
+      if (sub.nombre) subcategoryNames.push(sub.nombre);
+      if (sub.slug) subcategorySlugs.push(sub.slug);
+    }
+    if (cat) {
+      categoryIds.push(cat.id);
+      if (cat.nombre) {
+        categoryNames.push(cat.nombre);
+        categories.push(cat.nombre.toLowerCase().replace(/\s+/g, '-'));
+      }
+    }
+
+    // 2. Subcategorías asignadas adicionales
+    if (Array.isArray(parsed.subcategorias_ids)) {
+      parsed.subcategorias_ids.forEach((sid) => {
+        if (!subcategoryIds.includes(sid)) subcategoryIds.push(sid);
+        if (allSubs) {
+          const sObj = allSubs.find((s) => s.id === sid);
+          if (sObj) {
+            if (sObj.nombre && !subcategoryNames.includes(sObj.nombre)) subcategoryNames.push(sObj.nombre);
+            if (sObj.slug && !subcategorySlugs.includes(sObj.slug)) subcategorySlugs.push(sObj.slug);
+            const sCat = sObj.categoria || (allCats ? allCats.find((c) => c.id === sObj.categoria_id) : undefined);
+            if (sCat) {
+              if (!categoryIds.includes(sCat.id)) categoryIds.push(sCat.id);
+              if (sCat.nombre && !categoryNames.includes(sCat.nombre)) {
+                categoryNames.push(sCat.nombre);
+                categories.push(sCat.nombre.toLowerCase().replace(/\s+/g, '-'));
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // 3. Categorías enteras asignadas adicionales
+    if (Array.isArray(parsed.categorias_ids)) {
+      parsed.categorias_ids.forEach((cid) => {
+        if (!categoryIds.includes(cid)) categoryIds.push(cid);
+        if (allCats) {
+          const cObj = allCats.find((c) => c.id === cid);
+          if (cObj && cObj.nombre) {
+            if (!categoryNames.includes(cObj.nombre)) categoryNames.push(cObj.nombre);
+            const cSlug = cObj.nombre.toLowerCase().replace(/\s+/g, '-');
+            if (!categories.includes(cSlug)) categories.push(cSlug);
+          }
+        }
+      });
+    }
+
     // Inferencia de tipo de prenda para guía de talles
     let measureType: 'buzo' | 'pantalon' | 'conjunto' = 'buzo';
     const lowerName = p.nombre.toLowerCase();
@@ -723,17 +856,26 @@ export const SupabaseService = {
       measureType = 'conjunto';
     }
 
+    const displayedCats = categoryNames.length > 0 ? categoryNames.join(' / ') : rawCatName || 'Colección';
+    const displayedSubs = subcategoryNames.length > 0 ? subcategoryNames.join(', ') : sub?.nombre || '';
+
     return {
       id: p.id,
       slug: sub?.slug ? `${sub.slug}-${p.id.slice(0, 6)}` : `prod-${p.id.slice(0, 8)}`,
       name: p.nombre,
-      subtitle: `${rawCatName || 'Colección'}${sub?.nombre ? ` • ${sub.nombre}` : ''} • Unisex`,
+      subtitle: `${displayedCats}${displayedSubs ? ` • ${displayedSubs}` : ''} • Unisex`,
       category: categorySlug,
-      categoryId: cat?.id || '',
-      categoryName: rawCatName,
-      subcategoryId: sub?.id || '',
-      subcategoryName: sub?.nombre || '',
-      subcategorySlug: sub?.slug || '',
+      categoryId: cat?.id || categoryIds[0] || '',
+      categoryName: rawCatName || categoryNames[0] || '',
+      categoryIds,
+      categoryNames,
+      categories,
+      subcategoryId: sub?.id || subcategoryIds[0] || '',
+      subcategoryName: sub?.nombre || subcategoryNames[0] || '',
+      subcategorySlug: sub?.slug || subcategorySlugs[0] || '',
+      subcategoryIds,
+      subcategoryNames,
+      subcategorySlugs,
       price: Number(p.precio),
       compareAtPrice: p.precio_anterior ? Number(p.precio_anterior) : undefined,
       description:
@@ -776,7 +918,7 @@ export const SupabaseService = {
         return null; // fallback a megaMenuData local
       }
 
-      // Columna 1: Tipos de Oferta y Subcategorías de la sección lateral izquierda
+      // Columna 1: Tipos de Oferta y Subcategorías/Categorías de la sección lateral izquierda
       const col1OfferItems = tiposOferta.map((to) => ({
         name: to.nombre,
         href: `/tienda?filter=${encodeURIComponent(to.etiqueta_badge.toLowerCase())}`,
@@ -785,25 +927,60 @@ export const SupabaseService = {
         highlight: true,
       }));
 
-      // Subcategorías de la sección lateral izquierda:
-      // Si el usuario configuró menu_lateral_subcategories, respetamos rigurosamente su orden y selección.
-      // Si una subcategoría fue eliminada de esta sección, no se muestra acá.
-      let lateralSubsList: Array<{ name: string; href: string }> = [];
+      // Sección lateral izquierda: Soporta tanto categorías enteras como subcategorías individuales
+      type MenuItemEntry = { name: string; href: string; badge?: string; badgeColor?: string; highlight?: boolean };
+      let lateralItemsList: MenuItemEntry[] = [];
+      const rawLateral = featuredConfig.menu_lateral_items || featuredConfig.menu_lateral_subcategories;
 
-      if (Array.isArray(featuredConfig.menu_lateral_subcategories)) {
-        const sorted = [...featuredConfig.menu_lateral_subcategories].sort((a, b) => a.orden - b.orden);
-        lateralSubsList = sorted
-          .map((item) => {
-            const sub = subcategorias.find((s) => s.id === item.id);
-            if (!sub) return null;
-            return {
+      if (Array.isArray(rawLateral) && rawLateral.length > 0) {
+        const sorted = [...rawLateral].sort((a, b) => a.orden - b.orden);
+        const collected: MenuItemEntry[] = [];
+
+        for (const item of sorted) {
+          // 1. Si está marcado como categoría o coincide con ID de categoría
+          if (
+            item.tipo === 'categoria' ||
+            (categorias.some((c) => c.id === item.id) && !subcategorias.some((s) => s.id === item.id))
+          ) {
+            const cat = categorias.find((c) => c.id === item.id);
+            if (cat) {
+              collected.push({
+                name: cat.nombre,
+                href: `/tienda?cat=${encodeURIComponent(cat.nombre.toLowerCase())}`,
+                badge: 'CATEGORÍA',
+                badgeColor: 'bg-beige-300 text-navy font-bold',
+                highlight: true,
+              });
+              continue;
+            }
+          }
+
+          // 2. Si es subcategoría
+          const sub = subcategorias.find((s) => s.id === item.id);
+          if (sub) {
+            collected.push({
               name: sub.nombre,
               href: `/tienda?cat=${sub.categoria?.nombre.toLowerCase() || 'todos'}&sub=${sub.slug}`,
-            };
-          })
-          .filter((item): item is { name: string; href: string } => item !== null);
+            });
+            continue;
+          }
+
+          // 3. Fallback buscar en categorías
+          const catFallback = categorias.find((c) => c.id === item.id);
+          if (catFallback) {
+            collected.push({
+              name: catFallback.nombre,
+              href: `/tienda?cat=${encodeURIComponent(catFallback.nombre.toLowerCase())}`,
+              badge: 'CATEGORÍA',
+              badgeColor: 'bg-beige-300 text-navy font-bold',
+              highlight: true,
+            });
+          }
+        }
+
+        lateralItemsList = collected;
       } else {
-        lateralSubsList = subcategorias.slice(0, 5).map((s) => ({
+        lateralItemsList = subcategorias.slice(0, 5).map((s) => ({
           name: s.nombre,
           href: `/tienda?cat=${s.categoria?.nombre.toLowerCase() || 'todos'}&sub=${s.slug}`,
         }));
@@ -812,7 +989,7 @@ export const SupabaseService = {
       const columns: MegaMenuConfig['columns'] = [
         {
           id: 'destacados',
-          items: [...col1OfferItems, ...lateralSubsList],
+          items: [...col1OfferItems, ...lateralItemsList],
         },
       ];
 

@@ -41,9 +41,17 @@ export interface ColorVariant {
   imagenes: string[];
 }
 
+export interface MenuLateralItem {
+  id: string;
+  orden: number;
+  tipo?: 'categoria' | 'subcategoria';
+}
+
 export interface Producto {
   id: string;
   subcategoria_id: string | null;
+  subcategorias_ids?: string[]; // Soporte para múltiples subcategorías
+  categorias_ids?: string[];    // Soporte para múltiples categorías enteras
   tipo_oferta_id: string | null;
   nombre: string;
   precio: number;
@@ -59,6 +67,8 @@ export interface Producto {
   permite_transferencia_descuento?: boolean;
   // Relaciones
   subcategoria?: Subcategoria;
+  subcategorias?: Subcategoria[];
+  categorias?: Categoria[];
   tipo_oferta?: TipoOferta;
 }
 

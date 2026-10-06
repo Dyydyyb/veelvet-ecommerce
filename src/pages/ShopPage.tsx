@@ -118,6 +118,13 @@ export function ShopPage() {
           prod.categoryName?.toLowerCase() === catTarget ||
           prod.categoryName?.toLowerCase().replace(/\s+/g, '-') === catTarget ||
           prod.categoryId === selectedCategory ||
+          prod.categoryIds?.includes(selectedCategory) ||
+          prod.categories?.some((c) => c.toLowerCase() === catTarget) ||
+          prod.categoryNames?.some(
+            (c) =>
+              c.toLowerCase() === catTarget ||
+              c.toLowerCase().replace(/\s+/g, '-') === catTarget
+          ) ||
           (catTarget === 'top' && (prod.category.includes('top') || prod.category.includes('buzo') || prod.category.includes('abrig'))) ||
           (catTarget === 'bottom' && (prod.category.includes('bottom') || prod.category.includes('pantalon'))) ||
           (catTarget === 'accesorios' && prod.category.includes('accesorio'));
@@ -132,6 +139,18 @@ export function ShopPage() {
           prod.subcategorySlug?.toLowerCase() === qSlug ||
           prod.subcategoryName?.toLowerCase() === query ||
           prod.subcategoryName?.toLowerCase().replace(/\s+/g, '-') === qSlug ||
+          prod.subcategoryIds?.includes(selectedSub) ||
+          prod.subcategorySlugs?.some((s) => s.toLowerCase() === qSlug) ||
+          prod.subcategoryNames?.some(
+            (s) =>
+              s.toLowerCase() === query ||
+              s.toLowerCase().replace(/\s+/g, '-') === qSlug
+          ) ||
+          prod.subcategories?.some(
+            (s) =>
+              s.toLowerCase() === query ||
+              s.toLowerCase().replace(/\s+/g, '-') === qSlug
+          ) ||
           prod.name.toLowerCase().includes(query) ||
           prod.subtitle.toLowerCase().includes(query) ||
           prod.description.toLowerCase().includes(query) ||

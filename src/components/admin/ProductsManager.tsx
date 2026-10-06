@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { Plus, Search, Edit3, Trash2, Star, Image as ImageIcon, Filter, RefreshCw } from 'lucide-react';
-import { Producto, Subcategoria, TipoOferta } from '../../lib/supabase';
+import { Producto, Subcategoria, Categoria, TipoOferta } from '../../lib/supabase';
 import { ProductModal } from './ProductModal';
 import { SupabaseService } from '../../services/supabaseService';
 
 interface ProductsManagerProps {
   productos: Producto[];
+  categorias: Categoria[];
   subcategorias: Subcategoria[];
   tiposOferta: TipoOferta[];
   onRefresh: () => Promise<void>;
@@ -14,6 +15,7 @@ interface ProductsManagerProps {
 
 export function ProductsManager({
   productos,
+  categorias,
   subcategorias,
   tiposOferta,
   onRefresh,
@@ -36,8 +38,18 @@ export function ProductsManager({
 
   const filteredProducts = productos.filter((p) => {
     const matchesSearch = p.nombre.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesSub = !selectedSubcat || p.subcategoria_id === selectedSubcat;
-    return matchesSearch && matchesSub;
+    if (!matchesSearch) return false;
+    if (!selectedSubcat) return true;
+
+    // Puede ser ID de subcategoría o ID de categoría
+    const matchesSub =
+      p.subcategoria_id === selectedSubcat ||
+      (Array.isArray(p.subcategorias_ids) && p.subcategorias_ids.includes(selectedSubcat));
+    const matchesCat =
+      p.subcategoria?.categoria_id === selectedSubcat ||
+      (Array.isArray(p.categorias_ids) && p.categorias_ids.includes(selectedSubcat));
+
+    return matchesSub || matchesCat;
   });
 
   const handleOpenCreate = () => {
@@ -102,7 +114,7 @@ export function ProductsManager({
           />
         </div>
 
-        {/* Subcategory Filter */}
+        {/* Subcategory & Category Filter */}
         <div className="flex items-center space-x-2">
           <Filter className="w-4 h-4 text-navy/40" />
           <select
@@ -110,12 +122,21 @@ export function ProductsManager({
             onChange={(e) => setSelectedSubcat(e.target.value)}
             className="text-xs bg-beige-50 border border-beige-300 rounded-lg px-3 py-2 text-navy focus:outline-none focus:border-navy"
           >
-            <option value="">Todas las subcategorías</option>
-            {subcategorias.map((sub) => (
-              <option key={sub.id} value={sub.id}>
-                {sub.nombre} ({sub.categoria?.nombre || 'General'})
-              </option>
-            ))}
+            <option value="">Todas las categorías y subcat.</option>
+            <optgroup label="Categorías Principales">
+              {categorias.map((cat) => (
+                <option key={`cat-${cat.id}`} value={cat.id}>
+                  Categoría: {cat.nombre}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label="Subcategorías">
+              {subcategorias.map((sub) => (
+                <option key={`sub-${sub.id}`} value={sub.id}>
+                  Subcat: {sub.nombre} ({sub.categoria?.nombre || 'General'})
+                </option>
+              ))}
+            </optgroup>
           </select>
 
           <button
@@ -220,20 +241,65 @@ export function ProductsManager({
                         </div>
                       </td>
 
-                      {/* Subcategory */}
+                      {/* Subcategory & Category */}
                       <td className="py-3 px-4">
-                        {prod.subcategoria ? (
-                          <div>
-                            <span className="font-semibold text-navy">
-                              {prod.subcategoria.nombre}
-                            </span>
-                            <span className="block text-[10px] text-navy/50 uppercase">
-                              {prod.subcategoria.categoria?.nombre || 'General'}
-                            </span>
+                        <div className="space-y-1.5 max-w-[220px]">
+                          {/* Categorías asignadas */}
+                          <div className="flex flex-wrap gap-1">
+                            {(() => {
+                              const assignedCatIds = Array.isArray(prod.categorias_ids) && prod.categorias_ids.length > 0
+                                ? prod.categorias_ids
+                                : prod.subcategoria?.categoria_id
+                                ? [prod.subcategoria.categoria_id]
+                                : [];
+
+                              if (assignedCatIds.length === 0) return null;
+
+                              return assignedCatIds.map((cid) => {
+                                const catObj =
+                                  categorias.find((c) => c.id === cid) ||
+                                  (prod.subcategoria?.categoria?.id === cid ? prod.subcategoria?.categoria : undefined);
+                                return (
+                                  <span
+                                    key={cid}
+                                    className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-navy text-white shadow-2xs"
+                                  >
+                                    {catObj?.nombre || 'Cat'}
+                                  </span>
+                                );
+                              });
+                            })()}
                           </div>
-                        ) : (
-                          <span className="text-navy/40 italic">Sin asignar</span>
-                        )}
+
+                          {/* Subcategorías asignadas */}
+                          <div className="flex flex-wrap gap-1">
+                            {(() => {
+                              const assignedSubIds = Array.isArray(prod.subcategorias_ids) && prod.subcategorias_ids.length > 0
+                                ? prod.subcategorias_ids
+                                : prod.subcategoria_id
+                                ? [prod.subcategoria_id]
+                                : [];
+
+                              if (assignedSubIds.length === 0) {
+                                return <span className="text-navy/40 italic text-[11px]">Sin asignar</span>;
+                              }
+
+                              return assignedSubIds.map((sid) => {
+                                const subObj =
+                                  subcategorias.find((s) => s.id === sid) ||
+                                  (prod.subcategoria?.id === sid ? prod.subcategoria : undefined);
+                                return (
+                                  <span
+                                    key={sid}
+                                    className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-beige-200 text-navy border border-beige-300"
+                                  >
+                                    {subObj?.nombre || 'Subcat'}
+                                  </span>
+                                );
+                              });
+                            })()}
+                          </div>
+                        </div>
                       </td>
 
                       {/* Price */}
@@ -334,6 +400,7 @@ export function ProductsManager({
         onClose={() => setIsModalOpen(false)}
         onSave={handleSaveProduct}
         product={editingProduct}
+        categorias={categorias}
         subcategorias={subcategorias}
         tiposOferta={tiposOferta}
       />

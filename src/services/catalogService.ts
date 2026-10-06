@@ -113,22 +113,36 @@ export const CatalogService = {
    */
   async getProducts(params?: ProductQueryParams): Promise<Product[]> {
     try {
-      const supaProducts = await SupabaseService.getProductos();
+      const [supaProducts, cats, subs] = await Promise.all([
+        SupabaseService.getProductos(),
+        SupabaseService.getCategorias(),
+        SupabaseService.getSubcategorias(),
+      ]);
       if (!supaProducts || supaProducts.length === 0) {
         return [];
       }
 
-      let adapted = supaProducts.map((p) => SupabaseService.adaptSupabaseProductToFrontend(p));
+      let adapted = supaProducts.map((p) => SupabaseService.adaptSupabaseProductToFrontend(p, cats, subs));
       let expanded = expandProductVariants(adapted);
 
       // Filtro por categoría principal
       if (params?.category && params.category !== 'todos') {
         const catFilter = params.category.toLowerCase();
+        const rawCatParam = params.category;
         expanded = expanded.filter((p) => {
           if (p.category?.toLowerCase() === catFilter) return true;
           if (p.categoryName?.toLowerCase() === catFilter) return true;
           if (p.categoryName?.toLowerCase().replace(/\s+/g, '-') === catFilter) return true;
-          if (p.categoryId === params.category) return true;
+          if (p.categoryId === rawCatParam) return true;
+          if (rawCatParam && p.categoryIds?.includes(rawCatParam)) return true;
+          if (p.categories?.some((c) => c.toLowerCase() === catFilter)) return true;
+          if (
+            p.categoryNames?.some(
+              (c) => c.toLowerCase() === catFilter || c.toLowerCase().replace(/\s+/g, '-') === catFilter
+            )
+          ) {
+            return true;
+          }
           if (catFilter === 'top' && (p.category.includes('top') || p.category.includes('buzo') || p.category.includes('abrig'))) return true;
           if (catFilter === 'bottom' && (p.category.includes('bottom') || p.category.includes('pantalon'))) return true;
           if (catFilter === 'accesorios' && p.category.includes('accesorio')) return true;
@@ -141,11 +155,20 @@ export const CatalogService = {
       if (params?.subcategory) {
         const q = params.subcategory.toLowerCase().replace(/-/g, ' ');
         const qSlug = params.subcategory.toLowerCase();
+        const rawSubParam = params.subcategory;
         expanded = expanded.filter(
           (p) =>
             p.subcategorySlug?.toLowerCase() === qSlug ||
             p.subcategoryName?.toLowerCase() === q ||
             p.subcategoryName?.toLowerCase().replace(/\s+/g, '-') === qSlug ||
+            (rawSubParam ? Boolean(p.subcategoryIds?.includes(rawSubParam)) : false) ||
+            p.subcategorySlugs?.some((s) => s.toLowerCase() === qSlug) ||
+            p.subcategoryNames?.some(
+              (s) => s.toLowerCase() === q || s.toLowerCase().replace(/\s+/g, '-') === qSlug
+            ) ||
+            p.subcategories?.some(
+              (s) => s.toLowerCase() === q || s.toLowerCase().replace(/\s+/g, '-') === qSlug
+            ) ||
             p.name.toLowerCase().includes(q) ||
             p.subtitle.toLowerCase().includes(q) ||
             p.slug.toLowerCase().includes(q)
@@ -215,12 +238,16 @@ export const CatalogService = {
    */
   async getFeaturedProducts(): Promise<Product[]> {
     try {
-      const supaProducts = await SupabaseService.getProductos();
+      const [supaProducts, cats, subs] = await Promise.all([
+        SupabaseService.getProductos(),
+        SupabaseService.getCategorias(),
+        SupabaseService.getSubcategorias(),
+      ]);
       if (!supaProducts || supaProducts.length === 0) return [];
 
       // Estrictamente SOLO prendas marcadas como destacado = true en el sistema (producto principal)
       const featured = supaProducts.filter((p) => Boolean(p.destacado));
-      return featured.map((p) => SupabaseService.adaptSupabaseProductToFrontend(p));
+      return featured.map((p) => SupabaseService.adaptSupabaseProductToFrontend(p, cats, subs));
     } catch (err) {
       console.error('Error al obtener productos destacados desde Supabase:', err);
       return [];
@@ -233,7 +260,11 @@ export const CatalogService = {
   async getProductBySlug(slugOrId: string): Promise<Product | null> {
     try {
       const cleanSlugOrId = slugOrId.split('?')[0].trim();
-      const supaProducts = await SupabaseService.getProductos();
+      const [supaProducts, cats, subs] = await Promise.all([
+        SupabaseService.getProductos(),
+        SupabaseService.getCategorias(),
+        SupabaseService.getSubcategorias(),
+      ]);
       const match = supaProducts.find((p) => {
         if (p.id === cleanSlugOrId) return true;
         const computedSlug = p.subcategoria?.slug
@@ -247,7 +278,7 @@ export const CatalogService = {
       });
 
       if (match) {
-        return SupabaseService.adaptSupabaseProductToFrontend(match);
+        return SupabaseService.adaptSupabaseProductToFrontend(match, cats, subs);
       }
       return null;
     } catch (err) {

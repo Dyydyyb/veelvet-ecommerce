@@ -23,9 +23,16 @@ export interface Product {
   category: string;
   categoryId?: string;
   categoryName?: string;
+  categoryIds?: string[];
+  categories?: string[];
+  categoryNames?: string[];
   subcategoryId?: string;
   subcategoryName?: string;
   subcategorySlug?: string;
+  subcategoryIds?: string[];
+  subcategories?: string[];
+  subcategoryNames?: string[];
+  subcategorySlugs?: string[];
   price: number;
   compareAtPrice?: number;
   description: string;
