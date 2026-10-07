@@ -131,34 +131,34 @@ export function ShopPage() {
         if (!isMatch) return false;
       }
 
-      // Subcategory filter from Mega Menu (e.g. campera, remeras, hoodies, zip-up, cargos, denim)
+      // Subcategory filter from Mega Menu (cada subcategoría muestra estricta y exclusivamente sus propios productos)
       if (selectedSub) {
-        const query = selectedSub.toLowerCase().replace(/-/g, ' ');
-        const qSlug = selectedSub.toLowerCase();
+        const raw = selectedSub.toLowerCase().trim();
+        const query = raw.replace(/-/g, ' ');
+        const qSlug = raw.replace(/\s+/g, '-');
+        const qStem = query.replace(/(es|s)$/g, '');
+
+        const checkMatch = (val?: string) => {
+          if (!val) return false;
+          const v = val.toLowerCase().trim();
+          if (v === raw || v === query || v === qSlug) return true;
+          const vQuery = v.replace(/-/g, ' ');
+          if (vQuery === query) return true;
+          if (qStem.length >= 3) {
+            const vStem = vQuery.replace(/(es|s)$/g, '');
+            if (vStem === qStem) return true;
+          }
+          return false;
+        };
+
         const isSubMatch =
-          prod.subcategorySlug?.toLowerCase() === qSlug ||
-          prod.subcategoryName?.toLowerCase() === query ||
-          prod.subcategoryName?.toLowerCase().replace(/\s+/g, '-') === qSlug ||
-          prod.subcategoryIds?.includes(selectedSub) ||
-          prod.subcategorySlugs?.some((s) => s.toLowerCase() === qSlug) ||
-          prod.subcategoryNames?.some(
-            (s) =>
-              s.toLowerCase() === query ||
-              s.toLowerCase().replace(/\s+/g, '-') === qSlug
-          ) ||
-          prod.subcategories?.some(
-            (s) =>
-              s.toLowerCase() === query ||
-              s.toLowerCase().replace(/\s+/g, '-') === qSlug
-          ) ||
-          prod.name.toLowerCase().includes(query) ||
-          prod.subtitle.toLowerCase().includes(query) ||
-          prod.description.toLowerCase().includes(query) ||
-          prod.category.toLowerCase().includes(query) ||
-          (query.includes('zip') && prod.name.toLowerCase().includes('cierre')) ||
-          (query.includes('hoodie') && (prod.category.includes('buzo') || prod.category.includes('top'))) ||
-          (query.includes('cargo') && (prod.category.includes('pantalon') || prod.category.includes('bottom'))) ||
-          (query.includes('sweat') && (prod.category.includes('pantalon') || prod.category.includes('bottom')));
+          (prod.subcategoryId && prod.subcategoryId.toLowerCase() === raw) ||
+          (Array.isArray(prod.subcategoryIds) && prod.subcategoryIds.some((id) => id.toLowerCase() === raw)) ||
+          checkMatch(prod.subcategorySlug) ||
+          (Array.isArray(prod.subcategorySlugs) && prod.subcategorySlugs.some((s) => checkMatch(s))) ||
+          (Array.isArray(prod.subcategories) && prod.subcategories.some((s) => checkMatch(s))) ||
+          checkMatch(prod.subcategoryName) ||
+          (Array.isArray(prod.subcategoryNames) && prod.subcategoryNames.some((n) => checkMatch(n)));
 
         if (!isSubMatch) return false;
       }

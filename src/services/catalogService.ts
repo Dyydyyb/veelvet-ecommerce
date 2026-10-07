@@ -151,27 +151,35 @@ export const CatalogService = {
         });
       }
 
-      // Filtro por subcategoría
+      // Filtro por subcategoría (estricto: solo prendas asignadas a esa subcategoría)
       if (params?.subcategory) {
-        const q = params.subcategory.toLowerCase().replace(/-/g, ' ');
-        const qSlug = params.subcategory.toLowerCase();
-        const rawSubParam = params.subcategory;
+        const raw = params.subcategory.toLowerCase().trim();
+        const query = raw.replace(/-/g, ' ');
+        const qSlug = raw.replace(/\s+/g, '-');
+        const qStem = query.replace(/(es|s)$/g, '');
+
+        const checkMatch = (val?: string) => {
+          if (!val) return false;
+          const v = val.toLowerCase().trim();
+          if (v === raw || v === query || v === qSlug) return true;
+          const vQuery = v.replace(/-/g, ' ');
+          if (vQuery === query) return true;
+          if (qStem.length >= 3) {
+            const vStem = vQuery.replace(/(es|s)$/g, '');
+            if (vStem === qStem) return true;
+          }
+          return false;
+        };
+
         expanded = expanded.filter(
           (p) =>
-            p.subcategorySlug?.toLowerCase() === qSlug ||
-            p.subcategoryName?.toLowerCase() === q ||
-            p.subcategoryName?.toLowerCase().replace(/\s+/g, '-') === qSlug ||
-            (rawSubParam ? Boolean(p.subcategoryIds?.includes(rawSubParam)) : false) ||
-            p.subcategorySlugs?.some((s) => s.toLowerCase() === qSlug) ||
-            p.subcategoryNames?.some(
-              (s) => s.toLowerCase() === q || s.toLowerCase().replace(/\s+/g, '-') === qSlug
-            ) ||
-            p.subcategories?.some(
-              (s) => s.toLowerCase() === q || s.toLowerCase().replace(/\s+/g, '-') === qSlug
-            ) ||
-            p.name.toLowerCase().includes(q) ||
-            p.subtitle.toLowerCase().includes(q) ||
-            p.slug.toLowerCase().includes(q)
+            (p.subcategoryId && p.subcategoryId.toLowerCase() === raw) ||
+            (Array.isArray(p.subcategoryIds) && p.subcategoryIds.some((id) => id.toLowerCase() === raw)) ||
+            checkMatch(p.subcategorySlug) ||
+            (Array.isArray(p.subcategorySlugs) && p.subcategorySlugs.some((s) => checkMatch(s))) ||
+            (Array.isArray(p.subcategories) && p.subcategories.some((s) => checkMatch(s))) ||
+            checkMatch(p.subcategoryName) ||
+            (Array.isArray(p.subcategoryNames) && p.subcategoryNames.some((n) => checkMatch(n)))
         );
       }
 

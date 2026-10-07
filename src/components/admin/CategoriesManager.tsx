@@ -47,6 +47,7 @@ export function CategoriesManager({
   const [newSubNombre, setNewSubNombre] = useState('');
   const [newSubCatIds, setNewSubCatIds] = useState<string[]>([]);
   const [newSubSlug, setNewSubSlug] = useState('');
+  const [isSubSlugEdited, setIsSubSlugEdited] = useState(false);
   const [newSubImagen, setNewSubImagen] = useState('');
   const [newSubDestacada, setNewSubDestacada] = useState(false);
 
@@ -205,10 +206,14 @@ export function CategoriesManager({
     try {
       setLoading(true);
       setError(null);
+      const finalSlug = (isSubSlugEdited && newSubSlug.trim().length > 0)
+        ? newSubSlug.trim()
+        : newSubNombre.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+
       const created = await SupabaseService.createSubcategoria(
         newSubCatIds[0],
         newSubNombre.trim(),
-        newSubSlug.trim(),
+        finalSlug,
         newSubImagen.trim(),
         newSubCatIds
       );
@@ -217,6 +222,7 @@ export function CategoriesManager({
       }
       setNewSubNombre('');
       setNewSubSlug('');
+      setIsSubSlugEdited(false);
       setNewSubImagen('');
       setNewSubDestacada(false);
       setNewSubCatIds(categorias.length > 0 ? [categorias[0].id] : []);
@@ -769,9 +775,10 @@ export function CategoriesManager({
                   required
                   value={newSubNombre}
                   onChange={(e) => {
-                    setNewSubNombre(e.target.value);
-                    if (!newSubSlug) {
-                      setNewSubSlug(e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''));
+                    const val = e.target.value;
+                    setNewSubNombre(val);
+                    if (!isSubSlugEdited) {
+                      setNewSubSlug(val.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''));
                     }
                   }}
                   placeholder="Nombre (ej: Camperas, Remeras)"
@@ -781,7 +788,10 @@ export function CategoriesManager({
                 <input
                   type="text"
                   value={newSubSlug}
-                  onChange={(e) => setNewSubSlug(e.target.value)}
+                  onChange={(e) => {
+                    setIsSubSlugEdited(true);
+                    setNewSubSlug(e.target.value);
+                  }}
                   placeholder="Slug URL (ej: campera, remeras)"
                   className="text-xs bg-white border border-beige-300 rounded-lg px-2.5 py-2 text-navy focus:outline-none focus:border-navy"
                 />
