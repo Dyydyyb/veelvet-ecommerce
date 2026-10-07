@@ -146,8 +146,7 @@ export const CatalogService = {
           if (catFilter === 'top' && (p.category.includes('top') || p.category.includes('buzo') || p.category.includes('abrig'))) return true;
           if (catFilter === 'bottom' && (p.category.includes('bottom') || p.category.includes('pantalon'))) return true;
           if (catFilter === 'accesorios' && p.category.includes('accesorio')) return true;
-          const catName = p.subtitle?.toLowerCase() || '';
-          return catName.includes(catFilter);
+          return false;
         });
       }
 

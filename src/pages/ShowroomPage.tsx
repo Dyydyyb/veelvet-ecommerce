@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { SectionTitle } from '../components/common/SectionTitle';
-import { MapPin, Clock, Calendar, MessageCircle, CheckCircle2, ShieldCheck, CreditCard } from 'lucide-react';
+import { MapPin, Clock, Calendar, MessageCircle, CheckCircle2, ShieldCheck, CreditCard, Users, AlertTriangle } from 'lucide-react';
+import { WHATSAPP_DISPLAY, getWhatsAppLink } from '../config/constants';
 
 export function ShowroomPage() {
   const [formData, setFormData] = useState({
     name: '',
     whatsapp: '',
     date: '',
-    timeSlot: '16:00 - 16:45',
+    timeSlot: '10:00 - 11:00',
     guests: '1 persona',
     notes: '',
   });
@@ -16,12 +17,14 @@ export function ShowroomPage() {
   const [error, setError] = useState('');
 
   const timeSlots = [
-    '14:00 - 14:45',
-    '15:00 - 15:45',
-    '16:00 - 16:45',
-    '17:00 - 17:45',
-    '18:00 - 18:45',
-    '19:00 - 19:30',
+    '09:00 - 10:00',
+    '10:00 - 11:00',
+    '11:00 - 12:00',
+    '12:00 - 13:00',
+    '13:00 - 14:00',
+    '14:00 - 15:00',
+    '15:00 - 16:00',
+    '16:00 - 17:00',
   ];
 
   const handleBooking = (e: React.FormEvent) => {
@@ -30,16 +33,52 @@ export function ShowroomPage() {
       setError('Por favor completá tu nombre, WhatsApp y seleccioná una fecha.');
       return;
     }
+
+    // Validar que no sea domingo (0 = Domingo)
+    const selectedDate = new Date(`${formData.date}T00:00:00`);
+    if (selectedDate.getDay() === 0) {
+      setError('El showroom atiende de Lunes a Sábado de 9:00 a 17:00 hs. Los domingos permanece cerrado. Por favor elegí una fecha entre lunes y sábado.');
+      return;
+    }
+
     setError('');
     setIsReserved(true);
+
+    const bookingMessage =
+      `*RESERVA DE CITA SHOWROOM VEELVET* 📍\n\n` +
+      `👤 *Nombre:* ${formData.name}\n` +
+      `📱 *WhatsApp:* ${formData.whatsapp}\n` +
+      `📅 *Fecha:* ${formData.date}\n` +
+      `⏰ *Horario:* ${formData.timeSlot} hs\n` +
+      `👥 *Asistentes:* ${formData.guests} (máx. 2 personas)\n` +
+      (formData.notes ? `📝 *Interés/Notas:* ${formData.notes}\n` : '') +
+      `\n¡Hola Veelvet! 👋 Solicito la confirmación de mi turno para visitar el showroom en Quilmes Oeste. ¡Muchas gracias!`;
+
+    const waUrl = getWhatsAppLink(bookingMessage);
+    try {
+      window.open(waUrl, '_blank');
+    } catch {
+      // ignore
+    }
   };
+
+  const bookingWhatsAppLink = getWhatsAppLink(
+    `*RESERVA DE CITA SHOWROOM VEELVET* 📍\n\n` +
+    `👤 *Nombre:* ${formData.name}\n` +
+    `📱 *WhatsApp:* ${formData.whatsapp}\n` +
+    `📅 *Fecha:* ${formData.date}\n` +
+    `⏰ *Horario:* ${formData.timeSlot} hs\n` +
+    `👥 *Asistentes:* ${formData.guests} (máx. 2 personas)\n` +
+    (formData.notes ? `📝 *Notas:* ${formData.notes}\n` : '') +
+    `\n¡Hola Veelvet! 👋 Solicito la confirmación de mi turno para visitar el showroom en Quilmes Oeste. ¡Muchas gracias!`
+  );
 
   return (
     <div className="pt-28 pb-20 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto min-h-screen">
       <SectionTitle
         overline="Experiencia Exclusiva"
         title="Showroom en Quilmes Oeste"
-        subtitle="Vení a ver y probarte nuestros productos. Al reservar tu turno te enviamos la dirección exacta por WhatsApp para brindarte una atención 100% personalizada."
+        subtitle="Vení a ver y probarte nuestras prendas. Atendemos de Lunes a Sábado de 9:00 a 17:00 hs con cita previa y un máximo de 2 personas por seguridad."
         align="center"
       />
 
@@ -57,7 +96,7 @@ export function ShowroomPage() {
                   Ubicación: Quilmes Oeste
                 </h3>
                 <p className="text-xs text-navy/70">
-                  Buenos Aires, Argentina
+                  Buenos Aires, Argentina (dirección exacta tras agendar)
                 </p>
               </div>
             </div>
@@ -67,10 +106,20 @@ export function ShowroomPage() {
                 <Clock className="w-4 h-4 text-navy flex-shrink-0 mt-0.5" />
                 <div>
                   <strong className="block text-navy font-bold uppercase font-montserrat">
-                    Horarios de Atención
+                    Días y Horarios de Atención
                   </strong>
-                  Lunes a Viernes de 14:00 a 19:30 hs.<br />
-                  Sábados de 11:00 a 18:00 hs.
+                  Lunes a Sábado de 9:00 a 17:00 hs.<br />
+                  <span className="text-[11px] text-navy/60 font-medium">Domingos y feriados cerrado.</span>
+                </div>
+              </div>
+
+              <div className="flex items-start space-x-3">
+                <Users className="w-4 h-4 text-navy flex-shrink-0 mt-0.5" />
+                <div>
+                  <strong className="block text-navy font-bold uppercase font-montserrat">
+                    Capacidad y Seguridad
+                  </strong>
+                  Máximo <strong>2 personas</strong> por cita por normas de seguridad y para brindarte una atención personalizada sin esperas.
                 </div>
               </div>
 
@@ -78,9 +127,9 @@ export function ShowroomPage() {
                 <CreditCard className="w-4 h-4 text-navy flex-shrink-0 mt-0.5" />
                 <div>
                   <strong className="block text-navy font-bold uppercase font-montserrat">
-                    Medios de Pago en Showroom
+                    Medios de Pago
                   </strong>
-                  Efectivo (10% OFF adicional), Transferencia inmediata, Tarjetas de débito y crédito en 3 cuotas sin interés.
+                  Mercado Pago (tarjetas y dinero en cuenta), transferencia bancaria o efectivo.
                 </div>
               </div>
 
@@ -90,7 +139,7 @@ export function ShowroomPage() {
                   <strong className="block text-navy font-bold uppercase font-montserrat">
                     Prueba y Asesoramiento
                   </strong>
-                  Disponemos de probador espacioso y stock completo en todos los talles (S a XL) para que te pruebes sin apuros.
+                  Contamos con probador privado y catálogo completo en todos los talles (S a XL) para que encuentres tu calce ideal.
                 </div>
               </div>
             </div>
@@ -99,16 +148,16 @@ export function ShowroomPage() {
           {/* Direct WhatsApp Callout */}
           <div className="p-6 bg-white rounded-2xl border border-beige-300 text-center">
             <p className="text-xs text-navy/75 font-light">
-              ¿Querés venir hoy mismo o tenés dudas con el horario?
+              ¿Querés consultar disponibilidad inmediata para hoy?
             </p>
             <a
-              href="https://wa.me/5491136291392?text=Hola%20Veelvet!%20Quisiera%20saber%20si%20tienen%20disponibilidad%20hoy%20en%20el%20showroom%20de%20Quilmes%20Oeste."
+              href="https://wa.me/5491136291392?text=Hola%20Veelvet!%20Quisiera%20consultar%20disponibilidad%20para%20visitar%20el%20showroom%20en%20Quilmes%20Oeste%20(Lun%20a%20S%C3%A1b%20de%209%20a%2017hs)."
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center space-x-2 mt-3 bg-beige-200 hover:bg-beige-300 text-navy px-4 py-2.5 rounded-lg text-xs font-bold uppercase transition-colors border border-beige-300"
+              className="inline-flex items-center space-x-2 mt-3 bg-beige-200 hover:bg-beige-300 text-navy px-4 py-2.5 rounded-lg text-xs font-bold uppercase transition-colors border border-beige-300 cursor-pointer"
             >
               <MessageCircle className="w-4 h-4" />
-              <span>Consultar disponibilidad por WhatsApp (11 3629-1392)</span>
+              <span>Consultar por WhatsApp ({WHATSAPP_DISPLAY})</span>
             </a>
           </div>
         </div>
@@ -116,35 +165,58 @@ export function ShowroomPage() {
         {/* Right: Booking Form */}
         <div className="lg:col-span-7 bg-white p-8 sm:p-10 rounded-3xl border border-beige-300 shadow-sm">
           {isReserved ? (
-            <div className="text-center py-10 space-y-4">
+            <div className="text-center py-8 space-y-4">
               <div className="w-16 h-16 bg-beige-200 text-navy rounded-full flex items-center justify-center mx-auto">
                 <CheckCircle2 className="w-10 h-10" />
               </div>
               <h3 className="font-montserrat font-black text-2xl text-navy uppercase">
-                ¡Turno Reservado con Éxito!
+                ¡Solicitud de Turno Enviada!
               </h3>
               <p className="text-sm text-navy/80 font-light max-w-md mx-auto leading-relaxed">
-                Te esperamos, <strong>{formData.name}</strong>, el día <strong>{formData.date}</strong> en el turno de las <strong>{formData.timeSlot}</strong>.
+                Te esperamos, <strong>{formData.name}</strong>, el día <strong>{formData.date}</strong> en el turno de las <strong>{formData.timeSlot} hs</strong> ({formData.guests}, máx. 2 personas).
               </p>
-              <div className="bg-beige-100 p-4 rounded-xl border border-beige-300 text-xs text-navy text-left max-w-sm mx-auto">
-                <p className="font-bold uppercase font-montserrat mb-1">Próximo paso:</p>
-                <p>Te hemos enviado la dirección exacta y ubicación de Google Maps al WhatsApp ({formData.whatsapp}).</p>
+              <div className="bg-beige-100 p-4 rounded-xl border border-beige-300 text-xs text-navy text-left max-w-sm mx-auto space-y-1">
+                <p className="font-bold uppercase font-montserrat">Próximo paso:</p>
+                <p>Te enviamos la dirección exacta y ubicación por WhatsApp a tu número ({formData.whatsapp}).</p>
               </div>
-              <button
-                onClick={() => setIsReserved(false)}
-                className="mt-4 text-xs font-bold uppercase tracking-wider text-navy underline"
-              >
-                Modificar turno
-              </button>
+
+              <div className="pt-2">
+                <a
+                  href={bookingWhatsAppLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center space-x-2 bg-[#25D366] hover:bg-[#20ba5a] text-white px-5 py-3 rounded-xl text-xs font-bold uppercase transition-colors shadow-sm"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  <span>Reenviar datos por WhatsApp</span>
+                </a>
+              </div>
+
+              <div>
+                <button
+                  onClick={() => setIsReserved(false)}
+                  className="mt-3 text-xs font-bold uppercase tracking-wider text-navy underline cursor-pointer"
+                >
+                  Modificar datos de la cita
+                </button>
+              </div>
             </div>
           ) : (
             <form onSubmit={handleBooking} className="space-y-5">
               <h3 className="font-montserrat font-black text-xl text-navy uppercase mb-1">
-                Reservá Tu Cita
+                Reservá Tu Cita en Showroom
               </h3>
               <p className="text-xs text-navy/70 font-light mb-4">
-                Elegí el día y el horario que mejor te quede para visitarnos.
+                Lunes a Sábado de 9:00 a 17:00 hs • Máximo 2 personas por turno.
               </p>
+
+              {/* Security Alert Banner */}
+              <div className="flex items-center space-x-2.5 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs">
+                <AlertTriangle className="w-4 h-4 flex-shrink-0 text-amber-700" />
+                <span>
+                  <strong>Aviso de Seguridad:</strong> Se permite el ingreso de un <strong>máximo de 2 personas</strong> por cita.
+                </span>
+              </div>
 
               {error && (
                 <div className="bg-red-50 text-red-700 text-xs p-3 rounded-lg border border-red-200">
@@ -183,11 +255,11 @@ export function ShowroomPage() {
                 </div>
               </div>
 
-              {/* Date & Acompañantes */}
+              {/* Date & Guests */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-navy mb-1">
-                    Fecha de Visita *
+                    Fecha (Lun a Sáb) *
                   </label>
                   <input
                     type="date"
@@ -201,32 +273,31 @@ export function ShowroomPage() {
 
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-navy mb-1">
-                    Acompañantes
+                    Asistentes (Máx. 2 personas) *
                   </label>
                   <select
                     value={formData.guests}
                     onChange={(e) => setFormData({ ...formData, guests: e.target.value })}
-                    className="w-full text-xs bg-beige-50 border border-beige-300 rounded-lg px-4 py-3 text-navy focus:outline-none focus:border-navy"
+                    className="w-full text-xs bg-beige-50 border border-beige-300 rounded-lg px-4 py-3 text-navy focus:outline-none focus:border-navy font-semibold"
                   >
-                    <option value="1 persona">Vengo solo/a</option>
-                    <option value="2 personas">Con 1 acompañante</option>
-                    <option value="3 o más">Grupo de 3 o más</option>
+                    <option value="1 persona">1 persona (individual)</option>
+                    <option value="2 personas">2 personas (máximo permitido por seguridad)</option>
                   </select>
                 </div>
               </div>
 
-              {/* Time Slots */}
+              {/* Time Slots (09:00 to 17:00) */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-navy mb-2">
-                  Horario de Turno
+                  Horario de Turno (9:00 a 17:00 hs)
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {timeSlots.map((slot) => (
                     <button
                       key={slot}
                       type="button"
                       onClick={() => setFormData({ ...formData, timeSlot: slot })}
-                      className={`py-2.5 px-3 text-xs font-bold uppercase rounded-lg border transition-all text-center ${
+                      className={`py-2.5 px-2 text-xs font-bold uppercase rounded-lg border transition-all text-center cursor-pointer ${
                         formData.timeSlot === slot
                           ? 'bg-navy text-white border-navy shadow-xs'
                           : 'bg-beige-50 text-navy border-beige-300 hover:bg-beige-200'
@@ -241,13 +312,13 @@ export function ShowroomPage() {
               {/* Notes */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-navy mb-1">
-                  Notas o Prendas de Interés (Opcional)
+                  Notas o Prendas que te gustaría probarte (Opcional)
                 </label>
                 <input
                   type="text"
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  placeholder="Ej: Quiero probarme el Buzo Boxy Negro y Pantalón Ancho en talle L"
+                  placeholder="Ej: Quiero probarme Buzos y Remeras en talle L"
                   className="w-full text-xs bg-beige-50 border border-beige-300 rounded-lg px-4 py-3 text-navy focus:outline-none focus:border-navy"
                 />
               </div>
@@ -258,11 +329,11 @@ export function ShowroomPage() {
                 className="w-full py-4 bg-navy hover:bg-navy-500 text-white font-montserrat font-bold text-xs uppercase tracking-wider rounded-lg transition-colors flex items-center justify-center space-x-2 shadow-sm cursor-pointer"
               >
                 <Calendar className="w-4 h-4" />
-                <span>Confirmar reserva de turno</span>
+                <span>Confirmar cita en showroom</span>
               </button>
 
               <p className="text-[11px] text-center text-navy/60 font-light">
-                Cancelación gratuita. Si no podés asistir, avisanos por WhatsApp con anticipación.
+                Atención personalizada de 9:00 a 17:00 hs. Si no podés asistir, avisanos por WhatsApp para reprogramar.
               </p>
             </form>
           )}

@@ -35,26 +35,33 @@ function parseRawProduct(raw: any): Producto {
       permite_transferencia_descuento = Boolean(raw.imagenes_url.permite_transferencia_descuento);
     }
     if (Array.isArray(raw.imagenes_url.subcategorias_ids)) {
-      subcategorias_ids = Array.from(new Set([...subcategorias_ids, ...raw.imagenes_url.subcategorias_ids]));
+      subcategorias_ids = Array.from(new Set(raw.imagenes_url.subcategorias_ids.filter(Boolean)));
     }
     if (Array.isArray(raw.imagenes_url.categorias_ids)) {
-      categorias_ids = Array.from(new Set([...categorias_ids, ...raw.imagenes_url.categorias_ids]));
+      categorias_ids = Array.from(new Set(raw.imagenes_url.categorias_ids.filter(Boolean)));
     }
   }
 
-  // Si tiene subcategoria_id pero no estaba en la lista, asegurar que esté
-  if (raw.subcategoria_id && !subcategorias_ids.includes(raw.subcategoria_id)) {
-    subcategorias_ids.push(raw.subcategoria_id);
+  // Solo usar fallback si NO se especificaron listas explícitas
+  const hasExplicitSubIds =
+    (raw.imagenes_url && Array.isArray(raw.imagenes_url.subcategorias_ids)) ||
+    (Array.isArray(raw.subcategorias_ids) && raw.subcategorias_ids.length > 0);
+  if (!hasExplicitSubIds && raw.subcategoria_id) {
+    subcategorias_ids = [raw.subcategoria_id];
   }
-  // Si tiene categoría padre asociada y no estaba en la lista, asegurar que esté
-  if (raw.subcategoria?.categoria_id && !categorias_ids.includes(raw.subcategoria.categoria_id)) {
-    categorias_ids.push(raw.subcategoria.categoria_id);
-  }
-  // Si la subcategoría tiene múltiples categorías asociadas
-  if (Array.isArray(raw.subcategoria?.categorias_ids)) {
-    raw.subcategoria.categorias_ids.forEach((cid: string) => {
-      if (cid && !categorias_ids.includes(cid)) categorias_ids.push(cid);
-    });
+
+  const hasExplicitCatIds =
+    (raw.imagenes_url && Array.isArray(raw.imagenes_url.categorias_ids)) ||
+    (Array.isArray(raw.categorias_ids) && raw.categorias_ids.length > 0);
+  if (!hasExplicitCatIds) {
+    if (raw.subcategoria?.categoria_id && !categorias_ids.includes(raw.subcategoria.categoria_id)) {
+      categorias_ids.push(raw.subcategoria.categoria_id);
+    }
+    if (Array.isArray(raw.subcategoria?.categorias_ids)) {
+      raw.subcategoria.categorias_ids.forEach((cid: string) => {
+        if (cid && !categorias_ids.includes(cid)) categorias_ids.push(cid);
+      });
+    }
   }
 
   return {
@@ -741,10 +748,10 @@ export const SupabaseService = {
     if (payload.nombre !== undefined) updateObj.nombre = payload.nombre.trim();
     if (payload.precio !== undefined) updateObj.precio = payload.precio;
     if (payload.precio_anterior !== undefined) updateObj.precio_anterior = payload.precio_anterior;
-    if (payload.subcategorias_ids !== undefined && payload.subcategorias_ids.length > 0) {
-      updateObj.subcategoria_id = payload.subcategorias_ids[0];
+    if (payload.subcategorias_ids !== undefined) {
+      updateObj.subcategoria_id = payload.subcategorias_ids[0] || null;
     } else if (payload.subcategoria_id !== undefined) {
-      updateObj.subcategoria_id = payload.subcategoria_id;
+      updateObj.subcategoria_id = payload.subcategoria_id || null;
     }
     if (payload.tipo_oferta_id !== undefined) updateObj.tipo_oferta_id = payload.tipo_oferta_id;
     if (payload.destacado !== undefined) updateObj.destacado = Boolean(payload.destacado);
@@ -895,7 +902,9 @@ export const SupabaseService = {
       }
     };
 
-    // Helper para registrar una subcategoría y HEREDAR AUTOMÁTICAMENTE todas sus categorías a la prenda
+    const hasExplicitProductCats = Array.isArray(parsed.categorias_ids) && parsed.categorias_ids.length > 0;
+
+    // Helper para registrar una subcategoría
     const registerSub = (sid: string, sname?: string, sslug?: string) => {
       if (!sid) return;
       if (!subcategoryIds.includes(sid)) subcategoryIds.push(sid);
@@ -909,42 +918,38 @@ export const SupabaseService = {
       if (name && !subcategoryNames.includes(name)) subcategoryNames.push(name);
       if (slug && !subcategorySlugs.includes(slug)) subcategorySlugs.push(slug);
 
-      // Heredar todas las categorías de la subcategoría:
-      // 1. Primaria
-      if (sObj?.categoria_id) {
-        registerCat(sObj.categoria_id, sObj.categoria?.nombre);
-      }
-      // 2. Múltiples categorías (categorias_ids y categorias)
-      if (Array.isArray(sObj?.categorias_ids)) {
-        sObj.categorias_ids.forEach((cid) => {
-          const cObj = sObj.categorias?.find((c) => c.id === cid);
-          registerCat(cid, cObj?.nombre);
-        });
+      // Si el producto no tiene categorías explícitas guardadas, heredar de la subcategoría
+      if (!hasExplicitProductCats) {
+        if (sObj?.categoria_id) {
+          registerCat(sObj.categoria_id, sObj.categoria?.nombre);
+        }
+        if (Array.isArray(sObj?.categorias_ids)) {
+          sObj.categorias_ids.forEach((cid) => {
+            const cObj = sObj.categorias?.find((c) => c.id === cid);
+            registerCat(cid, cObj?.nombre);
+          });
+        }
       }
     };
 
-    // 1. Subcategoría y Categoría primaria del producto
-    if (sub) {
+    // 1. Subcategorías asignadas
+    if (Array.isArray(parsed.subcategorias_ids) && parsed.subcategorias_ids.length > 0) {
+      parsed.subcategorias_ids.forEach((sid) => {
+        registerSub(sid);
+      });
+    } else if (sub) {
       registerSub(sub.id, sub.nombre, sub.slug);
     } else if (p.subcategoria_id) {
       registerSub(p.subcategoria_id);
     }
-    if (cat) {
-      registerCat(cat.id, cat.nombre);
-    }
 
-    // 2. Subcategorías asignadas adicionales (con herencia de todas sus categorías)
-    if (Array.isArray(parsed.subcategorias_ids)) {
-      parsed.subcategorias_ids.forEach((sid) => {
-        registerSub(sid);
-      });
-    }
-
-    // 3. Categorías asignadas adicionales directamente
-    if (Array.isArray(parsed.categorias_ids)) {
+    // 2. Categorías asignadas
+    if (Array.isArray(parsed.categorias_ids) && parsed.categorias_ids.length > 0) {
       parsed.categorias_ids.forEach((cid) => {
         registerCat(cid);
       });
+    } else if (cat) {
+      registerCat(cat.id, cat.nombre);
     }
 
     // Inferencia de tipo de prenda para guía de talles

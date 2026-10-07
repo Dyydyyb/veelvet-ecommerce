@@ -86,24 +86,11 @@ export function CartDrawer() {
                   </button>
                 </div>
 
-                {/* Free Shipping Progress */}
+                {/* Shipping Info Notice */}
                 <div className="mt-4 pt-3 border-t border-beige-200">
-                  <div className="flex items-center justify-between text-xs font-semibold text-navy mb-1.5">
-                    <span className="flex items-center space-x-1.5">
-                      <Truck className="w-3.5 h-3.5" />
-                      <span>
-                        {freeShipping.isFree
-                          ? '¡Tenés ENVÍO GRATIS a todo el país!'
-                          : `Te faltan ${formatPrice(freeShipping.remaining)} para envío gratis`}
-                      </span>
-                    </span>
-                    <span className="font-mono text-[11px]">{freeShipping.percentage}%</span>
-                  </div>
-                  <div className="w-full h-1.5 bg-beige-200 rounded-full overflow-hidden">
-                    <motion.div
-                      className="h-full bg-navy rounded-full transition-all duration-300"
-                      style={{ width: `${freeShipping.percentage}%` }}
-                    />
+                  <div className="flex items-center space-x-1.5 text-[11px] font-semibold text-navy">
+                    <Truck className="w-3.5 h-3.5 text-navy flex-shrink-0" />
+                    <span>Envíos por Correo Argentino (costo a calcular) • Retiro en Showroom</span>
                   </div>
                 </div>
               </div>
@@ -264,13 +251,7 @@ export function CartDrawer() {
                     )}
                     <div className="flex justify-between">
                       <span>Envío</span>
-                      <span>
-                        {freeShipping.isFree ? (
-                          <strong className="text-green-700 uppercase">Gratis</strong>
-                        ) : (
-                          'Se calcula al finalizar'
-                        )}
-                      </span>
+                      <span className="text-navy/70 font-medium">A calcular al finalizar</span>
                     </div>
                     <div className="flex justify-between text-base font-montserrat font-black text-navy pt-2 border-t border-beige-300">
                       <span>Total estimado</span>

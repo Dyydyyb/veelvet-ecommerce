@@ -405,7 +405,7 @@ export function HomePage() {
               </h2>
 
               <p className="text-base sm:text-lg text-navy/80 font-light leading-relaxed max-w-xl">
-                Vení a ver y probarte nuestros productos. Al reservar tu turno te enviamos la dirección exacta y te asesoramos personalmente para que encuentres tu calce y tono ideal.
+                Atendemos de <strong>Lunes a Sábado de 9:00 a 17:00 hs</strong> con cita previa (máximo 2 personas por seguridad). Al reservar tu turno te enviamos la dirección exacta y te asesoramos personalmente para que encuentres tu calce y tono ideal.
               </p>
 
               <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">

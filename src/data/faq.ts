@@ -9,13 +9,13 @@ export const FAQ_ITEMS: FAQItem[] = [
   {
     id: 'faq-01',
     question: '¿Tienen showroom?',
-    answer: 'Sí. Contamos con showroom para que puedas ver y probarte nuestros productos con total comodidad.',
+    answer: 'Sí. Contamos con showroom en Quilmes Oeste para que puedas ver y probarte nuestros productos con total comodidad. Atendemos de Lunes a Sábado de 9:00 a 17:00 hs con cita previa (máximo 2 personas por seguridad).',
     category: 'showroom',
   },
   {
     id: 'faq-02',
     question: '¿Dónde están ubicados?',
-    answer: 'Nuestro showroom está ubicado en Quilmes Oeste. Al reservar tu turno te enviamos la dirección exacta.',
+    answer: 'Nuestro showroom está ubicado en Quilmes Oeste. Al reservar tu turno online te enviamos la dirección exacta y ubicación por WhatsApp.',
     category: 'showroom',
   },
   {
@@ -39,13 +39,13 @@ export const FAQ_ITEMS: FAQItem[] = [
   {
     id: 'faq-06',
     question: '¿Hacen envíos a todo el país?',
-    answer: 'Sí, enviamos a todas las provincias argentinas a través de Andreani y Correo Argentino (tanto a domicilio como a sucursal). En Quilmes y zonas aledañas disponemos de envíos rápidos directos por Veelvet.',
+    answer: 'Sí, enviamos a todas las provincias argentinas a través de Correo Argentino (a domicilio o sucursal). El costo del envío es a calcular según código postal y peso del paquete. También podés retirar gratis en el showroom de Quilmes Oeste con turno.',
     category: 'envios',
   },
   {
     id: 'faq-07',
     question: '¿Cuáles son los medios de pago aceptados?',
-    answer: 'Aceptamos tarjetas de débito y crédito en cuotas sin interés mediante Mercado Pago, dinero en cuenta y 10% de descuento abonando por transferencia bancaria directa.',
+    answer: 'Aceptamos Mercado Pago (por ahora), con dinero en cuenta, tarjetas de débito y crédito en cuotas. Al confirmar tu orden te compartimos el link de pago seguro por WhatsApp.',
     category: 'compras',
   },
   {

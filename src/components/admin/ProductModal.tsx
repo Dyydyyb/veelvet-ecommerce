@@ -89,23 +89,13 @@ export function ProductModal({
         : [];
       setSelectedSubcategoriasIds(rawSubIds);
 
-      // Cargar múltiples categorías
+      // Cargar múltiples categorías guardadas exactamente en el producto
       const rawCatIds = Array.isArray(product.categorias_ids) && product.categorias_ids.length > 0
         ? product.categorias_ids
         : product.subcategoria?.categoria_id
         ? [product.subcategoria.categoria_id]
         : [];
-
-      // Asegurar que todas las categorías de las subcategorías asignadas estén presentes
-      const allSubCatIds = new Set<string>(rawCatIds);
-      rawSubIds.forEach((sid) => {
-        const s = subcategorias.find((sub) => sub.id === sid);
-        if (s) {
-          if (s.categoria_id) allSubCatIds.add(s.categoria_id);
-          if (Array.isArray(s.categorias_ids)) s.categorias_ids.forEach((cid) => allSubCatIds.add(cid));
-        }
-      });
-      setSelectedCategoriasIds(Array.from(allSubCatIds));
+      setSelectedCategoriasIds(rawCatIds);
 
       setTipoOfertaId(product.tipo_oferta_id || '');
       setDestacado(Boolean(product.destacado));
@@ -140,8 +130,8 @@ export function ProductModal({
       setDescripcion('');
       setPrecio('');
       setPrecioAnterior('');
-      setSelectedSubcategoriasIds(subcategorias.length > 0 ? [subcategorias[0].id] : []);
-      setSelectedCategoriasIds(categorias.length > 0 ? [categorias[0].id] : []);
+      setSelectedSubcategoriasIds([]);
+      setSelectedCategoriasIds([]);
       setTipoOfertaId('');
       setDestacado(false);
       setStock(15);
@@ -259,9 +249,23 @@ export function ProductModal({
   };
 
   const toggleCategoria = (catId: string) => {
-    setSelectedCategoriasIds((prev) =>
-      prev.includes(catId) ? prev.filter((id) => id !== catId) : [...prev, catId]
-    );
+    setSelectedCategoriasIds((prev) => {
+      if (prev.includes(catId)) {
+        const remainingCats = prev.filter((id) => id !== catId);
+        // Desmarcar también subcategorías que dependían exclusivamente de esta categoría
+        setSelectedSubcategoriasIds((subPrev) =>
+          subPrev.filter((sid) => {
+            const sub = subcategorias.find((s) => s.id === sid);
+            if (!sub) return true;
+            const subAllCats = [sub.categoria_id, ...(sub.categorias_ids || [])].filter(Boolean);
+            return subAllCats.some((cid) => remainingCats.includes(cid));
+          })
+        );
+        return remainingCats;
+      } else {
+        return [...prev, catId];
+      }
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

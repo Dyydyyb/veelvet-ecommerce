@@ -220,13 +220,10 @@ export function ProductDetailPage() {
       content: (
         <div className="space-y-2 text-xs sm:text-sm text-navy/80">
           <p>
-            <strong>Envíos a todo el país:</strong> Andreani y Correo Argentino a domicilio o sucursal (3 a 5 días hábiles).
+            <strong>Envíos por Correo Argentino:</strong> Despacho a todo el país a domicilio o sucursal. Costo a calcular según destino y código postal.
           </p>
           <p>
-            <strong>Quilmes y GBA Sur:</strong> Envío rápido por Veelvet en 24 a 48 hs hábiles.
-          </p>
-          <p>
-            <strong>Showroom Quilmes Oeste:</strong> Retiro inmediato gratuito reservando tu turno online.
+            <strong>Showroom Quilmes Oeste:</strong> Retiro con cita previa de Lunes a Sábado de 9:00 a 17:00 hs (máximo 2 personas por seguridad).
           </p>
         </div>
       ),

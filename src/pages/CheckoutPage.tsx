@@ -3,16 +3,16 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useCartStore } from '../store/cartStore';
 import { SHIPPING_METHODS, ShippingMethod } from '../data/shippingMethods';
 import { SectionTitle } from '../components/common/SectionTitle';
-import { Truck, MapPin, CheckCircle2, ShieldCheck, CreditCard, ArrowLeft, ArrowRight, Lock, MessageCircle } from 'lucide-react';
+import { Truck, MapPin, CheckCircle2, ShieldCheck, CreditCard, ArrowLeft, ArrowRight, Lock, MessageCircle, Clock, Users } from 'lucide-react';
 import { WHATSAPP_DISPLAY, getWhatsAppLink } from '../config/constants';
 import confetti from 'canvas-confetti';
 
 export function CheckoutPage() {
   const navigate = useNavigate();
-  const { items, getSubtotal, getDiscount, clearCart, getFreeShippingProgress } = useCartStore();
+  const { items, getSubtotal, getDiscount, clearCart } = useCartStore();
 
   const [selectedShipping, setSelectedShipping] = useState<ShippingMethod>(SHIPPING_METHODS[0]);
-  const [paymentMethod, setPaymentMethod] = useState<'transferencia' | 'tarjeta' | 'mercadopago'>('transferencia');
+  const [paymentMethod, setPaymentMethod] = useState<'mercadopago'>('mercadopago');
   const [orderComplete, setOrderComplete] = useState(false);
   const [orderNumber, setOrderNumber] = useState('');
   const [whatsappOrderUrl, setWhatsappOrderUrl] = useState('');
@@ -35,14 +35,10 @@ export function CheckoutPage() {
 
   const subtotal = getSubtotal();
   const discount = getDiscount();
-  const freeShipping = getFreeShippingProgress();
 
-  // If free shipping applies, shipping cost is 0
-  const shippingCost = freeShipping.isFree ? 0 : selectedShipping.price;
-
-  // Extra 10% off if bank transfer is selected
-  const transferDiscount = paymentMethod === 'transferencia' ? (subtotal - discount) * 0.1 : 0;
-  const finalTotal = subtotal - discount - transferDiscount + shippingCost;
+  const isShippingCalculated = Boolean(selectedShipping.isCalculated);
+  const shippingCost = isShippingCalculated ? 0 : selectedShipping.price;
+  const finalTotal = subtotal - discount + shippingCost;
 
   const formatPrice = (amount: number) => {
     return new Intl.NumberFormat('es-AR', {
@@ -70,12 +66,15 @@ export function CheckoutPage() {
       )
       .join('\n');
 
-    const paymentLabel =
-      paymentMethod === 'transferencia'
-        ? 'Transferencia Bancaria (10% OFF aplicado)'
-        : paymentMethod === 'tarjeta'
-        ? 'Tarjeta en cuotas'
-        : 'Mercado Pago';
+    const shippingInfo =
+      selectedShipping.carrier === 'showroom'
+        ? `• Entrega: Retiro en Showroom Quilmes Oeste (Lun a Sáb 9:00 a 17:00 hs, máx. 2 personas)`
+        : `• Entrega: ${formData.street} ${formData.number}${formData.floor ? ' Depto ' + formData.floor : ''}, ${formData.city}, ${formData.province} (CP ${formData.postalCode})`;
+
+    const shippingLine =
+      selectedShipping.carrier === 'showroom'
+        ? `🚚 *Método de Entrega:* Retiro en Showroom Quilmes Oeste (GRATIS - Lunes a Sábado de 9:00 a 17:00 hs, máx. 2 personas)`
+        : `🚚 *Método de Envío:* Correo Argentino (Costo a calcular según destino y CP)`;
 
     const orderMessage =
       `*NUEVO PEDIDO VEELVET* 🛍️\n` +
@@ -85,15 +84,14 @@ export function CheckoutPage() {
       `• DNI: ${formData.dni}\n` +
       `• Teléfono: ${formData.phone}\n` +
       `• Email: ${formData.email}\n` +
-      `• Entrega: ${formData.street} ${formData.number}${formData.floor ? ' Depto ' + formData.floor : ''}, ${formData.city}, ${formData.province} (CP ${formData.postalCode})\n` +
+      `${shippingInfo}\n` +
       (formData.notes ? `• Notas: ${formData.notes}\n` : '') +
       `\n📦 *Prendas del Pedido:*\n${itemsSummary}\n\n` +
-      `🚚 *Método de Envío:* ${selectedShipping.name} (${shippingCost === 0 ? 'GRATIS' : formatPrice(shippingCost)})\n` +
-      `💳 *Medio de Pago:* ${paymentLabel}\n` +
-      (transferDiscount > 0 ? `🎁 *Descuento Transferencia:* -${formatPrice(transferDiscount)}\n` : '') +
+      `${shippingLine}\n` +
+      `💳 *Medio de Pago:* Mercado Pago\n` +
       (discount > 0 ? `🎟️ *Descuento Cupón:* -${formatPrice(discount)}\n` : '') +
-      `💰 *TOTAL A PAGAR:* ${formatPrice(finalTotal)}\n\n` +
-      `¡Hola Veelvet! 👋 Acabo de realizar este pedido en la tienda online. Les envío los datos para coordinar el pago y la entrega. ¡Muchas gracias!`;
+      `💰 *TOTAL PRENDAS:* ${formatPrice(finalTotal)}${isShippingCalculated ? ' (+ costo de envío Correo Argentino a calcular)' : ''}\n\n` +
+      `¡Hola Veelvet! 👋 Acabo de realizar este pedido en la tienda online. Les envío los datos para coordinar el link de Mercado Pago y el envío. ¡Muchas gracias!`;
 
     const waUrl = getWhatsAppLink(orderMessage);
     setWhatsappOrderUrl(waUrl);
@@ -146,7 +144,7 @@ export function CheckoutPage() {
       <SectionTitle
         overline="Finalizar Compra"
         title="Checkout Seguro"
-        subtitle="Completá tus datos de entrega y seleccioná el medio de pago. No se realizará ningún cobro real (entorno de demostración)."
+        subtitle="Completá tus datos de entrega y confirmá tu pedido. Te enviaremos el link de pago oficial de Mercado Pago por WhatsApp."
         align="center"
       />
 
@@ -165,7 +163,7 @@ export function CheckoutPage() {
               ¡Gracias por tu compra!
             </h2>
             <p className="text-sm text-navy/80 font-light mt-2 max-w-md mx-auto leading-relaxed">
-              Hemos generado tu orden con éxito y te enviamos los detalles a WhatsApp oficial de Veelvet para coordinar el pago y despacho.
+              Hemos generado tu orden con éxito y te enviamos los detalles a WhatsApp oficial de Veelvet para coordinar el link de Mercado Pago y el despacho.
             </p>
           </div>
 
@@ -173,17 +171,20 @@ export function CheckoutPage() {
           <div className="bg-beige-100 p-6 rounded-2xl border border-beige-300 text-left space-y-3 text-xs sm:text-sm text-navy">
             <div className="flex justify-between pb-2 border-b border-beige-200">
               <span className="text-navy/70">Método de entrega:</span>
-              <strong className="text-right">{selectedShipping.name}</strong>
+              <strong className="text-right">
+                {selectedShipping.name} {isShippingCalculated ? '(A calcular según CP)' : '(Gratis)'}
+              </strong>
             </div>
             <div className="flex justify-between pb-2 border-b border-beige-200">
               <span className="text-navy/70">Medio de pago:</span>
-              <strong className="capitalize">
-                {paymentMethod === 'transferencia' ? 'Transferencia Bancaria (10% OFF)' : paymentMethod === 'tarjeta' ? 'Tarjeta en cuotas' : 'Mercado Pago'}
-              </strong>
+              <strong className="capitalize">Mercado Pago</strong>
             </div>
             <div className="flex justify-between text-base font-montserrat font-black text-navy pt-2">
-              <span>Total abonado:</span>
-              <span>{formatPrice(finalTotal)}</span>
+              <span>Total prendas:</span>
+              <span>
+                {formatPrice(finalTotal)}
+                {isShippingCalculated && <span className="text-xs font-normal text-navy/70 ml-1">(+ envío a calcular)</span>}
+              </span>
             </div>
           </div>
 
@@ -265,15 +266,14 @@ export function CheckoutPage() {
 
               <div className="space-y-3">
                 {SHIPPING_METHODS.map((method) => {
-                  const isFree = freeShipping.isFree;
-                  const effectivePrice = isFree ? 0 : method.price;
+                  const isSelected = selectedShipping.id === method.id;
 
                   return (
                     <label
                       key={method.id}
                       onClick={() => setSelectedShipping(method)}
                       className={`flex items-start justify-between p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                        selectedShipping.id === method.id
+                        isSelected
                           ? 'border-navy bg-beige-50/70 shadow-xs'
                           : 'border-beige-200 hover:border-beige-300 bg-white'
                       }`}
@@ -282,7 +282,7 @@ export function CheckoutPage() {
                         <input
                           type="radio"
                           name="shippingMethod"
-                          checked={selectedShipping.id === method.id}
+                          checked={isSelected}
                           onChange={() => setSelectedShipping(method)}
                           className="mt-1 text-navy focus:ring-navy cursor-pointer"
                         />
@@ -304,7 +304,7 @@ export function CheckoutPage() {
                       </div>
 
                       <span className="font-montserrat font-black text-xs text-navy whitespace-nowrap ml-2">
-                        {effectivePrice === 0 ? 'GRATIS' : formatPrice(effectivePrice)}
+                        {method.priceLabel || (method.price === 0 ? 'GRATIS' : formatPrice(method.price))}
                       </span>
                     </label>
                   );
@@ -312,12 +312,62 @@ export function CheckoutPage() {
               </div>
             </div>
 
-            {/* 3. Shipping Address (If not picking up at showroom) */}
-            {selectedShipping.carrier !== 'showroom' && (
+            {/* 3. Shipping Address or Showroom notice */}
+            {selectedShipping.carrier === 'showroom' ? (
               <div className="bg-white p-6 sm:p-8 rounded-2xl border border-beige-300 shadow-xs space-y-4">
                 <h3 className="font-montserrat font-black text-lg text-navy uppercase flex items-center space-x-2">
                   <span className="w-6 h-6 rounded-full bg-navy text-white text-xs flex items-center justify-center font-bold">3</span>
-                  <span>Dirección de Entrega</span>
+                  <span>Retiro en Showroom Quilmes Oeste</span>
+                </h3>
+
+                <div className="p-4 bg-beige-50 rounded-xl border border-beige-200 space-y-2 text-xs text-navy">
+                  <div className="flex items-center space-x-2 font-bold uppercase font-montserrat">
+                    <Clock className="w-4 h-4 text-navy" />
+                    <span>Lunes a Sábado de 9:00 a 17:00 hs</span>
+                  </div>
+                  <div className="flex items-center space-x-2 font-semibold text-navy/80">
+                    <Users className="w-4 h-4 text-navy" />
+                    <span>Máximo 2 personas por seguridad</span>
+                  </div>
+                  <p className="text-[11px] text-navy/60 font-light pt-1 leading-relaxed">
+                    Al confirmar el pedido, te contactamos por WhatsApp para agendar el turno exacto de retiro y enviarte la ubicación del Showroom en Quilmes Oeste.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-navy mb-1">
+                      Nombre de quien retira *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      placeholder="Tu nombre"
+                      className="w-full text-xs bg-beige-50 border border-beige-300 rounded-lg px-3.5 py-2.5 text-navy focus:outline-none focus:border-navy"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-navy mb-1">
+                      Apellido *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.lastName}
+                      onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                      placeholder="Tu apellido"
+                      className="w-full text-xs bg-beige-50 border border-beige-300 rounded-lg px-3.5 py-2.5 text-navy focus:outline-none focus:border-navy"
+                    />
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-white p-6 sm:p-8 rounded-2xl border border-beige-300 shadow-xs space-y-4">
+                <h3 className="font-montserrat font-black text-lg text-navy uppercase flex items-center space-x-2">
+                  <span className="w-6 h-6 rounded-full bg-navy text-white text-xs flex items-center justify-center font-bold">3</span>
+                  <span>Dirección de Entrega (Correo Argentino)</span>
                 </h3>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -400,7 +450,7 @@ export function CheckoutPage() {
                       required
                       value={formData.city}
                       onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                      placeholder="Ej: Quilmes Oeste"
+                      placeholder="Ej: Quilmes"
                       className="w-full text-xs bg-beige-50 border border-beige-300 rounded-lg px-3.5 py-2.5 text-navy focus:outline-none focus:border-navy"
                     />
                   </div>
@@ -424,97 +474,35 @@ export function CheckoutPage() {
             {/* 4. Payment Method Selection */}
             <div className="bg-white p-6 sm:p-8 rounded-2xl border border-beige-300 shadow-xs space-y-4">
               <h3 className="font-montserrat font-black text-lg text-navy uppercase flex items-center space-x-2">
-                <span className="w-6 h-6 rounded-full bg-navy text-white text-xs flex items-center justify-center font-bold">
-                  {selectedShipping.carrier === 'showroom' ? '3' : '4'}
-                </span>
+                <span className="w-6 h-6 rounded-full bg-navy text-white text-xs flex items-center justify-center font-bold">4</span>
                 <span>Forma de Pago</span>
               </h3>
 
               <div className="space-y-3">
-                {/* Transferencia */}
+                {/* Mercado Pago */}
                 <label
-                  onClick={() => setPaymentMethod('transferencia')}
-                  className={`flex items-start justify-between p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                    paymentMethod === 'transferencia'
-                      ? 'border-navy bg-beige-50 shadow-xs'
-                      : 'border-beige-200 bg-white'
-                  }`}
+                  onClick={() => setPaymentMethod('mercadopago')}
+                  className="flex items-start justify-between p-4 rounded-xl border-2 cursor-pointer transition-all border-navy bg-beige-50/80 shadow-xs"
                 >
                   <div className="flex items-start space-x-3">
                     <input
                       type="radio"
                       name="paymentMethod"
-                      checked={paymentMethod === 'transferencia'}
-                      onChange={() => setPaymentMethod('transferencia')}
+                      checked={true}
+                      readOnly
                       className="mt-1 text-navy"
                     />
                     <div>
                       <div className="flex items-center space-x-2">
                         <span className="font-montserrat font-bold text-xs uppercase text-navy">
-                          Transferencia Bancaria Inmediata
+                          Mercado Pago
                         </span>
-                        <span className="text-[10px] font-black uppercase text-green-800 bg-green-100 px-2 py-0.5 rounded">
-                          10% OFF
+                        <span className="text-[10px] font-bold uppercase text-navy bg-beige-200 px-2 py-0.5 rounded border border-beige-300">
+                          Habilitado
                         </span>
                       </div>
-                      <p className="text-[11px] text-navy/60 mt-0.5 font-light">
-                        Te enviamos los datos de CBU/Alias. Enviar el comprobante por WhatsApp.
-                      </p>
-                    </div>
-                  </div>
-                </label>
-
-                {/* Tarjetas */}
-                <label
-                  onClick={() => setPaymentMethod('tarjeta')}
-                  className={`flex items-start justify-between p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                    paymentMethod === 'tarjeta'
-                      ? 'border-navy bg-beige-50 shadow-xs'
-                      : 'border-beige-200 bg-white'
-                  }`}
-                >
-                  <div className="flex items-start space-x-3">
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      checked={paymentMethod === 'tarjeta'}
-                      onChange={() => setPaymentMethod('tarjeta')}
-                      className="mt-1 text-navy"
-                    />
-                    <div>
-                      <span className="font-montserrat font-bold text-xs uppercase text-navy">
-                        Tarjeta de Crédito / Débito
-                      </span>
-                      <p className="text-[11px] text-navy/60 mt-0.5 font-light">
-                        Hasta 3 cuotas fijas sin interés con Visa, Mastercard y Cabal.
-                      </p>
-                    </div>
-                  </div>
-                </label>
-
-                {/* Mercado Pago */}
-                <label
-                  onClick={() => setPaymentMethod('mercadopago')}
-                  className={`flex items-start justify-between p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                    paymentMethod === 'mercadopago'
-                      ? 'border-navy bg-beige-50 shadow-xs'
-                      : 'border-beige-200 bg-white'
-                  }`}
-                >
-                  <div className="flex items-start space-x-3">
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      checked={paymentMethod === 'mercadopago'}
-                      onChange={() => setPaymentMethod('mercadopago')}
-                      className="mt-1 text-navy"
-                    />
-                    <div>
-                      <span className="font-montserrat font-bold text-xs uppercase text-navy">
-                        Mercado Pago
-                      </span>
-                      <p className="text-[11px] text-navy/60 mt-0.5 font-light">
-                        Dinero en cuenta, débito o crédito mediante checkout oficial.
+                      <p className="text-[11px] text-navy/70 mt-1 font-light leading-relaxed">
+                        Aboná de forma segura con dinero en cuenta, tarjetas de débito o crédito en cuotas mediante Mercado Pago. Te compartiremos el link de pago oficial por WhatsApp para completar tu compra.
                       </p>
                     </div>
                   </div>
@@ -568,20 +556,21 @@ export function CheckoutPage() {
                     <span>-{formatPrice(discount)}</span>
                   </div>
                 )}
-                {transferDiscount > 0 && (
-                  <div className="flex justify-between text-green-700 font-semibold">
-                    <span>10% OFF Transferencia</span>
-                    <span>-{formatPrice(transferDiscount)}</span>
-                  </div>
-                )}
                 <div className="flex justify-between">
                   <span>Envío ({selectedShipping.name})</span>
-                  <span>{shippingCost === 0 ? 'GRATIS' : formatPrice(shippingCost)}</span>
+                  <span className="font-semibold text-navy">
+                    {isShippingCalculated ? 'A calcular' : 'GRATIS'}
+                  </span>
                 </div>
                 <div className="flex justify-between text-lg font-montserrat font-black text-navy pt-3 border-t border-beige-300">
                   <span>Total</span>
                   <span>{formatPrice(finalTotal)}</span>
                 </div>
+                {isShippingCalculated && (
+                  <p className="text-[10px] text-navy/60 italic text-right">
+                    * Costo de envío Correo Argentino a calcular según destino y CP
+                  </p>
+                )}
               </div>
 
               {/* Submit CTA */}
@@ -595,7 +584,7 @@ export function CheckoutPage() {
 
               <div className="flex items-center justify-center space-x-1.5 text-[11px] text-navy/60 text-center">
                 <ShieldCheck className="w-4 h-4 text-navy/70" />
-                <span>Sitio seguro con encriptación SSL de 256 bits</span>
+                <span>Sitio seguro con encriptación SSL • Mercado Pago</span>
               </div>
             </div>
           </div>
