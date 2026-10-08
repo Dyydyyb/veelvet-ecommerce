@@ -37,7 +37,7 @@ export function ShippingPage() {
             </p>
           </div>
         </div>
-        <span className="font-mono text-xs font-bold bg-white px-3 py-1.5 rounded-full border border-beige-300 whitespace-nowrap">
+        <span className="font-mono text-xs font-bold bg-[#f3eee3] px-3 py-1.5 rounded-full border border-beige-300 whitespace-nowrap">
           A CALCULAR
         </span>
       </div>
@@ -47,7 +47,7 @@ export function ShippingPage() {
         {SHIPPING_METHODS.map((method: ShippingMethod) => (
           <div
             key={method.id}
-            className="bg-white p-6 sm:p-7 rounded-2xl border border-beige-300 shadow-xs flex flex-col justify-between hover:border-beige-400 transition-colors"
+            className="bg-[#FAF7F0] p-6 sm:p-7 rounded-2xl border border-beige-300 shadow-xs flex flex-col justify-between hover:border-beige-400 transition-colors"
           >
             <div>
               <div className="flex items-start justify-between mb-4">
@@ -126,7 +126,7 @@ export function ShippingPage() {
             value={postalCode}
             onChange={(e) => setPostalCode(e.target.value)}
             placeholder="Ej: 1878 (Quilmes)"
-            className="flex-1 text-xs bg-white border border-beige-300 rounded-lg px-4 py-3 text-navy font-mono placeholder:font-sans focus:outline-none focus:border-navy"
+            className="flex-1 text-xs bg-[#FAF7F0] border border-beige-300 rounded-lg px-4 py-3 text-navy font-mono placeholder:font-sans focus:outline-none focus:border-navy"
           />
           <button
             type="submit"
@@ -142,7 +142,7 @@ export function ShippingPage() {
             <p className="font-bold text-center text-navy-500 mb-3">
               Información de entrega para el CP {postalCode}:
             </p>
-            <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-beige-200">
+            <div className="flex justify-between items-center p-3 bg-[#FAF7F0] rounded-lg border border-beige-200">
               <div>
                 <span className="font-bold block">Correo Argentino (A Domicilio / Sucursal)</span>
                 <span className="text-[11px] text-navy/60">Plazo estimado: 3 a 6 días hábiles</span>

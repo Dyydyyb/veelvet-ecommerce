@@ -56,7 +56,7 @@ export function HomePage() {
   return (
     <div className="relative overflow-hidden pt-20">
       {/* 1. HERO SECTION */}
-      <section className="relative min-h-[92vh] flex items-center justify-center px-4 sm:px-6 lg:px-8 py-20 bg-white overflow-hidden text-center">
+      <section className="relative min-h-[92vh] flex items-center justify-center px-4 sm:px-6 lg:px-8 py-20 bg-[#f3eee3] overflow-hidden text-center">
         {/* 3D Background Logo rotating continuously */}
         <Hero3DBackground speed={0.9} />
 
@@ -68,7 +68,7 @@ export function HomePage() {
             initial={{ opacity: 0, y: -12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="inline-flex items-center space-x-2 bg-white/85 backdrop-blur-md border border-beige-300 px-4 py-1.5 rounded-full mb-8 shadow-xs"
+            className="inline-flex items-center space-x-2 bg-[#f3eee3]/90 backdrop-blur-md border border-beige-300 px-4 py-1.5 rounded-full mb-8 shadow-xs"
           >
             <Sparkles className="w-3.5 h-3.5 text-navy" />
             <span className="text-[11px] font-bold font-montserrat tracking-widest text-navy uppercase">
@@ -136,7 +136,7 @@ export function HomePage() {
                 variant="secondary"
                 icon={<MapPin className="w-4 h-4" />}
                 iconPosition="left"
-                className="w-full sm:w-auto bg-white/90 backdrop-blur-md"
+                className="w-full sm:w-auto bg-[#f3eee3]/90 backdrop-blur-md"
               >
                 Reservar showroom
               </Button>
@@ -251,7 +251,7 @@ export function HomePage() {
       </section>
 
       {/* 4. FEATURED PRODUCTS GRID */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-[#f3eee3]">
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-12">
             <div>
@@ -310,7 +310,7 @@ export function HomePage() {
       </section>
 
       {/* 5. POR QUÉ VEELVET */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-beige-100 border-y border-beige-300">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-[#f3eee3] border-y border-beige-300">
         <div className="max-w-7xl mx-auto">
           <SectionTitle
             overline="ADN de Marca"
@@ -319,7 +319,7 @@ export function HomePage() {
           />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="bg-white p-6 sm:p-8 rounded-2xl border border-beige-300 shadow-xs flex flex-col justify-between">
+            <div className="bg-[#FAF7F0] p-6 sm:p-8 rounded-2xl border border-beige-300 shadow-xs flex flex-col justify-between">
               <div>
                 <div className="w-12 h-12 rounded-xl bg-beige-200 flex items-center justify-center text-navy mb-5">
                   <ShieldCheck className="w-6 h-6 stroke-[1.75]" />
@@ -336,7 +336,7 @@ export function HomePage() {
               </div>
             </div>
 
-            <div className="bg-white p-6 sm:p-8 rounded-2xl border border-beige-300 shadow-xs flex flex-col justify-between">
+            <div className="bg-[#FAF7F0] p-6 sm:p-8 rounded-2xl border border-beige-300 shadow-xs flex flex-col justify-between">
               <div>
                 <div className="w-12 h-12 rounded-xl bg-beige-200 flex items-center justify-center text-navy mb-5">
                   <Ruler className="w-6 h-6 stroke-[1.75]" />
@@ -353,7 +353,7 @@ export function HomePage() {
               </div>
             </div>
 
-            <div className="bg-white p-6 sm:p-8 rounded-2xl border border-beige-300 shadow-xs flex flex-col justify-between">
+            <div className="bg-[#FAF7F0] p-6 sm:p-8 rounded-2xl border border-beige-300 shadow-xs flex flex-col justify-between">
               <div>
                 <div className="w-12 h-12 rounded-xl bg-beige-200 flex items-center justify-center text-navy mb-5">
                   <Truck className="w-6 h-6 stroke-[1.75]" />
@@ -370,7 +370,7 @@ export function HomePage() {
               </div>
             </div>
 
-            <div className="bg-white p-6 sm:p-8 rounded-2xl border border-beige-300 shadow-xs flex flex-col justify-between">
+            <div className="bg-[#FAF7F0] p-6 sm:p-8 rounded-2xl border border-beige-300 shadow-xs flex flex-col justify-between">
               <div>
                 <div className="w-12 h-12 rounded-xl bg-beige-200 flex items-center justify-center text-navy mb-5">
                   <Sparkles className="w-6 h-6 stroke-[1.75]" />
@@ -391,11 +391,11 @@ export function HomePage() {
       </section>
 
       {/* 6. SHOWROOM QUILMES OESTE SECTION */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-[#f3eee3]">
         <div className="max-w-7xl mx-auto bg-beige-200 rounded-3xl p-8 sm:p-12 lg:p-16 border border-beige-300 shadow-md">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
             <div className="lg:col-span-7 space-y-6">
-              <span className="inline-flex items-center space-x-2 bg-white px-3.5 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider text-navy border border-beige-300">
+              <span className="inline-flex items-center space-x-2 bg-[#f3eee3] px-3.5 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider text-navy border border-beige-300">
                 <MapPin className="w-3.5 h-3.5 text-navy" />
                 <span>Quilmes Oeste, Buenos Aires</span>
               </span>
@@ -424,7 +424,7 @@ export function HomePage() {
                   href="https://wa.me/5491136291392?text=Hola%20Veelvet!%20Quiero%20reservar%20un%20turno%20para%20visitar%20el%20showroom%20en%20Quilmes%20Oeste."
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center text-xs font-bold uppercase tracking-wider bg-white text-navy hover:bg-beige-50 px-6 py-4 rounded-md border border-beige-300 transition-colors"
+                  className="inline-flex items-center justify-center text-xs font-bold uppercase tracking-wider bg-[#f3eee3] text-navy hover:bg-beige-300 px-6 py-4 rounded-md border border-beige-300 transition-colors"
                 >
                   Consultar por WhatsApp (11 3629-1392)
                 </a>
@@ -433,7 +433,7 @@ export function HomePage() {
 
             {/* Visual representation */}
             <div className="lg:col-span-5 relative">
-              <div className="relative aspect-square rounded-2xl overflow-hidden shadow-xl border-4 border-white bg-beige-300">
+              <div className="relative aspect-square rounded-2xl overflow-hidden shadow-xl border-4 border-beige-300 bg-beige-200">
                 <img
                   src="/assets/images/showroom-quilmes.png"
                   alt="Showroom Veelvet Quilmes Oeste"

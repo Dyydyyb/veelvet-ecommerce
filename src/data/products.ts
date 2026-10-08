@@ -73,7 +73,7 @@ export const PRODUCT_COLORS: Record<string, ProductColor> = {
   gris: { name: 'Gris Melange', hex: '#9B9B9B', class: 'bg-[#9B9B9B]' },
   beige: { name: 'Beige Crudo', hex: '#E2DAC8', class: 'bg-[#E2DAC8]' },
   chocolate: { name: 'Marrón Chocolate', hex: '#3B291D', class: 'bg-[#3B291D]' },
-  azulNavy: { name: 'Azul Veelvet', hex: '#1B2A4A', class: 'bg-[#1B2A4A]' },
+  azulNavy: { name: 'Azul Veelvet', hex: '#1F2A44', class: 'bg-[#1F2A44]' },
 };
 
 // 100% Supabase: Colecciones vacías en memoria. Todos los datos provienen de Supabase.

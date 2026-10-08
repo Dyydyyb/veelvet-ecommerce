@@ -60,38 +60,38 @@ export function SizeGuideModal({ initialTab = 'buzo' }: SizeGuideModalProps) {
                 {/* Silhouette */}
                 <path
                   d="M100 45 L130 50 Q160 55 190 50 L220 45 L290 90 L265 125 L230 100 L230 220 L90 220 L90 100 L55 125 L30 90 Z"
-                  fill="#F0EDE3"
-                  stroke="#1B2A4A"
+                  fill="#f3eee3"
+                  stroke="#1F2A44"
                   strokeWidth="2.5"
                   strokeLinejoin="round"
                 />
                 {/* Zipper */}
-                <line x1="160" y1="52" x2="160" y2="220" stroke="#1B2A4A" strokeWidth="2" strokeDasharray="3 3" />
+                <line x1="160" y1="52" x2="160" y2="220" stroke="#1F2A44" strokeWidth="2" strokeDasharray="3 3" />
                 {/* Hood outline */}
-                <path d="M125 50 Q160 20 195 50" fill="none" stroke="#1B2A4A" strokeWidth="2" />
+                <path d="M125 50 Q160 20 195 50" fill="none" stroke="#1F2A44" strokeWidth="2" />
                 {/* Pockets */}
-                <path d="M115 170 L145 170 L145 210 L115 210 Z" fill="#E8E2D0" stroke="#1B2A4A" strokeWidth="1.5" />
-                <path d="M175 170 L205 170 L205 210 L175 210 Z" fill="#E8E2D0" stroke="#1B2A4A" strokeWidth="1.5" />
+                <path d="M115 170 L145 170 L145 210 L115 210 Z" fill="#E2DAC9" stroke="#1F2A44" strokeWidth="1.5" />
+                <path d="M175 170 L205 170 L205 210 L175 210 Z" fill="#E2DAC9" stroke="#1F2A44" strokeWidth="1.5" />
 
                 {/* Dimension Arrows */}
                 {/* A: Ancho */}
-                <line x1="90" y1="130" x2="230" y2="130" stroke="#1B2A4A" strokeWidth="1.5" markerEnd="url(#arrow)" />
-                <rect x="145" y="120" width="30" height="18" fill="#1B2A4A" rx="3" />
+                <line x1="90" y1="130" x2="230" y2="130" stroke="#1F2A44" strokeWidth="1.5" markerEnd="url(#arrow)" />
+                <rect x="145" y="120" width="30" height="18" fill="#1F2A44" rx="3" />
                 <text x="160" y="133" fill="#FFF" fontSize="11" fontWeight="bold" textAnchor="middle">A</text>
 
                 {/* B: Largo */}
-                <line x1="80" y1="50" x2="80" y2="220" stroke="#1B2A4A" strokeWidth="1.5" />
-                <rect x="66" y="125" width="28" height="18" fill="#1B2A4A" rx="3" />
+                <line x1="80" y1="50" x2="80" y2="220" stroke="#1F2A44" strokeWidth="1.5" />
+                <rect x="66" y="125" width="28" height="18" fill="#1F2A44" rx="3" />
                 <text x="80" y="138" fill="#FFF" fontSize="11" fontWeight="bold" textAnchor="middle">B</text>
 
                 {/* C: Manga */}
-                <line x1="220" y1="45" x2="290" y2="90" stroke="#1B2A4A" strokeWidth="1.5" />
-                <rect x="250" y="55" width="20" height="18" fill="#1B2A4A" rx="3" />
+                <line x1="220" y1="45" x2="290" y2="90" stroke="#1F2A44" strokeWidth="1.5" />
+                <rect x="250" y="55" width="20" height="18" fill="#1F2A44" rx="3" />
                 <text x="260" y="68" fill="#FFF" fontSize="11" fontWeight="bold" textAnchor="middle">C</text>
 
                 {/* D: Hombro */}
-                <line x1="130" y1="42" x2="220" y2="38" stroke="#1B2A4A" strokeWidth="1.5" />
-                <rect x="168" y="28" width="24" height="18" fill="#1B2A4A" rx="3" />
+                <line x1="130" y1="42" x2="220" y2="38" stroke="#1F2A44" strokeWidth="1.5" />
+                <rect x="168" y="28" width="24" height="18" fill="#1F2A44" rx="3" />
                 <text x="180" y="41" fill="#FFF" fontSize="11" fontWeight="bold" textAnchor="middle">D</text>
               </svg>
             ) : (
@@ -100,36 +100,36 @@ export function SizeGuideModal({ initialTab = 'buzo' }: SizeGuideModalProps) {
                 {/* Silhouette */}
                 <path
                   d="M100 25 L220 25 L230 220 L175 220 L160 115 L145 220 L90 220 Z"
-                  fill="#F0EDE3"
-                  stroke="#1B2A4A"
+                  fill="#f3eee3"
+                  stroke="#1F2A44"
                   strokeWidth="2.5"
                   strokeLinejoin="round"
                 />
                 {/* Waistband */}
-                <rect x="100" y="25" width="120" height="20" fill="#E8E2D0" stroke="#1B2A4A" strokeWidth="1.5" />
+                <rect x="100" y="25" width="120" height="20" fill="#E2DAC9" stroke="#1F2A44" strokeWidth="1.5" />
                 {/* Drawstrings */}
-                <path d="M155 45 Q153 75 145 85" stroke="#1B2A4A" strokeWidth="2" fill="none" />
-                <path d="M165 45 Q167 75 175 85" stroke="#1B2A4A" strokeWidth="2" fill="none" />
+                <path d="M155 45 Q153 75 145 85" stroke="#1F2A44" strokeWidth="2" fill="none" />
+                <path d="M165 45 Q167 75 175 85" stroke="#1F2A44" strokeWidth="2" fill="none" />
 
                 {/* Dimension Arrows */}
                 {/* A: Cintura */}
-                <line x1="95" y1="18" x2="225" y2="18" stroke="#1B2A4A" strokeWidth="1.5" />
-                <rect x="148" y="8" width="24" height="18" fill="#1B2A4A" rx="3" />
+                <line x1="95" y1="18" x2="225" y2="18" stroke="#1F2A44" strokeWidth="1.5" />
+                <rect x="148" y="8" width="24" height="18" fill="#1F2A44" rx="3" />
                 <text x="160" y="21" fill="#FFF" fontSize="11" fontWeight="bold" textAnchor="middle">A</text>
 
                 {/* B: Bota manga */}
-                <line x1="90" y1="230" x2="145" y2="230" stroke="#1B2A4A" strokeWidth="1.5" />
-                <rect x="105" y="222" width="24" height="16" fill="#1B2A4A" rx="3" />
+                <line x1="90" y1="230" x2="145" y2="230" stroke="#1F2A44" strokeWidth="1.5" />
+                <rect x="105" y="222" width="24" height="16" fill="#1F2A44" rx="3" />
                 <text x="117" y="234" fill="#FFF" fontSize="10" fontWeight="bold" textAnchor="middle">B</text>
 
                 {/* C: Largo */}
-                <line x1="75" y1="25" x2="75" y2="220" stroke="#1B2A4A" strokeWidth="1.5" />
-                <rect x="63" y="112" width="24" height="18" fill="#1B2A4A" rx="3" />
+                <line x1="75" y1="25" x2="75" y2="220" stroke="#1F2A44" strokeWidth="1.5" />
+                <rect x="63" y="112" width="24" height="18" fill="#1F2A44" rx="3" />
                 <text x="75" y="125" fill="#FFF" fontSize="11" fontWeight="bold" textAnchor="middle">C</text>
 
                 {/* D: Tiro */}
-                <line x1="160" y1="25" x2="160" y2="115" stroke="#1B2A4A" strokeWidth="1.5" />
-                <rect x="164" y="65" width="24" height="18" fill="#1B2A4A" rx="3" />
+                <line x1="160" y1="25" x2="160" y2="115" stroke="#1F2A44" strokeWidth="1.5" />
+                <rect x="164" y="65" width="24" height="18" fill="#1F2A44" rx="3" />
                 <text x="176" y="78" fill="#FFF" fontSize="11" fontWeight="bold" textAnchor="middle">D</text>
               </svg>
             )}

@@ -296,12 +296,12 @@ export function ProductDetailPage() {
 
             {/* Tag badge */}
             {product.tag && (
-              <span className="absolute top-4 left-4 bg-white/95 backdrop-blur-xs text-navy text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded shadow-xs border border-beige-300">
+              <span className="absolute top-4 left-4 bg-[#f3eee3]/95 backdrop-blur-xs text-navy text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded shadow-xs border border-beige-300">
                 {product.tag}
               </span>
             )}
 
-            <div className="absolute bottom-3 right-3 bg-white/90 backdrop-blur-xs text-[10px] uppercase font-bold text-navy/70 px-2.5 py-1 rounded pointer-events-none">
+            <div className="absolute bottom-3 right-3 bg-[#f3eee3]/90 backdrop-blur-xs text-[10px] uppercase font-bold text-navy/70 px-2.5 py-1 rounded pointer-events-none">
               Pasa el cursor para zoom
             </div>
           </div>
@@ -403,7 +403,7 @@ export function ProductDetailPage() {
                   className={`min-w-[50px] py-2.5 px-3.5 text-xs font-montserrat font-bold uppercase tracking-wider rounded-lg border-2 transition-all cursor-pointer ${
                     selectedSize === size
                       ? 'bg-navy text-white border-navy shadow-sm'
-                      : 'bg-white text-navy border-beige-300 hover:border-beige-400 hover:bg-beige-50'
+                      : 'bg-[#FAF7F0] text-navy border-beige-300 hover:border-beige-400 hover:bg-beige-300'
                   }`}
                 >
                   {size}
@@ -416,7 +416,7 @@ export function ProductDetailPage() {
           <div className="space-y-3 pt-2">
             <div className="flex space-x-3">
               {/* Quantity Stepper */}
-              <div className="flex items-center border-2 border-beige-300 rounded-lg bg-white px-2">
+              <div className="flex items-center border-2 border-beige-300 rounded-lg bg-[#FAF7F0] px-2">
                 <button
                   onClick={() => setQuantity((q) => Math.max(1, q - 1))}
                   className="p-2 text-navy hover:text-navy-500 transition-colors"

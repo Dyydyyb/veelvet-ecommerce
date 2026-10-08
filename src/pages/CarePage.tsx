@@ -27,7 +27,7 @@ export function CarePage() {
           <div
             key={care.id}
             className={`p-6 sm:p-8 rounded-2xl border border-beige-300 shadow-xs flex flex-col justify-between transition-all duration-300 hover:shadow-md ${
-              idx === 4 ? 'md:col-span-2 lg:col-span-1 bg-beige-200' : 'bg-white'
+              idx === 4 ? 'md:col-span-2 lg:col-span-1 bg-beige-200' : 'bg-[#FAF7F0]'
             }`}
           >
             <div>

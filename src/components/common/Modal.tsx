@@ -61,10 +61,10 @@ export function Modal({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 15 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className={`relative w-full ${maxWidthClass} bg-white rounded-2xl shadow-2xl border border-beige-300 overflow-hidden my-8 z-10`}
+            className={`relative w-full ${maxWidthClass} bg-[#f3eee3] rounded-2xl shadow-2xl border border-beige-300 overflow-hidden my-8 z-10`}
           >
             {/* Modal Header */}
-            <div className="p-5 sm:p-6 border-b border-beige-300/80 flex items-start justify-between bg-beige-50">
+            <div className="p-5 sm:p-6 border-b border-beige-300/80 flex items-start justify-between bg-[#f3eee3]">
               <div>
                 {title && (
                   <h3 className="font-montserrat font-black text-xl sm:text-2xl text-navy uppercase tracking-tight">

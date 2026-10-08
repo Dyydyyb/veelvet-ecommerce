@@ -42,8 +42,8 @@ export function Accordion({
             key={item.id}
             className={`border rounded-xl transition-colors duration-200 overflow-hidden ${
               isOpen
-                ? 'border-beige-400 bg-beige-50/70 shadow-xs'
-                : 'border-beige-300 bg-white hover:border-beige-400'
+                ? 'border-beige-400 bg-beige-200/50 shadow-xs'
+                : 'border-beige-300 bg-[#FAF7F0] hover:border-beige-400'
             }`}
           >
             <button

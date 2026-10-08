@@ -58,7 +58,7 @@ export function ProductCard({ product }: ProductCardProps) {
 
   return (
     <div
-      className="group relative flex flex-col bg-white rounded-xl overflow-hidden border border-beige-300/70 hover:border-beige-400 hover:shadow-lg transition-all duration-300"
+      className="group relative flex flex-col bg-[#FAF7F0] rounded-xl overflow-hidden border border-beige-300 hover:border-beige-400 hover:shadow-lg transition-all duration-300"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -88,7 +88,7 @@ export function ProductCard({ product }: ProductCardProps) {
         {/* Tag Badge */}
         {product.tag && (
           <div className="absolute top-3 left-3 z-10">
-            <span className="bg-white/95 backdrop-blur-xs text-navy text-[10px] font-bold font-montserrat tracking-wider uppercase px-2.5 py-1 rounded shadow-xs border border-beige-300/60">
+            <span className="bg-[#f3eee3]/95 backdrop-blur-xs text-navy text-[10px] font-bold font-montserrat tracking-wider uppercase px-2.5 py-1 rounded shadow-xs border border-beige-300/80">
               {product.tag}
             </span>
           </div>
@@ -96,7 +96,7 @@ export function ProductCard({ product }: ProductCardProps) {
 
         {/* Quick Size Selector Overlay sliding up from bottom */}
         <div
-          className={`absolute bottom-0 left-0 right-0 p-3 bg-white/95 backdrop-blur-md border-t border-beige-300/80 transition-all duration-300 transform z-20 ${
+          className={`absolute bottom-0 left-0 right-0 p-3 bg-[#f3eee3]/95 backdrop-blur-md border-t border-beige-300/80 transition-all duration-300 transform z-20 ${
             isHovered ? 'translate-y-0 opacity-100 pointer-events-auto' : 'translate-y-full opacity-0 pointer-events-none'
           }`}
           onClick={(e) => e.stopPropagation()}
@@ -153,7 +153,7 @@ export function ProductCard({ product }: ProductCardProps) {
       </Link>
 
       {/* Product Details */}
-      <div className="p-4 flex flex-col flex-1 justify-between bg-white">
+      <div className="p-4 flex flex-col flex-1 justify-between bg-[#FAF7F0]">
         <div>
           {/* Color Dots */}
           <div className="flex items-center space-x-1.5 mb-2">

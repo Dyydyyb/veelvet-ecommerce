@@ -80,7 +80,7 @@ export function Header() {
         ref={dropdownContainerRef}
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
           isScrolled || collectionDropdownOpen
-            ? 'bg-white/98 backdrop-blur-md shadow-md border-b border-beige-300/80 py-2 sm:py-3'
+            ? 'bg-[#f3eee3]/95 backdrop-blur-md shadow-sm border-b border-beige-300/80 py-2 sm:py-3'
             : 'bg-transparent py-4 sm:py-5'
         }`}
       >
@@ -227,7 +227,7 @@ export function Header() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
               transition={{ duration: 0.22, ease: 'easeOut' }}
-              className="w-full bg-white border-t border-b border-beige-300/80 shadow-xl overflow-hidden mt-2 sm:mt-3"
+              className="w-full bg-[#f3eee3] border-t border-b border-beige-300/80 shadow-xl overflow-hidden mt-2 sm:mt-3"
             >
               <div className="max-w-7xl 2xl:max-w-screen-2xl mx-auto px-6 sm:px-10 lg:px-12 py-8">
                 {menuConfig.columns.length === 0 ? (
@@ -428,7 +428,7 @@ export function Header() {
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 28, stiffness: 280 }}
-              className="fixed top-0 left-0 bottom-0 w-[88%] max-w-sm bg-white z-50 lg:hidden shadow-2xl flex flex-col justify-between p-6 overflow-y-auto"
+              className="fixed top-0 left-0 bottom-0 w-[88%] max-w-sm bg-[#f3eee3] z-50 lg:hidden shadow-2xl flex flex-col justify-between p-6 overflow-y-auto"
             >
               <div>
                 {/* Header inside drawer - Large Logo */}

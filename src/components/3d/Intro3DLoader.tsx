@@ -71,7 +71,7 @@ export function Intro3DLoader({ onFinish }: IntroLoaderProps) {
             initial={{ x: 0 }}
             exit={{ x: '-100%' }}
             transition={{ duration: 0.6, ease: [0.77, 0, 0.175, 1] }}
-            className="absolute top-0 left-0 w-1/2 h-full bg-[#F0EDE3] border-r border-[#E8E2D0]/50 shadow-2xl z-10"
+            className="absolute top-0 left-0 w-1/2 h-full bg-[#f3eee3] border-r border-[#E2DAC9]/60 shadow-2xl z-10"
           />
 
           {/* Right Curtain */}
@@ -79,7 +79,7 @@ export function Intro3DLoader({ onFinish }: IntroLoaderProps) {
             initial={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ duration: 0.6, ease: [0.77, 0, 0.175, 1] }}
-            className="absolute top-0 right-0 w-1/2 h-full bg-[#F0EDE3] border-l border-[#E8E2D0]/50 shadow-2xl z-10"
+            className="absolute top-0 right-0 w-1/2 h-full bg-[#f3eee3] border-l border-[#E2DAC9]/60 shadow-2xl z-10"
           />
 
           {/* Center Stage & 3D Model */}
@@ -123,7 +123,7 @@ export function Intro3DLoader({ onFinish }: IntroLoaderProps) {
                         scale={5}
                         blur={2.2}
                         far={3}
-                        color="#1B2A4A"
+                        color="#1F2A44"
                       />
                     </Suspense>
                   </Canvas>
@@ -143,7 +143,7 @@ export function Intro3DLoader({ onFinish }: IntroLoaderProps) {
             {/* Progress UI */}
             <div className="w-64 max-w-full flex flex-col items-center space-y-3 mt-4">
               {/* Thin blue progress bar */}
-              <div className="w-full h-[2px] bg-[#E8E2D0] rounded-full overflow-hidden">
+              <div className="w-full h-[2px] bg-[#E2DAC9] rounded-full overflow-hidden">
                 <motion.div
                   className="h-full bg-navy transition-all duration-150 ease-out"
                   style={{ width: `${Math.min(100, displayPercent)}%` }}

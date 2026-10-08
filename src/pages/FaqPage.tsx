@@ -76,7 +76,7 @@ export function FaqPage() {
           </a>
           <Link
             to="/showroom"
-            className="w-full sm:w-auto inline-flex items-center justify-center text-xs font-bold uppercase tracking-wider bg-white text-navy px-6 py-3 rounded-lg border border-beige-300 hover:bg-beige-50 transition-colors"
+            className="w-full sm:w-auto inline-flex items-center justify-center text-xs font-bold uppercase tracking-wider bg-[#f3eee3] text-navy px-6 py-3 rounded-lg border border-beige-300 hover:bg-beige-300 transition-colors"
           >
             Reservar Showroom
           </Link>

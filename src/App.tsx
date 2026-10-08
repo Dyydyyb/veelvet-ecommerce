@@ -64,7 +64,7 @@ function AppContent() {
           <Route path="/admin/*" element={<AdminPage />} />
         </Routes>
       ) : (
-        <div className="flex flex-col min-h-screen bg-white text-navy selection:bg-beige-300 selection:text-navy">
+        <div className="flex flex-col min-h-screen bg-[#f3eee3] text-[#1F2A44] selection:bg-beige-300 selection:text-navy">
           <Header />
 
           <main className="flex-grow">

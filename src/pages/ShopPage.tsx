@@ -219,7 +219,7 @@ export function ShopPage() {
                 className={`text-xs font-montserrat font-bold uppercase tracking-wider px-4 py-2 rounded-full whitespace-nowrap transition-all ${
                   selectedCategory === cat.id
                     ? 'bg-navy text-white shadow-xs'
-                    : 'bg-white text-navy hover:bg-beige-200 border border-beige-300'
+                    : 'bg-[#FAF7F0] text-navy hover:bg-beige-300 border border-beige-300'
                 }`}
               >
                 {cat.name}
@@ -230,7 +230,7 @@ export function ShopPage() {
           {/* Right Controls: Sort & Mobile Filter Toggle */}
           <div className="flex items-center justify-between sm:justify-end space-x-3">
             {/* Sort Selector */}
-            <div className="flex items-center space-x-2 bg-white px-3 py-2 rounded-xl border border-beige-300 text-xs">
+            <div className="flex items-center space-x-2 bg-[#FAF7F0] px-3 py-2 rounded-xl border border-beige-300 text-xs">
               <ArrowUpDown className="w-3.5 h-3.5 text-navy/70" />
               <select
                 value={sortBy}
@@ -247,7 +247,7 @@ export function ShopPage() {
             {/* Mobile Filter Button */}
             <button
               onClick={() => setIsMobileFilterOpen(!isMobileFilterOpen)}
-              className="lg:hidden inline-flex items-center space-x-1.5 bg-white text-navy px-3.5 py-2 rounded-xl border border-beige-300 text-xs font-bold uppercase"
+              className="lg:hidden inline-flex items-center space-x-1.5 bg-[#FAF7F0] text-navy px-3.5 py-2 rounded-xl border border-beige-300 text-xs font-bold uppercase"
             >
               <SlidersHorizontal className="w-3.5 h-3.5" />
               <span>Filtros ({activeFiltersCount})</span>
@@ -271,7 +271,7 @@ export function ShopPage() {
                     className={`w-7 h-7 text-xs font-bold rounded-md flex items-center justify-center transition-colors ${
                       selectedSizes.includes(size)
                         ? 'bg-navy text-white'
-                        : 'bg-white text-navy border border-beige-300 hover:bg-beige-200'
+                        : 'bg-[#FAF7F0] text-navy border border-beige-300 hover:bg-beige-300'
                     }`}
                   >
                     {size}
@@ -299,8 +299,8 @@ export function ShopPage() {
                       onClick={() => toggleColor(color.name)}
                       className={`group relative flex items-center space-x-1.5 px-2.5 py-1 rounded-md text-xs font-medium border transition-all ${
                         isSelected
-                          ? 'bg-white border-navy text-navy font-bold shadow-xs'
-                          : 'bg-white border-beige-300 text-navy/80 hover:bg-beige-50'
+                          ? 'bg-[#FAF7F0] border-navy text-navy font-bold shadow-xs'
+                          : 'bg-[#FAF7F0] border-beige-300 text-navy/80 hover:bg-beige-200'
                       }`}
                     >
                       <span
@@ -353,7 +353,7 @@ export function ShopPage() {
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-8">
           {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-            <div key={i} className="rounded-2xl border border-beige-300 p-4 space-y-4 animate-pulse bg-white">
+            <div key={i} className="rounded-2xl border border-beige-300 p-4 space-y-4 animate-pulse bg-[#FAF7F0]">
               <div className="h-72 bg-beige-200 rounded-xl" />
               <div className="h-4 bg-beige-200 rounded w-3/4" />
               <div className="h-3 bg-beige-200 rounded w-1/2" />
@@ -382,7 +382,7 @@ export function ShopPage() {
               ))}
             </motion.div>
           ) : allProducts.length === 0 ? (
-            <div className="bg-white rounded-3xl p-12 text-center border border-beige-300 my-8 max-w-lg mx-auto shadow-xs">
+            <div className="bg-[#FAF7F0] rounded-3xl p-12 text-center border border-beige-300 my-8 max-w-lg mx-auto shadow-xs">
               <div className="w-12 h-12 rounded-2xl bg-beige-200 flex items-center justify-center text-navy mx-auto mb-4">
                 <Sparkles className="w-6 h-6" />
               </div>

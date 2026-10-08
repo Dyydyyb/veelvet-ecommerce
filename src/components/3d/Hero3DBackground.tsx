@@ -101,13 +101,13 @@ export function Hero3DBackground({ className = '', speed = 0.9 }: Hero3DBackgrou
             scale={7}
             blur={2.5}
             far={3.5}
-            color="#1B2A4A"
+            color="#1F2A44"
           />
         </Suspense>
       </Canvas>
 
       {/* Subtle radial depth gradient ensuring high contrast for centered hero text */}
-      <div className="absolute inset-0 bg-radial from-white/40 via-white/70 to-white/95 pointer-events-none" />
+      <div className="absolute inset-0 bg-radial from-[#f3eee3]/30 via-[#f3eee3]/65 to-[#f3eee3]/95 pointer-events-none" />
     </div>
   );
 }

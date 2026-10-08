@@ -104,7 +104,7 @@ export function WholesalePage() {
             </div>
           </div>
 
-          <div className="p-6 bg-white rounded-2xl border border-beige-300 text-center">
+          <div className="p-6 bg-[#FAF7F0] rounded-2xl border border-beige-300 text-center">
             <p className="text-xs text-navy/70">
               ¿Preferís coordinar directo por WhatsApp?
             </p>
@@ -120,7 +120,7 @@ export function WholesalePage() {
         </div>
 
         {/* Right: Registration Form with Visual Validation */}
-        <div className="lg:col-span-7 bg-white p-8 sm:p-10 rounded-3xl border border-beige-300 shadow-sm">
+        <div className="lg:col-span-7 bg-[#FAF7F0] p-8 sm:p-10 rounded-3xl border border-beige-300 shadow-sm">
           {submitted ? (
             <div className="text-center py-12 space-y-4">
               <div className="w-16 h-16 bg-beige-200 text-navy rounded-full flex items-center justify-center mx-auto">

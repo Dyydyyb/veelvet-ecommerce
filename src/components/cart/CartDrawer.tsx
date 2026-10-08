@@ -66,10 +66,10 @@ export function CartDrawer() {
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 28, stiffness: 280 }}
-              className="w-screen max-w-md bg-white shadow-2xl flex flex-col justify-between border-l border-beige-300"
+              className="w-screen max-w-md bg-[#f3eee3] shadow-2xl flex flex-col justify-between border-l border-beige-300"
             >
               {/* Drawer Header */}
-              <div className="p-5 sm:p-6 border-b border-beige-300/80 bg-beige-50">
+              <div className="p-5 sm:p-6 border-b border-beige-300/80 bg-[#f3eee3]">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <ShoppingBag className="w-5 h-5 text-navy" />
@@ -197,7 +197,7 @@ export function CartDrawer() {
 
               {/* Drawer Footer with Calculations */}
               {items.length > 0 && (
-                <div className="p-5 sm:p-6 border-t border-beige-300 bg-white space-y-4">
+                <div className="p-5 sm:p-6 border-t border-beige-300 bg-[#f3eee3] space-y-4">
                   {/* Promo code form */}
                   <div>
                     {promoCode ? (

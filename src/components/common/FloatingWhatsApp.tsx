@@ -9,7 +9,7 @@ export function FloatingWhatsApp() {
     <div className="fixed bottom-6 right-6 z-40 flex items-center group">
       {/* Tooltip Pill */}
       <div
-        className={`mr-3 px-3.5 py-1.5 rounded-full bg-white/95 backdrop-blur-md border border-beige-300 shadow-lg text-xs font-montserrat font-semibold text-navy transition-all duration-300 pointer-events-none hidden sm:block ${
+        className={`mr-3 px-3.5 py-1.5 rounded-full bg-[#f3eee3]/95 backdrop-blur-md border border-beige-300 shadow-lg text-xs font-montserrat font-semibold text-navy transition-all duration-300 pointer-events-none hidden sm:block ${
           isHovered ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-2'
         }`}
       >

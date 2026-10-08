@@ -150,7 +150,7 @@ export function CheckoutPage() {
 
       {orderComplete ? (
         /* Order Confirmed Screen */
-        <div className="bg-white rounded-3xl p-8 sm:p-12 border border-beige-300 shadow-xl max-w-2xl mx-auto text-center space-y-6">
+        <div className="bg-[#FAF7F0] rounded-3xl p-8 sm:p-12 border border-beige-300 shadow-xl max-w-2xl mx-auto text-center space-y-6">
           <div className="w-20 h-20 bg-beige-200 text-navy rounded-full flex items-center justify-center mx-auto shadow-inner">
             <CheckCircle2 className="w-12 h-12 stroke-[2]" />
           </div>
@@ -221,7 +221,7 @@ export function CheckoutPage() {
           <div className="lg:col-span-7 space-y-8">
             
             {/* 1. Contact Information */}
-            <div className="bg-white p-6 sm:p-8 rounded-2xl border border-beige-300 shadow-xs space-y-4">
+            <div className="bg-[#FAF7F0] p-6 sm:p-8 rounded-2xl border border-beige-300 shadow-xs space-y-4">
               <h3 className="font-montserrat font-black text-lg text-navy uppercase flex items-center space-x-2">
                 <span className="w-6 h-6 rounded-full bg-navy text-white text-xs flex items-center justify-center font-bold">1</span>
                 <span>Datos de Contacto</span>
@@ -258,7 +258,7 @@ export function CheckoutPage() {
             </div>
 
             {/* 2. Shipping Method Selection */}
-            <div className="bg-white p-6 sm:p-8 rounded-2xl border border-beige-300 shadow-xs space-y-4">
+            <div className="bg-[#FAF7F0] p-6 sm:p-8 rounded-2xl border border-beige-300 shadow-xs space-y-4">
               <h3 className="font-montserrat font-black text-lg text-navy uppercase flex items-center space-x-2">
                 <span className="w-6 h-6 rounded-full bg-navy text-white text-xs flex items-center justify-center font-bold">2</span>
                 <span>Método de Envío</span>
@@ -275,7 +275,7 @@ export function CheckoutPage() {
                       className={`flex items-start justify-between p-4 rounded-xl border-2 cursor-pointer transition-all ${
                         isSelected
                           ? 'border-navy bg-beige-50/70 shadow-xs'
-                          : 'border-beige-200 hover:border-beige-300 bg-white'
+                          : 'border-beige-200 hover:border-beige-300 bg-[#FAF7F0]'
                       }`}
                     >
                       <div className="flex items-start space-x-3">
@@ -314,7 +314,7 @@ export function CheckoutPage() {
 
             {/* 3. Shipping Address or Showroom notice */}
             {selectedShipping.carrier === 'showroom' ? (
-              <div className="bg-white p-6 sm:p-8 rounded-2xl border border-beige-300 shadow-xs space-y-4">
+              <div className="bg-[#FAF7F0] p-6 sm:p-8 rounded-2xl border border-beige-300 shadow-xs space-y-4">
                 <h3 className="font-montserrat font-black text-lg text-navy uppercase flex items-center space-x-2">
                   <span className="w-6 h-6 rounded-full bg-navy text-white text-xs flex items-center justify-center font-bold">3</span>
                   <span>Retiro en Showroom Quilmes Oeste</span>
@@ -364,7 +364,7 @@ export function CheckoutPage() {
                 </div>
               </div>
             ) : (
-              <div className="bg-white p-6 sm:p-8 rounded-2xl border border-beige-300 shadow-xs space-y-4">
+              <div className="bg-[#FAF7F0] p-6 sm:p-8 rounded-2xl border border-beige-300 shadow-xs space-y-4">
                 <h3 className="font-montserrat font-black text-lg text-navy uppercase flex items-center space-x-2">
                   <span className="w-6 h-6 rounded-full bg-navy text-white text-xs flex items-center justify-center font-bold">3</span>
                   <span>Dirección de Entrega (Correo Argentino)</span>
@@ -472,7 +472,7 @@ export function CheckoutPage() {
             )}
 
             {/* 4. Payment Method Selection */}
-            <div className="bg-white p-6 sm:p-8 rounded-2xl border border-beige-300 shadow-xs space-y-4">
+            <div className="bg-[#FAF7F0] p-6 sm:p-8 rounded-2xl border border-beige-300 shadow-xs space-y-4">
               <h3 className="font-montserrat font-black text-lg text-navy uppercase flex items-center space-x-2">
                 <span className="w-6 h-6 rounded-full bg-navy text-white text-xs flex items-center justify-center font-bold">4</span>
                 <span>Forma de Pago</span>
@@ -526,7 +526,7 @@ export function CheckoutPage() {
                       <img
                         src={item.product.images.primary}
                         alt={item.product.name}
-                        className="w-12 h-14 object-cover rounded-md bg-white border border-beige-300 flex-shrink-0"
+                        className="w-12 h-14 object-cover rounded-md bg-[#FAF7F0] border border-beige-300 flex-shrink-0"
                       />
                       <div>
                         <p className="font-bold uppercase font-montserrat text-navy line-clamp-1">

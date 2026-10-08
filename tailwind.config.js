@@ -7,16 +7,16 @@ export default {
   theme: {
     extend: {
       colors: {
-        background: '#FFFFFF',
+        background: '#f3eee3',
         beige: {
-          50: '#FAF8F5',
-          100: '#F5F2EB',
-          200: '#F0EDE3', // beige protagonista del logo
-          300: '#E8E2D0', // variante media
-          400: '#D9CFB4', // variante oscura
-          500: '#C7B995',
-          600: '#9E8E6A',
-          DEFAULT: '#F0EDE3',
+          50: '#FAF7F0',
+          100: '#f3eee3',
+          200: '#f3eee3', // beige protagonista pedido por el usuario
+          300: '#E2DAC9', // variante media
+          400: '#CFC4AE', // variante oscura
+          500: '#B8AB91',
+          600: '#8E826B',
+          DEFAULT: '#f3eee3',
         },
         navy: {
           50: '#F2F5FB',
@@ -24,16 +24,16 @@ export default {
           200: '#C2D1ED',
           300: '#92B0DE',
           400: '#5A86C9',
-          500: '#2F4A8A', // hover
-          600: '#1B2A4A', // azul principal (navy)
-          700: '#15213B',
-          800: '#10192D',
-          900: '#0B101E',
-          DEFAULT: '#1B2A4A',
+          500: '#2A3A5E', // hover
+          600: '#1F2A44', // azul oscuro principal pedido por el usuario
+          700: '#192237',
+          800: '#131A2A',
+          900: '#0C111C',
+          DEFAULT: '#1F2A44',
         },
         accent: {
-          blue: '#1B2A4A',
-          hover: '#2F4A8A',
+          blue: '#1F2A44',
+          hover: '#2A3A5E',
         }
       },
       fontFamily: {
