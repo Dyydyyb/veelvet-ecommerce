@@ -13,10 +13,11 @@ interface ProductCardProps {
 export function ProductCard({ product }: ProductCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [selectedSize, setSelectedSize] = useState<string>(product.sizes?.[0] || 'M');
+  const fallbackColor = product.colors?.[0] || { name: 'Único', hex: '#000000', class: 'bg-black' };
   const [selectedColor, setSelectedColor] = useState(
     product.selectedColorVariant
-      ? product.colors.find((c) => c.name === product.selectedColorVariant) || product.colors[0]
-      : product.colors[0]
+      ? product.colors?.find((c) => c.name === product.selectedColorVariant) || fallbackColor
+      : fallbackColor
   );
   const [isAdded, setIsAdded] = useState(false);
   const { addItem } = useCartStore();
@@ -24,7 +25,7 @@ export function ProductCard({ product }: ProductCardProps) {
   // Sync if product changes
   React.useEffect(() => {
     if (product.selectedColorVariant) {
-      const match = product.colors.find((c) => c.name === product.selectedColorVariant);
+      const match = product.colors?.find((c) => c.name === product.selectedColorVariant);
       if (match) setSelectedColor(match);
     } else if (product.colors?.[0]) {
       setSelectedColor(product.colors[0]);
@@ -33,6 +34,15 @@ export function ProductCard({ product }: ProductCardProps) {
       setSelectedSize(product.sizes[0]);
     }
   }, [product]);
+
+  const displayPrimaryImage =
+    selectedColor?.images?.[0] || product.images?.primary || '';
+  const displaySecondaryImage =
+    selectedColor?.images?.[1] || product.images?.secondary || displayPrimaryImage;
+
+  const productTargetUrl = selectedColor?.name
+    ? `/producto/${product.slug}?color=${encodeURIComponent(selectedColor.name)}`
+    : `/producto/${product.slug}`;
 
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -63,21 +73,21 @@ export function ProductCard({ product }: ProductCardProps) {
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Product Image Container */}
-      <Link to={`/producto/${product.slug}`} className="relative aspect-[3/4] w-full bg-beige-100 overflow-hidden block">
+      <Link to={productTargetUrl} className="relative aspect-[3/4] w-full bg-beige-100 overflow-hidden block">
         {/* Primary Image */}
         <motion.img
-          src={product.images.primary}
+          src={displayPrimaryImage}
           alt={product.name}
           className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${
-            isHovered && product.images.secondary ? 'opacity-0 scale-105' : 'opacity-100 scale-100'
+            isHovered && displaySecondaryImage ? 'opacity-0 scale-105' : 'opacity-100 scale-100'
           }`}
           transition={{ duration: 0.4 }}
         />
 
         {/* Secondary Image on Hover */}
-        {product.images.secondary && (
+        {displaySecondaryImage && (
           <motion.img
-            src={product.images.secondary}
+            src={displaySecondaryImage}
             alt={`${product.name} detalle`}
             className={`absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out ${
               isHovered ? 'opacity-100 scale-105' : 'opacity-0 scale-100'
@@ -161,7 +171,11 @@ export function ProductCard({ product }: ProductCardProps) {
               <button
                 key={color.name}
                 type="button"
-                onClick={() => setSelectedColor(color)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setSelectedColor(color);
+                }}
                 title={color.name}
                 aria-label={`Color ${color.name}`}
                 className={`w-3.5 h-3.5 rounded-full border transition-all duration-200 cursor-pointer ${
@@ -178,7 +192,7 @@ export function ProductCard({ product }: ProductCardProps) {
           </div>
 
           {/* Title */}
-          <Link to={`/producto/${product.slug}`}>
+          <Link to={productTargetUrl}>
             <h3 className="font-montserrat font-bold text-sm text-navy uppercase tracking-tight group-hover:text-navy-500 transition-colors line-clamp-1">
               {product.name}
             </h3>

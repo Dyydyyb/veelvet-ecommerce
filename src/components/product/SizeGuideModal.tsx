@@ -35,7 +35,7 @@ export function SizeGuideModal({ initialTab = 'buzo' }: SizeGuideModalProps) {
               : 'border-transparent text-navy/50 hover:text-navy'
           }`}
         >
-          Buzo con Cierre
+          Buzo / Campera
         </button>
         <button
           onClick={() => setActiveTab('pantalon')}

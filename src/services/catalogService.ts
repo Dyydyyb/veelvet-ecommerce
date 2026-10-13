@@ -68,48 +68,13 @@ export function computeVariantTitle(
   return `${baseClean} ${color.name}`.replace(/\s+/g, ' ').trim();
 }
 
-function expandProductVariants(products: Product[]): Product[] {
-  const result: Product[] = [];
-
-  for (const prod of products) {
-    if (prod.colors && prod.colors.length > 1) {
-      for (const color of prod.colors) {
-        const colorImages =
-          color.images && color.images.length > 0 ? color.images : prod.allImages || [prod.images.primary];
-        const primaryImg = colorImages[0] || prod.images.primary;
-        const secondaryImg = colorImages[1] || colorImages[0] || prod.images.secondary || primaryImg;
-        const lookbookImg = colorImages[2] || colorImages[0] || prod.images.lookbook || primaryImg;
-
-        const variantName = computeVariantTitle(prod.name, color, prod.colors);
-
-        result.push({
-          ...prod,
-          id: `${prod.id}---${encodeURIComponent(color.name)}`,
-          baseId: prod.id,
-          baseSlug: prod.slug,
-          slug: `${prod.slug}?color=${encodeURIComponent(color.name)}`,
-          name: variantName,
-          selectedColorVariant: color.name,
-          images: {
-            primary: primaryImg,
-            secondary: secondaryImg,
-            lookbook: lookbookImg,
-          },
-          colors: [color, ...prod.colors.filter((c) => c.name !== color.name)],
-        });
-      }
-    } else {
-      result.push(prod);
-    }
-  }
-
-  return result;
-}
 
 export const CatalogService = {
   /**
-   * Obtiene la lista completa de productos directamente desde Supabase,
-   * desglosando las variantes de color como productos individuales para la tienda.
+   * Obtiene la lista completa de productos directamente desde Supabase.
+   * Los productos NO se individualizan por variantes de color: cada producto
+   * se presenta una única vez en la tienda y las variantes de color se eligen
+   * al entrar a ese producto.
    */
   async getProducts(params?: ProductQueryParams): Promise<Product[]> {
     try {
@@ -122,14 +87,13 @@ export const CatalogService = {
         return [];
       }
 
-      let adapted = supaProducts.map((p) => SupabaseService.adaptSupabaseProductToFrontend(p, cats, subs));
-      let expanded = expandProductVariants(adapted);
+      let products = supaProducts.map((p) => SupabaseService.adaptSupabaseProductToFrontend(p, cats, subs));
 
       // Filtro por categoría principal
       if (params?.category && params.category !== 'todos') {
         const catFilter = params.category.toLowerCase();
         const rawCatParam = params.category;
-        expanded = expanded.filter((p) => {
+        products = products.filter((p) => {
           if (p.category?.toLowerCase() === catFilter) return true;
           if (p.categoryName?.toLowerCase() === catFilter) return true;
           if (p.categoryName?.toLowerCase().replace(/\s+/g, '-') === catFilter) return true;
@@ -170,7 +134,7 @@ export const CatalogService = {
           return false;
         };
 
-        expanded = expanded.filter(
+        products = products.filter(
           (p) =>
             (p.subcategoryId && p.subcategoryId.toLowerCase() === raw) ||
             (Array.isArray(p.subcategoryIds) && p.subcategoryIds.some((id) => id.toLowerCase() === raw)) ||
@@ -186,9 +150,9 @@ export const CatalogService = {
       if (params?.filter) {
         const f = params.filter.toLowerCase();
         if (f === 'precios-unicos' || f === 'sale-60') {
-          expanded = expanded.filter((p) => Boolean(p.compareAtPrice));
+          products = products.filter((p) => Boolean(p.compareAtPrice));
         } else {
-          expanded = expanded.filter(
+          products = products.filter(
             (p) => p.tag?.toLowerCase().includes(f) || Boolean(p.compareAtPrice)
           );
         }
@@ -197,7 +161,7 @@ export const CatalogService = {
       // Filtro por búsqueda
       if (params?.search) {
         const s = params.search.toLowerCase();
-        expanded = expanded.filter(
+        products = products.filter(
           (p) =>
             p.name.toLowerCase().includes(s) ||
             p.description.toLowerCase().includes(s) ||
@@ -207,31 +171,31 @@ export const CatalogService = {
 
       // Filtro por talle
       if (params?.size) {
-        expanded = expanded.filter((p) => p.sizes.includes(params.size as any));
+        products = products.filter((p) => p.sizes.includes(params.size as any));
       }
 
-      // Filtro por color
+      // Filtro por color (comprueba si la prenda incluye este color en sus variantes)
       if (params?.color) {
         const c = params.color.toLowerCase();
-        expanded = expanded.filter(
+        products = products.filter(
           (p) =>
             p.selectedColorVariant?.toLowerCase().includes(c) ||
-            p.colors.some((col) => col.name.toLowerCase().includes(c))
+            (p.colors && p.colors.some((col) => col.name.toLowerCase().includes(c)))
         );
       }
 
       // Ordenamiento
       if (params?.sortBy === 'price-asc') {
-        expanded.sort((a, b) => a.price - b.price);
+        products.sort((a, b) => a.price - b.price);
       } else if (params?.sortBy === 'price-desc') {
-        expanded.sort((a, b) => b.price - a.price);
+        products.sort((a, b) => b.price - a.price);
       } else if (params?.sortBy === 'rating') {
-        expanded.sort((a, b) => b.rating - a.rating);
+        products.sort((a, b) => b.rating - a.rating);
       } else if (params?.sortBy === 'featured') {
-        expanded.sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
+        products.sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
       }
 
-      return expanded;
+      return products;
     } catch (err) {
       console.error('Error al obtener productos desde Supabase:', err);
       return [];

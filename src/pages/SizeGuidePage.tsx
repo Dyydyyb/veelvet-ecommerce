@@ -24,7 +24,7 @@ export function SizeGuidePage() {
               : 'border-transparent text-navy/50 hover:text-navy'
           }`}
         >
-          Buzo con Cierre (S a XL)
+          Buzo / Campera (S a XL)
         </button>
         <button
           onClick={() => setActiveTab('pantalon')}
