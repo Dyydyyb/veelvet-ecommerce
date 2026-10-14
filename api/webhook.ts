@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'https://ikuwvjvhtbouafjayrvj.supabase.co';
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlrdXd2anZodGJvdWFmamF5cnZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA5NzYzNDQsImV4cCI6MjEwNjU1MjM0NH0.qar2GCV5r7zopChl3m9499-KJRoqey-MVJxmlVgbJKg';
-const MP_ACCESS_TOKEN = process.env.MERCADO_PAGO_ACCESS_TOKEN || 'APP_USR-7103239467259851-101318-48671d040144ecc370c7cb2ae65f4a79-1085421904';
+const MP_ACCESS_TOKEN = process.env.MERCADO_PAGO_ACCESS_TOKEN || '';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
