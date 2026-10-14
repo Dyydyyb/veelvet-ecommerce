@@ -17,6 +17,8 @@ export function CheckoutPage() {
   const [orderNumber, setOrderNumber] = useState('');
   const [whatsappOrderUrl, setWhatsappOrderUrl] = useState('');
   const [orderItemsSnapshot, setOrderItemsSnapshot] = useState<typeof items>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     email: '',
@@ -48,15 +50,8 @@ export function CheckoutPage() {
     }).format(amount);
   };
 
-  const handleSubmitOrder = (e: React.FormEvent) => {
-    e.preventDefault();
-    const randomId = 'VVT-' + Math.floor(100000 + Math.random() * 900000);
-    setOrderNumber(randomId);
-
-    // Snapshot cart items before clearing
+  const setupWhatsAppFallback = (orderId: string) => {
     const currentItems = [...items];
-    setOrderItemsSnapshot(currentItems);
-
     const itemsSummary = currentItems
       .map(
         (item) =>
@@ -78,7 +73,7 @@ export function CheckoutPage() {
 
     const orderMessage =
       `*NUEVO PEDIDO VEELVET* 🛍️\n` +
-      `*Orden:* #${randomId}\n\n` +
+      `*Orden:* #${orderId}\n\n` +
       `👤 *Datos del Comprador:*\n` +
       `• Nombre: ${formData.name} ${formData.lastName}\n` +
       `• DNI: ${formData.dni}\n` +
@@ -95,28 +90,66 @@ export function CheckoutPage() {
 
     const waUrl = getWhatsAppLink(orderMessage);
     setWhatsappOrderUrl(waUrl);
-    setOrderComplete(true);
+  };
 
-    // Fire celebration confetti
+  const handleSubmitOrder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    const randomId = 'VVT-' + Math.floor(100000 + Math.random() * 900000);
+    setOrderNumber(randomId);
+
+    // Snapshot cart items before any action
+    const currentItems = [...items];
+    setOrderItemsSnapshot(currentItems);
+    setupWhatsAppFallback(randomId);
+
     try {
-      confetti({
-        particleCount: 80,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: ['#1B2A4A', '#F0EDE3', '#2F4A8A', '#D9CFB4'],
+      // 1. Llamar al backend seguro para crear la preferencia oficial de Mercado Pago
+      const response = await fetch('/api/create-preference', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          orderNumber: randomId,
+          items: currentItems.map((item) => ({
+            productId: item.product.id,
+            name: item.product.name,
+            size: item.size,
+            colorName: item.colorName,
+            price: item.product.price,
+            quantity: item.quantity,
+            image: item.product.images?.primary || '',
+          })),
+          customer: formData,
+          shipping: selectedShipping,
+          discount,
+          notes: formData.notes,
+        }),
       });
-    } catch {
-      // ignore
-    }
 
-    // Automatically redirect to WhatsApp in a new tab/window
-    try {
-      window.open(waUrl, '_blank');
-    } catch (err) {
-      console.warn('Popup blocked, customer can click the button:', err);
-    }
+      const data = await response.json();
 
-    clearCart();
+      if (data?.initPoint) {
+        // Redirigir a Mercado Pago Checkout Pro de forma segura
+        window.location.href = data.initPoint;
+        return;
+      }
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      throw new Error('No se pudo obtener el punto de pago de Mercado Pago.');
+    } catch (err: any) {
+      console.error('Error al procesar el pago con Mercado Pago:', err);
+      setSubmitError(
+        'Hubo un inconveniente al conectar con Mercado Pago. Podés intentar nuevamente o coordinar tu compra directamente por WhatsApp.'
+      );
+      setIsSubmitting(false);
+    }
   };
 
   if (items.length === 0 && !orderComplete) {
@@ -502,7 +535,7 @@ export function CheckoutPage() {
                         </span>
                       </div>
                       <p className="text-[11px] text-navy/70 mt-1 font-light leading-relaxed">
-                        Aboná de forma segura con dinero en cuenta, tarjetas de débito o crédito en cuotas mediante Mercado Pago. Te compartiremos el link de pago oficial por WhatsApp para completar tu compra.
+                        Aboná con dinero en cuenta, tarjetas de crédito (en cuotas), débito o efectivo mediante la pasarela segura oficial de <strong>Mercado Pago Checkout Pro</strong>.
                       </p>
                     </div>
                   </div>
@@ -576,11 +609,38 @@ export function CheckoutPage() {
               {/* Submit CTA */}
               <button
                 type="submit"
-                className="w-full py-4 bg-navy hover:bg-navy-500 text-white font-montserrat font-bold text-xs uppercase tracking-wider rounded-lg transition-colors flex items-center justify-center space-x-2 shadow-md cursor-pointer"
+                disabled={isSubmitting}
+                className="w-full py-4 bg-navy hover:bg-navy-500 disabled:opacity-70 text-white font-montserrat font-bold text-xs uppercase tracking-wider rounded-lg transition-colors flex items-center justify-center space-x-2 shadow-md cursor-pointer disabled:cursor-not-allowed"
               >
-                <Lock className="w-4 h-4" />
-                <span>Confirmar pedido ({formatPrice(finalTotal)})</span>
+                {isSubmitting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span>Conectando con Mercado Pago...</span>
+                  </>
+                ) : (
+                  <>
+                    <Lock className="w-4 h-4" />
+                    <span>Pagar con Mercado Pago ({formatPrice(finalTotal)})</span>
+                  </>
+                )}
               </button>
+
+              {submitError && (
+                <div className="p-3 bg-red-100 border border-red-300 rounded-lg text-xs text-red-800 text-center space-y-1.5">
+                  <p className="font-semibold">{submitError}</p>
+                  {whatsappOrderUrl && (
+                    <a
+                      href={whatsappOrderUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center space-x-1.5 text-green-800 hover:text-green-900 underline font-bold"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5" />
+                      <span>Coordinar pedido por WhatsApp</span>
+                    </a>
+                  )}
+                </div>
+              )}
 
               <div className="flex items-center justify-center space-x-1.5 text-[11px] text-navy/60 text-center">
                 <ShieldCheck className="w-4 h-4 text-navy/70" />

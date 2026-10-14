@@ -74,3 +74,46 @@ export interface Producto {
   tipo_oferta?: TipoOferta;
 }
 
+export interface PedidoItem {
+  productId: string;
+  name: string;
+  slug?: string;
+  size: string;
+  colorName: string;
+  colorHex?: string;
+  price: number;
+  quantity: number;
+  image?: string;
+}
+
+export interface Pedido {
+  id?: string;
+  order_number: string;
+  cliente_nombre: string;
+  cliente_apellido?: string;
+  cliente_email: string;
+  cliente_telefono?: string;
+  cliente_dni?: string;
+  direccion_calle?: string;
+  direccion_numero?: string;
+  direccion_piso_depto?: string;
+  direccion_ciudad?: string;
+  direccion_provincia?: string;
+  direccion_cp?: string;
+  notas?: string;
+  metodo_envio: string;
+  costo_envio: number;
+  items: PedidoItem[];
+  subtotal: number;
+  descuento: number;
+  total: number;
+  estado_pago: 'pendiente' | 'aprobado' | 'rechazado' | 'cancelado';
+  mp_preference_id?: string;
+  mp_payment_id?: string;
+  mp_status?: string;
+  mp_status_detail?: string;
+  mp_merchant_order_id?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+

@@ -20,6 +20,7 @@ import { FaqPage } from './pages/FaqPage';
 import { WholesalePage } from './pages/WholesalePage';
 import { ShowroomPage } from './pages/ShowroomPage';
 import { CheckoutPage } from './pages/CheckoutPage';
+import { OrderConfirmationPage } from './pages/OrderConfirmationPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { AdminPage } from './pages/admin/AdminPage';
 
@@ -80,6 +81,7 @@ function AppContent() {
               <Route path="/showroom" element={<ShowroomPage />} />
               <Route path="/contacto" element={<ShowroomPage />} />
               <Route path="/checkout" element={<CheckoutPage />} />
+              <Route path="/pedido-confirmado" element={<OrderConfirmationPage />} />
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </main>
