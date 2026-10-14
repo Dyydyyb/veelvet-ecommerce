@@ -19,7 +19,7 @@ function apiDevPlugin() {
                 const token =
                   env.MERCADO_PAGO_ACCESS_TOKEN ||
                   process.env.MERCADO_PAGO_ACCESS_TOKEN ||
-                  'APP_USR-2424082766958924-101320-729129e88953e1ef882a178d4f4f9348-3760299431';
+                  'APP_USR-7103239467259851-101318-48671d040144ecc370c7cb2ae65f4a79-1085421904';
 
                 const { items, customer } = parsed;
 
