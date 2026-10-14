@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Package, Layers, Tag, ExternalLink, RefreshCw, Sparkles, ShieldCheck, LogOut } from 'lucide-react';
+import { Package, Layers, Tag, ExternalLink, RefreshCw, Sparkles, ShieldCheck, LogOut, ShoppingBag } from 'lucide-react';
 import { ProductsManager } from '../../components/admin/ProductsManager';
 import { CategoriesManager } from '../../components/admin/CategoriesManager';
 import { OfferTypesManager } from '../../components/admin/OfferTypesManager';
+import { OrdersManager } from '../../components/admin/OrdersManager';
 import { AdminLogin } from '../../components/admin/AdminLogin';
 import { SupabaseService } from '../../services/supabaseService';
 import { Producto, Subcategoria, Categoria, TipoOferta } from '../../lib/supabase';
@@ -17,7 +18,7 @@ export function AdminPage() {
     }
   });
 
-  const [activeTab, setActiveTab] = useState<'productos' | 'categorias' | 'ofertas'>('productos');
+  const [activeTab, setActiveTab] = useState<'pedidos' | 'productos' | 'categorias' | 'ofertas'>('pedidos');
   const [productos, setProductos] = useState<Producto[]>([]);
   const [subcategorias, setSubcategorias] = useState<Subcategoria[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
@@ -134,6 +135,18 @@ export function AdminPage() {
         {/* Navigation Tabs */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-2 overflow-x-auto border-t border-beige-200/60 pt-1 pb-1">
           <button
+            onClick={() => setActiveTab('pedidos')}
+            className={`flex items-center space-x-2 px-4 py-2.5 text-xs font-montserrat font-bold uppercase tracking-wider rounded-lg transition-all cursor-pointer ${
+              activeTab === 'pedidos'
+                ? 'bg-navy text-white shadow-xs'
+                : 'text-navy/70 hover:text-navy hover:bg-beige-100'
+            }`}
+          >
+            <ShoppingBag className="w-4 h-4" />
+            <span>Pedidos & Órdenes</span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('productos')}
             className={`flex items-center space-x-2 px-4 py-2.5 text-xs font-montserrat font-bold uppercase tracking-wider rounded-lg transition-all cursor-pointer ${
               activeTab === 'productos'
@@ -203,6 +216,10 @@ export function AdminPage() {
 
         {!isLoading && (
           <>
+            {activeTab === 'pedidos' && (
+              <OrdersManager productos={productos} />
+            )}
+
             {activeTab === 'productos' && (
               <ProductsManager
                 productos={productos}

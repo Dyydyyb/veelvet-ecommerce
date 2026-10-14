@@ -104,4 +104,67 @@ export const OrderService = {
       return false;
     }
   },
+
+  /**
+   * Obtiene todos los pedidos registrados en el sistema, ordenados por fecha descendente
+   */
+  async getPedidos(): Promise<Pedido[]> {
+    try {
+      const { data, error } = await supabase
+        .from('pedidos')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.warn('Aviso al consultar tabla pedidos:', error.message);
+        return [];
+      }
+
+      return (data || []) as Pedido[];
+    } catch (err) {
+      console.error('Error al obtener lista de pedidos:', err);
+      return [];
+    }
+  },
+
+  /**
+   * Actualiza cualquier campo de un pedido por su ID
+   */
+  async updatePedido(id: string, updates: Partial<Pedido>): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('pedidos')
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error al actualizar pedido:', error.message);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error('Error al actualizar pedido:', err);
+      return false;
+    }
+  },
+
+  /**
+   * Elimina un pedido del sistema
+   */
+  async deletePedido(id: string): Promise<boolean> {
+    try {
+      const { error } = await supabase.from('pedidos').delete().eq('id', id);
+      if (error) {
+        console.error('Error al eliminar pedido:', error.message);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error('Error al eliminar pedido:', err);
+      return false;
+    }
+  },
 };
