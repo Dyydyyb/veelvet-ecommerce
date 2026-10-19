@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Plus, Search, Edit3, Trash2, Star, Image as ImageIcon, Filter, RefreshCw } from 'lucide-react';
 import { Producto, Subcategoria, Categoria, TipoOferta } from '../../lib/supabase';
 import { ProductModal } from './ProductModal';
+import { AdminErrorBoundary } from './AdminErrorBoundary';
 import { SupabaseService } from '../../services/supabaseService';
 
 interface ProductsManagerProps {
@@ -423,15 +424,17 @@ export function ProductsManager({
       </div>
 
       {/* Modal create / edit */}
-      <ProductModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSave={handleSaveProduct}
-        product={editingProduct}
-        categorias={categorias}
-        subcategorias={subcategorias}
-        tiposOferta={tiposOferta}
-      />
+      <AdminErrorBoundary fallbackTitle="Error al abrir editor del producto">
+        <ProductModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onSave={handleSaveProduct}
+          product={editingProduct}
+          categorias={categorias}
+          subcategorias={subcategorias}
+          tiposOferta={tiposOferta}
+        />
+      </AdminErrorBoundary>
     </div>
   );
 }

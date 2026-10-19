@@ -60,8 +60,9 @@ function parseRawProduct(raw: any): Producto {
 
   // Si hay color_principal definido, asegurar que quede al inicio de la lista de variantes
   if (color_principal && colores.length > 1) {
+    const mainTarget = color_principal.trim().toLowerCase();
     const mainIdx = colores.findIndex(
-      (c) => c.name.toLowerCase() === color_principal?.toLowerCase()
+      (c) => (c?.name || '').trim().toLowerCase() === mainTarget
     );
     if (mainIdx > 0) {
       const [matched] = colores.splice(mainIdx, 1);
@@ -955,8 +956,9 @@ export const SupabaseService = {
     if (parsed.colores && parsed.colores.length > 0) {
       let sortedColores = [...parsed.colores];
       if (parsed.color_principal) {
+        const mainTarget = parsed.color_principal.trim().toLowerCase();
         const cIdx = sortedColores.findIndex(
-          (c) => c.name.toLowerCase() === parsed.color_principal?.toLowerCase()
+          (c) => (c?.name || '').trim().toLowerCase() === mainTarget
         );
         if (cIdx > 0) {
           const [found] = sortedColores.splice(cIdx, 1);
@@ -964,11 +966,11 @@ export const SupabaseService = {
         }
       }
       productColors = sortedColores.map((c) => ({
-        name: c.name,
-        titulo: c.titulo,
-        hex: c.hex,
-        class: `bg-[${c.hex}]`,
-        images: Array.isArray(c.imagenes) && c.imagenes.length > 0 ? c.imagenes : finalImagesList,
+        name: c?.name || 'Color',
+        titulo: c?.titulo,
+        hex: c?.hex || '#161616',
+        class: `bg-[${c?.hex || '#161616'}]`,
+        images: Array.isArray(c?.imagenes) && c.imagenes.length > 0 ? c.imagenes : finalImagesList,
       }));
     } else {
       productColors = [

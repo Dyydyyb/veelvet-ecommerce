@@ -6,6 +6,7 @@ import { CategoriesManager } from '../../components/admin/CategoriesManager';
 import { OfferTypesManager } from '../../components/admin/OfferTypesManager';
 import { OrdersManager } from '../../components/admin/OrdersManager';
 import { AdminLogin } from '../../components/admin/AdminLogin';
+import { AdminErrorBoundary } from '../../components/admin/AdminErrorBoundary';
 import { SupabaseService } from '../../services/supabaseService';
 import { Producto, Subcategoria, Categoria, TipoOferta } from '../../lib/supabase';
 
@@ -215,7 +216,7 @@ export function AdminPage() {
         )}
 
         {!isLoading && (
-          <>
+          <AdminErrorBoundary fallbackTitle="Error al cargar la sección seleccionada">
             {activeTab === 'pedidos' && (
               <OrdersManager productos={productos} />
             )}
@@ -245,7 +246,7 @@ export function AdminPage() {
                 onRefresh={loadAllData}
               />
             )}
-          </>
+          </AdminErrorBoundary>
         )}
       </main>
     </div>

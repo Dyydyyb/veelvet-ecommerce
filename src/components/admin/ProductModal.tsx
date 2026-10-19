@@ -82,12 +82,18 @@ export function ProductModal({
     if (product) {
       setNombre(product.nombre || '');
       setDescripcion(product.descripcion || '');
-      setPrecio(product.precio || '');
-      setPrecioAnterior(product.precio_anterior || '');
+      setPrecio(typeof product.precio === 'number' ? product.precio : Number(product.precio) || '');
+      setPrecioAnterior(
+        typeof product.precio_anterior === 'number'
+          ? product.precio_anterior
+          : product.precio_anterior
+          ? Number(product.precio_anterior) || ''
+          : ''
+      );
       
       // Cargar múltiples subcategorías
       const rawSubIds = Array.isArray(product.subcategorias_ids) && product.subcategorias_ids.length > 0
-        ? product.subcategorias_ids
+        ? product.subcategorias_ids.filter(Boolean)
         : product.subcategoria_id
         ? [product.subcategoria_id]
         : [];
@@ -95,7 +101,7 @@ export function ProductModal({
 
       // Cargar múltiples categorías guardadas exactamente en el producto
       const rawCatIds = Array.isArray(product.categorias_ids) && product.categorias_ids.length > 0
-        ? product.categorias_ids
+        ? product.categorias_ids.filter(Boolean)
         : product.subcategoria?.categoria_id
         ? [product.subcategoria.categoria_id]
         : [];
@@ -103,44 +109,49 @@ export function ProductModal({
 
       setTipoOfertaId(product.tipo_oferta_id || '');
       setDestacado(Boolean(product.destacado));
-      setStock(product.stock ?? 0);
+      setStock(product.stock != null ? Number(product.stock) || 0 : 0);
       setPermiteCuotas(product.permite_cuotas !== false);
       setPermiteTransferencia(product.permite_transferencia_descuento !== false);
       setTalles(
         Array.isArray(product.talles) && product.talles.length > 0
-          ? product.talles
+          ? product.talles.filter((t) => typeof t === 'string')
           : ['S', 'M', 'L', 'XL']
       );
-      setImagenes(
-        Array.isArray(product.imagenes_url) && product.imagenes_url.length > 0
-          ? product.imagenes_url
-          : ['']
-      );
 
-      const initialImgPrincipal =
-        product.imagen_principal ||
-        (Array.isArray(product.imagenes_url) && product.imagenes_url[0]) ||
+      // Limpiar y asegurar que imagenes sea siempre array de strings válidas
+      const rawImgs = Array.isArray(product.imagenes_url)
+        ? product.imagenes_url.filter((u): u is string => typeof u === 'string' && Boolean(u.trim()))
+        : [];
+      setImagenes(rawImgs.length > 0 ? rawImgs : ['']);
+
+      const rawImgPrincipal =
+        (typeof product.imagen_principal === 'string' && product.imagen_principal.trim()) ||
+        rawImgs[0] ||
         '';
-      setImagenPrincipal(initialImgPrincipal);
+      setImagenPrincipal(rawImgPrincipal);
 
-      const initialColorPrincipal =
-        product.color_principal ||
-        (Array.isArray(product.colores) && product.colores[0]?.name) ||
+      // Limpiar y asegurar que colores sea siempre array de ColorItemState válidos
+      const rawColors: ColorItemState[] =
+        Array.isArray(product.colores) && product.colores.length > 0
+          ? product.colores
+              .filter((c): c is ColorVariant => Boolean(c && typeof c === 'object'))
+              .map((c) => ({
+                name: (c.name || '').trim(),
+                titulo: (c.titulo || '').trim(),
+                hex: c.hex || '#161616',
+                imagenes:
+                  Array.isArray(c.imagenes) && c.imagenes.length > 0
+                    ? c.imagenes.filter((u): u is string => typeof u === 'string' && Boolean(u.trim()))
+                    : [''],
+              }))
+          : [];
+      setColores(rawColors);
+
+      const rawColorPrincipal =
+        (typeof product.color_principal === 'string' && product.color_principal.trim()) ||
+        rawColors[0]?.name ||
         '';
-      setColorPrincipal(initialColorPrincipal);
-
-      if (Array.isArray(product.colores) && product.colores.length > 0) {
-        setColores(
-          product.colores.map((c) => ({
-            name: c.name,
-            titulo: c.titulo || '',
-            hex: c.hex,
-            imagenes: Array.isArray(c.imagenes) && c.imagenes.length > 0 ? c.imagenes : [''],
-          }))
-        );
-      } else {
-        setColores([]);
-      }
+      setColorPrincipal(rawColorPrincipal);
     } else {
       setNombre('');
       setDescripcion('');
@@ -193,34 +204,36 @@ export function ProductModal({
   };
 
   const handleRemoveGeneralImage = (index: number) => {
-    const removedUrl = imagenes[index];
+    const removedUrl = (imagenes[index] || '').trim();
     const updated = imagenes.filter((_, idx) => idx !== index);
     setImagenes(updated.length > 0 ? updated : ['']);
-    if (imagenPrincipal && removedUrl && imagenPrincipal === removedUrl.trim()) {
+    if (imagenPrincipal && removedUrl && (imagenPrincipal || '').trim() === removedUrl) {
       setImagenPrincipal(updated[0]?.trim() || '');
     }
   };
 
   const handleGeneralImageChange = (index: number, val: string) => {
-    const oldVal = imagenes[index];
+    const safeVal = typeof val === 'string' ? val : '';
+    const oldVal = (imagenes[index] || '').trim();
     const updated = [...imagenes];
-    updated[index] = val;
+    updated[index] = safeVal;
     setImagenes(updated);
-    if (imagenPrincipal && oldVal && imagenPrincipal === oldVal.trim()) {
-      setImagenPrincipal(val.trim());
-    } else if (!imagenPrincipal && val.trim()) {
-      setImagenPrincipal(val.trim());
+    if (imagenPrincipal && oldVal && (imagenPrincipal || '').trim() === oldVal) {
+      setImagenPrincipal(safeVal.trim());
+    } else if (!imagenPrincipal && safeVal.trim()) {
+      setImagenPrincipal(safeVal.trim());
     }
   };
 
   // Manejo de Colores
   const handleAddPresetColor = (preset: { name: string; hex: string }) => {
-    const exists = colores.some((c) => c.name.toLowerCase() === preset.name.toLowerCase());
+    const pName = (preset.name || '').trim();
+    const exists = colores.some((c) => (c?.name || '').trim().toLowerCase() === pName.toLowerCase());
     if (exists) return;
-    const newColores = [...colores, { name: preset.name, titulo: '', hex: preset.hex, imagenes: [''] }];
+    const newColores = [...colores, { name: pName, titulo: '', hex: preset.hex || '#161616', imagenes: [''] }];
     setColores(newColores);
     if (!colorPrincipal) {
-      setColorPrincipal(preset.name);
+      setColorPrincipal(pName);
     }
   };
 
@@ -236,39 +249,52 @@ export function ProductModal({
     const removedColor = colores[index];
     const filtered = colores.filter((_, idx) => idx !== index);
     setColores(filtered);
-    if (colorPrincipal && removedColor && colorPrincipal.toLowerCase() === removedColor.name.toLowerCase()) {
+    const removedName = (removedColor?.name || '').trim().toLowerCase();
+    const currentMain = (colorPrincipal || '').trim().toLowerCase();
+    if (currentMain && removedName && currentMain === removedName) {
       setColorPrincipal(filtered[0]?.name || '');
     }
   };
 
   const handleColorChange = (index: number, field: 'name' | 'titulo' | 'hex', val: string) => {
-    const oldName = colores[index].name;
+    const safeVal = typeof val === 'string' ? val : '';
+    const oldName = (colores[index]?.name || '').trim().toLowerCase();
     const updated = [...colores];
-    updated[index] = { ...updated[index], [field]: val };
+    updated[index] = { ...updated[index], [field]: safeVal };
     setColores(updated);
-    if (field === 'name' && colorPrincipal && colorPrincipal.toLowerCase() === oldName.toLowerCase()) {
-      setColorPrincipal(val);
+    const currentMain = (colorPrincipal || '').trim().toLowerCase();
+    if (field === 'name' && currentMain && currentMain === oldName) {
+      setColorPrincipal(safeVal.trim());
     }
   };
 
   // Fotos específicas de un Color
   const handleAddColorPhoto = (colorIndex: number) => {
     const updated = [...colores];
-    updated[colorIndex].imagenes.push('');
-    setColores(updated);
+    if (updated[colorIndex]) {
+      updated[colorIndex].imagenes = [...(updated[colorIndex].imagenes || []), ''];
+      setColores(updated);
+    }
   };
 
   const handleRemoveColorPhoto = (colorIndex: number, photoIndex: number) => {
     const updated = [...colores];
-    const filtered = updated[colorIndex].imagenes.filter((_, idx) => idx !== photoIndex);
-    updated[colorIndex].imagenes = filtered.length > 0 ? filtered : [''];
-    setColores(updated);
+    if (updated[colorIndex]) {
+      const filtered = (updated[colorIndex].imagenes || []).filter((_, idx) => idx !== photoIndex);
+      updated[colorIndex].imagenes = filtered.length > 0 ? filtered : [''];
+      setColores(updated);
+    }
   };
 
   const handleColorPhotoChange = (colorIndex: number, photoIndex: number, val: string) => {
+    const safeVal = typeof val === 'string' ? val : '';
     const updated = [...colores];
-    updated[colorIndex].imagenes[photoIndex] = val;
-    setColores(updated);
+    if (updated[colorIndex]) {
+      const imgs = [...(updated[colorIndex].imagenes || [])];
+      imgs[photoIndex] = safeVal;
+      updated[colorIndex].imagenes = imgs;
+      setColores(updated);
+    }
   };
 
   // Manejo de Multiselección de Categorías y Subcategorías
@@ -316,29 +342,36 @@ export function ProductModal({
   // Lista unificada de todas las URLs disponibles con origen amigable
   const allAvailablePhotos = React.useMemo(() => {
     const list: { url: string; label: string }[] = [];
-    imagenes.forEach((u, i) => {
-      const clean = u.trim();
+    (imagenes || []).forEach((u, i) => {
+      const clean = (typeof u === 'string' ? u : '').trim();
       if (clean && !list.some((item) => item.url === clean)) {
         list.push({ url: clean, label: `Foto General #${i + 1}` });
       }
     });
-    colores.forEach((c) => {
-      (c.imagenes || []).forEach((u, i) => {
-        const clean = u.trim();
+    (colores || []).forEach((c) => {
+      const cName = (c?.name || 'Color').trim();
+      (c?.imagenes || []).forEach((u, i) => {
+        const clean = (typeof u === 'string' ? u : '').trim();
         if (clean && !list.some((item) => item.url === clean)) {
-          list.push({ url: clean, label: `${c.name || 'Color'} (Foto #${i + 1})` });
+          list.push({ url: clean, label: `${cName} (Foto #${i + 1})` });
         }
       });
     });
     return list;
   }, [imagenes, colores]);
 
-  const effectivePreviewMainImage =
-    imagenPrincipal.trim() ||
-    allAvailablePhotos[0]?.url ||
-    imagenes.find((u) => u.trim()) ||
-    colores.flatMap((c) => c.imagenes).find((u) => u.trim()) ||
-    '';
+  const effectivePreviewMainImage = React.useMemo(() => {
+    const mainImgClean = (typeof imagenPrincipal === 'string' ? imagenPrincipal : '').trim();
+    if (mainImgClean) return mainImgClean;
+    if (allAvailablePhotos.length > 0) return allAvailablePhotos[0].url;
+    const firstGeneral = (imagenes || []).find((u) => typeof u === 'string' && u.trim());
+    if (firstGeneral) return firstGeneral.trim();
+    for (const c of colores || []) {
+      const firstColorPhoto = (c?.imagenes || []).find((u) => typeof u === 'string' && u.trim());
+      if (firstColorPhoto) return firstColorPhoto.trim();
+    }
+    return '';
+  }, [imagenPrincipal, allAvailablePhotos, imagenes, colores]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -359,21 +392,26 @@ export function ProductModal({
       return;
     }
 
-    const cleanGeneralUrls = imagenes.map((u) => u.trim()).filter(Boolean);
-    const cleanColores: ColorVariant[] = colores
-      .filter((c) => c.name.trim())
+    const cleanGeneralUrls = (imagenes || [])
+      .map((u) => (typeof u === 'string' ? u.trim() : ''))
+      .filter(Boolean);
+
+    const cleanColores: ColorVariant[] = (colores || [])
+      .filter((c) => Boolean(c && (c.name || '').trim()))
       .map((c) => ({
         name: c.name.trim(),
         titulo: c.titulo?.trim() || undefined,
-        hex: c.hex.trim() || '#161616',
-        imagenes: c.imagenes.map((u) => u.trim()).filter(Boolean),
+        hex: c.hex?.trim() || '#161616',
+        imagenes: (c.imagenes || [])
+          .map((u) => (typeof u === 'string' ? u.trim() : ''))
+          .filter(Boolean),
       }));
 
     // Priorizar el color_principal al inicio de cleanColores
-    const effectiveColorPrincipal = colorPrincipal.trim() || cleanColores[0]?.name || '';
+    const effectiveColorPrincipal = (colorPrincipal || '').trim() || cleanColores[0]?.name || '';
     if (effectiveColorPrincipal && cleanColores.length > 1) {
       const cIdx = cleanColores.findIndex(
-        (c) => c.name.toLowerCase() === effectiveColorPrincipal.toLowerCase()
+        (c) => (c?.name || '').trim().toLowerCase() === effectiveColorPrincipal.toLowerCase()
       );
       if (cIdx > 0) {
         const [matched] = cleanColores.splice(cIdx, 1);
@@ -384,15 +422,15 @@ export function ProductModal({
     // Reunir todas las fotos
     const allCollectedUrls = [...cleanGeneralUrls];
     cleanColores.forEach((c) => {
-      c.imagenes.forEach((u) => {
-        if (!allCollectedUrls.includes(u)) {
+      (c.imagenes || []).forEach((u) => {
+        if (u && !allCollectedUrls.includes(u)) {
           allCollectedUrls.push(u);
         }
       });
     });
 
     // Priorizar la imagen_principal al inicio de la lista general
-    const effectiveMainImage = imagenPrincipal.trim() || allCollectedUrls[0] || '';
+    const effectiveMainImage = (imagenPrincipal || '').trim() || allCollectedUrls[0] || '';
     if (effectiveMainImage) {
       const existingIdx = allCollectedUrls.indexOf(effectiveMainImage);
       if (existingIdx > 0) {
@@ -962,7 +1000,10 @@ export function ProductModal({
                 Colores frecuentes:
               </span>
               {PRESET_COLORS.map((p) => {
-                const isSelected = colores.some((c) => c.name.toLowerCase() === p.name.toLowerCase());
+                const pName = (p?.name || '').trim();
+                const isSelected = (colores || []).some(
+                  (c) => (c?.name || '').trim().toLowerCase() === pName.toLowerCase()
+                );
                 return (
                   <button
                     key={p.name}
@@ -1004,8 +1045,8 @@ export function ProductModal({
                   onChange={(e) => setColorPrincipal(e.target.value)}
                   className="text-xs bg-white border border-beige-300 rounded-lg px-3 py-2 text-navy font-bold focus:outline-none focus:border-navy cursor-pointer"
                 >
-                  {colores
-                    .filter((c) => c.name.trim())
+                  {(colores || [])
+                    .filter((c) => Boolean(c && (c.name || '').trim()))
                     .map((c) => (
                       <option key={c.name} value={c.name}>
                         {c.name} {c.titulo ? `(${c.titulo})` : ''}
@@ -1022,10 +1063,13 @@ export function ProductModal({
               </div>
             ) : (
               <div className="space-y-4">
-                {colores.map((colorItem, cIdx) => {
+                {(colores || []).map((colorItem, cIdx) => {
+                  const colorName = (colorItem?.name || '').trim();
+                  const currentMain = (colorPrincipal || '').trim();
                   const isMainColor =
-                    colorPrincipal.toLowerCase() === colorItem.name.toLowerCase() ||
-                    (!colorPrincipal && cIdx === 0);
+                    (Boolean(currentMain) && currentMain.toLowerCase() === colorName.toLowerCase()) ||
+                    (!currentMain && cIdx === 0);
+                  const colorPhotos = Array.isArray(colorItem?.imagenes) ? colorItem.imagenes : [''];
 
                   return (
                     <div
@@ -1127,19 +1171,21 @@ export function ProductModal({
                         </div>
 
                         <div className="space-y-2">
-                          {colorItem.imagenes.map((url, pIdx) => {
+                          {colorPhotos.map((url, pIdx) => {
+                            const cleanUrl = (typeof url === 'string' ? url : '').trim();
+                            const currentMainImg = (imagenPrincipal || '').trim();
                             const isThisPhotoMain =
-                              url.trim() &&
-                              (url.trim() === imagenPrincipal ||
-                                (!imagenPrincipal && effectivePreviewMainImage === url.trim()));
+                              Boolean(cleanUrl) &&
+                              (cleanUrl === currentMainImg ||
+                                (!currentMainImg && effectivePreviewMainImage === cleanUrl));
 
                             return (
                               <div key={pIdx} className="flex items-center space-x-2">
                                 {/* Thumbnail preview */}
                                 <div className="w-9 h-9 rounded-lg bg-white border border-beige-300 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                                  {url.trim() ? (
+                                  {cleanUrl ? (
                                     <img
-                                      src={url}
+                                      src={cleanUrl}
                                       alt="Preview color"
                                       className="w-full h-full object-cover"
                                       onError={(e) => {
@@ -1154,14 +1200,14 @@ export function ProductModal({
                                 {/* Input URL */}
                                 <input
                                   type="url"
-                                  value={url}
+                                  value={url || ''}
                                   onChange={(e) => handleColorPhotoChange(cIdx, pIdx, e.target.value)}
-                                  placeholder={`https://pub-xxxx.r2.dev/${colorItem.name.toLowerCase().replace(/\s+/g, '-')}-${pIdx + 1}.jpg`}
+                                  placeholder={`https://pub-xxxx.r2.dev/${(colorName || 'color').toLowerCase().replace(/\s+/g, '-')}-${pIdx + 1}.jpg`}
                                   className="flex-1 text-xs bg-white border border-beige-300 rounded-lg px-3 py-1.5 text-navy focus:outline-none focus:border-navy"
                                 />
 
                                 {/* Botón marcar portada de grilla */}
-                                {url.trim() && (
+                                {cleanUrl && (
                                   isThisPhotoMain ? (
                                     <span
                                       className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-navy text-white flex-shrink-0 shadow-2xs"
@@ -1173,7 +1219,7 @@ export function ProductModal({
                                   ) : (
                                     <button
                                       type="button"
-                                      onClick={() => setImagenPrincipal(url.trim())}
+                                      onClick={() => setImagenPrincipal(cleanUrl)}
                                       className="px-2.5 py-1.5 rounded-lg text-[10px] font-semibold text-navy/70 hover:text-navy bg-white border border-beige-300 hover:border-navy transition-colors cursor-pointer flex-shrink-0"
                                       title="Usar esta foto como la portada principal en la grilla de productos"
                                     >
@@ -1183,7 +1229,7 @@ export function ProductModal({
                                 )}
 
                                 {/* Botón borrar foto de este color */}
-                                {colorItem.imagenes.length > 1 && (
+                                {colorPhotos.length > 1 && (
                                   <button
                                     type="button"
                                     onClick={() => handleRemoveColorPhoto(cIdx, pIdx)}
@@ -1227,18 +1273,20 @@ export function ProductModal({
             </div>
 
             <div className="space-y-2.5 mt-2">
-              {imagenes.map((url, idx) => {
+              {(imagenes || []).map((url, idx) => {
+                const cleanUrl = (typeof url === 'string' ? url : '').trim();
+                const currentMainImg = (imagenPrincipal || '').trim();
                 const isThisPhotoMain =
-                  url.trim() &&
-                  (url.trim() === imagenPrincipal ||
-                    (!imagenPrincipal && effectivePreviewMainImage === url.trim()));
+                  Boolean(cleanUrl) &&
+                  (cleanUrl === currentMainImg ||
+                    (!currentMainImg && effectivePreviewMainImage === cleanUrl));
 
                 return (
                   <div key={idx} className="flex items-center space-x-2">
                     <div className="w-10 h-10 rounded-lg bg-beige-100 border border-beige-300 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                      {url.trim() ? (
+                      {cleanUrl ? (
                         <img
-                          src={url}
+                          src={cleanUrl}
                           alt="Preview general"
                           className="w-full h-full object-cover"
                           onError={(e) => {
@@ -1252,14 +1300,14 @@ export function ProductModal({
 
                     <input
                       type="url"
-                      value={url}
+                      value={url || ''}
                       onChange={(e) => handleGeneralImageChange(idx, e.target.value)}
                       placeholder={`https://pub-xxxx.r2.dev/lookbook-${idx + 1}.jpg`}
                       className="flex-1 text-xs bg-beige-50 border border-beige-300 rounded-lg px-3 py-2 text-navy focus:outline-none focus:border-navy"
                     />
 
                     {/* Botón marcar portada de grilla */}
-                    {url.trim() && (
+                    {cleanUrl && (
                       isThisPhotoMain ? (
                         <span
                           className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-navy text-white flex-shrink-0 shadow-2xs"
@@ -1271,7 +1319,7 @@ export function ProductModal({
                       ) : (
                         <button
                           type="button"
-                          onClick={() => setImagenPrincipal(url.trim())}
+                          onClick={() => setImagenPrincipal(cleanUrl)}
                           className="px-2.5 py-1.5 rounded-lg text-[10px] font-semibold text-navy/70 hover:text-navy bg-white border border-beige-300 hover:border-navy transition-colors cursor-pointer flex-shrink-0"
                           title="Usar esta foto como la portada principal en la grilla de productos"
                         >
@@ -1280,7 +1328,7 @@ export function ProductModal({
                       )
                     )}
 
-                    {imagenes.length > 1 && (
+                    {(imagenes || []).length > 1 && (
                       <button
                         type="button"
                         onClick={() => handleRemoveGeneralImage(idx)}
