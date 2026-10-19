@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Trash2, Image as ImageIcon, Sparkles, AlertCircle, Palette, Check, Tag, CreditCard, Percent, Layers, FolderCheck } from 'lucide-react';
+import { X, Plus, Trash2, Image as ImageIcon, Sparkles, AlertCircle, Palette, Check, Tag, CreditCard, Percent, Layers, FolderCheck, Star } from 'lucide-react';
 import { Producto, Subcategoria, Categoria, TipoOferta, ColorVariant } from '../../lib/supabase';
 
 interface ProductModalProps {
@@ -14,6 +14,8 @@ interface ProductModalProps {
     categorias_ids?: string[];
     tipo_oferta_id?: string | null;
     imagenes_url: string[];
+    imagen_principal?: string | null;
+    color_principal?: string | null;
     colores?: ColorVariant[];
     descripcion?: string | null;
     talles?: string[];
@@ -66,6 +68,8 @@ export function ProductModal({
   const [destacado, setDestacado] = useState(false);
   const [stock, setStock] = useState<number | ''>(10);
   const [imagenes, setImagenes] = useState<string[]>(['']);
+  const [imagenPrincipal, setImagenPrincipal] = useState<string>('');
+  const [colorPrincipal, setColorPrincipal] = useState<string>('');
   const [colores, setColores] = useState<ColorItemState[]>([]);
   const [talles, setTalles] = useState<string[]>(['S', 'M', 'L', 'XL']);
   const [customTalle, setCustomTalle] = useState('');
@@ -113,6 +117,18 @@ export function ProductModal({
           : ['']
       );
 
+      const initialImgPrincipal =
+        product.imagen_principal ||
+        (Array.isArray(product.imagenes_url) && product.imagenes_url[0]) ||
+        '';
+      setImagenPrincipal(initialImgPrincipal);
+
+      const initialColorPrincipal =
+        product.color_principal ||
+        (Array.isArray(product.colores) && product.colores[0]?.name) ||
+        '';
+      setColorPrincipal(initialColorPrincipal);
+
       if (Array.isArray(product.colores) && product.colores.length > 0) {
         setColores(
           product.colores.map((c) => ({
@@ -139,6 +155,8 @@ export function ProductModal({
       setPermiteCuotas(true);
       setPermiteTransferencia(true);
       setImagenes(['']);
+      setImagenPrincipal('');
+      setColorPrincipal('');
       setColores([]);
     }
     setError(null);
@@ -175,35 +193,62 @@ export function ProductModal({
   };
 
   const handleRemoveGeneralImage = (index: number) => {
+    const removedUrl = imagenes[index];
     const updated = imagenes.filter((_, idx) => idx !== index);
     setImagenes(updated.length > 0 ? updated : ['']);
+    if (imagenPrincipal && removedUrl && imagenPrincipal === removedUrl.trim()) {
+      setImagenPrincipal(updated[0]?.trim() || '');
+    }
   };
 
   const handleGeneralImageChange = (index: number, val: string) => {
+    const oldVal = imagenes[index];
     const updated = [...imagenes];
     updated[index] = val;
     setImagenes(updated);
+    if (imagenPrincipal && oldVal && imagenPrincipal === oldVal.trim()) {
+      setImagenPrincipal(val.trim());
+    } else if (!imagenPrincipal && val.trim()) {
+      setImagenPrincipal(val.trim());
+    }
   };
 
   // Manejo de Colores
   const handleAddPresetColor = (preset: { name: string; hex: string }) => {
     const exists = colores.some((c) => c.name.toLowerCase() === preset.name.toLowerCase());
     if (exists) return;
-    setColores([...colores, { name: preset.name, titulo: '', hex: preset.hex, imagenes: [''] }]);
+    const newColores = [...colores, { name: preset.name, titulo: '', hex: preset.hex, imagenes: [''] }];
+    setColores(newColores);
+    if (!colorPrincipal) {
+      setColorPrincipal(preset.name);
+    }
   };
 
   const handleAddCustomColor = () => {
-    setColores([...colores, { name: 'Nuevo Color', titulo: '', hex: '#222222', imagenes: [''] }]);
+    const newColores = [...colores, { name: 'Nuevo Color', titulo: '', hex: '#222222', imagenes: [''] }];
+    setColores(newColores);
+    if (!colorPrincipal) {
+      setColorPrincipal('Nuevo Color');
+    }
   };
 
   const handleRemoveColor = (index: number) => {
-    setColores(colores.filter((_, idx) => idx !== index));
+    const removedColor = colores[index];
+    const filtered = colores.filter((_, idx) => idx !== index);
+    setColores(filtered);
+    if (colorPrincipal && removedColor && colorPrincipal.toLowerCase() === removedColor.name.toLowerCase()) {
+      setColorPrincipal(filtered[0]?.name || '');
+    }
   };
 
   const handleColorChange = (index: number, field: 'name' | 'titulo' | 'hex', val: string) => {
+    const oldName = colores[index].name;
     const updated = [...colores];
     updated[index] = { ...updated[index], [field]: val };
     setColores(updated);
+    if (field === 'name' && colorPrincipal && colorPrincipal.toLowerCase() === oldName.toLowerCase()) {
+      setColorPrincipal(val);
+    }
   };
 
   // Fotos específicas de un Color
@@ -268,6 +313,33 @@ export function ProductModal({
     });
   };
 
+  // Lista unificada de todas las URLs disponibles con origen amigable
+  const allAvailablePhotos = React.useMemo(() => {
+    const list: { url: string; label: string }[] = [];
+    imagenes.forEach((u, i) => {
+      const clean = u.trim();
+      if (clean && !list.some((item) => item.url === clean)) {
+        list.push({ url: clean, label: `Foto General #${i + 1}` });
+      }
+    });
+    colores.forEach((c) => {
+      (c.imagenes || []).forEach((u, i) => {
+        const clean = u.trim();
+        if (clean && !list.some((item) => item.url === clean)) {
+          list.push({ url: clean, label: `${c.name || 'Color'} (Foto #${i + 1})` });
+        }
+      });
+    });
+    return list;
+  }, [imagenes, colores]);
+
+  const effectivePreviewMainImage =
+    imagenPrincipal.trim() ||
+    allAvailablePhotos[0]?.url ||
+    imagenes.find((u) => u.trim()) ||
+    colores.flatMap((c) => c.imagenes).find((u) => u.trim()) ||
+    '';
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!nombre.trim()) {
@@ -297,7 +369,19 @@ export function ProductModal({
         imagenes: c.imagenes.map((u) => u.trim()).filter(Boolean),
       }));
 
-    // Si no se cargaron fotos generales pero sí fotos en colores, unificar en la lista general
+    // Priorizar el color_principal al inicio de cleanColores
+    const effectiveColorPrincipal = colorPrincipal.trim() || cleanColores[0]?.name || '';
+    if (effectiveColorPrincipal && cleanColores.length > 1) {
+      const cIdx = cleanColores.findIndex(
+        (c) => c.name.toLowerCase() === effectiveColorPrincipal.toLowerCase()
+      );
+      if (cIdx > 0) {
+        const [matched] = cleanColores.splice(cIdx, 1);
+        cleanColores.unshift(matched);
+      }
+    }
+
+    // Reunir todas las fotos
     const allCollectedUrls = [...cleanGeneralUrls];
     cleanColores.forEach((c) => {
       c.imagenes.forEach((u) => {
@@ -306,6 +390,18 @@ export function ProductModal({
         }
       });
     });
+
+    // Priorizar la imagen_principal al inicio de la lista general
+    const effectiveMainImage = imagenPrincipal.trim() || allCollectedUrls[0] || '';
+    if (effectiveMainImage) {
+      const existingIdx = allCollectedUrls.indexOf(effectiveMainImage);
+      if (existingIdx > 0) {
+        allCollectedUrls.splice(existingIdx, 1);
+        allCollectedUrls.unshift(effectiveMainImage);
+      } else if (existingIdx === -1) {
+        allCollectedUrls.unshift(effectiveMainImage);
+      }
+    }
 
     try {
       setIsSubmitting(true);
@@ -320,6 +416,8 @@ export function ProductModal({
         categorias_ids: selectedCategoriasIds,
         tipo_oferta_id: tipoOfertaId || null,
         imagenes_url: allCollectedUrls,
+        imagen_principal: effectiveMainImage || null,
+        color_principal: effectiveColorPrincipal || null,
         colores: cleanColores,
         talles,
         permite_cuotas: permiteCuotas,
@@ -763,7 +861,77 @@ export function ProductModal({
             </label>
           </div>
 
-          {/* 8. VARIEDAD DE COLORES & FOTOS POR COLOR */}
+          {/* 8. IMAGEN PRINCIPAL EN LA GRILLA DE PRODUCTOS */}
+          <div className="pt-4 border-t border-beige-200 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <div className="flex items-center space-x-2">
+                  <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+                  <label className="block text-xs font-bold uppercase tracking-wider text-navy">
+                    Imagen Principal en la Grilla de Productos *
+                  </label>
+                </div>
+                <p className="text-[11px] text-navy/60 font-light mt-0.5">
+                  Esta foto es la portada que verán los clientes en la grilla del catálogo, tienda y página de inicio. Podés seleccionarla con un clic de cualquier foto cargada abajo o elegirla del menú.
+                </p>
+              </div>
+            </div>
+
+            <div className="p-4 bg-beige-50/80 rounded-xl border border-beige-300 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+              <div className="flex items-center space-x-3.5">
+                <div className="w-16 h-20 rounded-xl bg-white border border-beige-300 overflow-hidden flex-shrink-0 flex items-center justify-center shadow-xs">
+                  {effectivePreviewMainImage ? (
+                    <img
+                      src={effectivePreviewMainImage}
+                      alt="Portada de grilla"
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLElement).style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <ImageIcon className="w-6 h-6 text-navy/30" />
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-navy text-white">
+                    <Star className="w-2.5 h-2.5 text-amber-300 fill-amber-300" />
+                    <span>Portada Activa en Catálogo</span>
+                  </span>
+                  <p className="text-xs font-montserrat font-bold text-navy truncate max-w-xs sm:max-w-md">
+                    {effectivePreviewMainImage
+                      ? allAvailablePhotos.find((p) => p.url === effectivePreviewMainImage)?.label || 'URL fijada'
+                      : 'Sin foto asignada aún'}
+                  </p>
+                  <p className="text-[10px] text-navy/50 font-mono truncate max-w-xs sm:max-w-md">
+                    {effectivePreviewMainImage || 'Cargá fotos en las secciones de abajo para elegir la portada.'}
+                  </p>
+                </div>
+              </div>
+
+              {allAvailablePhotos.length > 0 && (
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-navy/70 whitespace-nowrap">
+                    Cambiar portada:
+                  </span>
+                  <select
+                    value={imagenPrincipal}
+                    onChange={(e) => setImagenPrincipal(e.target.value)}
+                    className="text-xs bg-white border border-beige-300 rounded-lg px-3 py-2 text-navy font-semibold focus:outline-none focus:border-navy max-w-xs cursor-pointer shadow-2xs"
+                  >
+                    <option value="">-- Primera foto disponible --</option>
+                    {allAvailablePhotos.map((photo, pIdx) => (
+                      <option key={pIdx} value={photo.url}>
+                        {photo.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* 9. VARIEDAD DE COLORES & FOTOS POR COLOR */}
           <div className="pt-4 border-t border-beige-200 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
@@ -774,7 +942,7 @@ export function ProductModal({
                   </label>
                 </div>
                 <p className="text-[11px] text-navy/60 font-light mt-0.5">
-                  Cada color se desglosará automáticamente como un producto individual en la tienda, mostrando sus fotos específicas.
+                  Definí los colores de la prenda. Podés marcar cuál color aparece seleccionado primero por defecto.
                 </p>
               </div>
 
@@ -817,6 +985,36 @@ export function ProductModal({
               })}
             </div>
 
+            {/* Selector de Color que aparece primero por defecto */}
+            {colores.length > 0 && (
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 bg-beige-50 rounded-xl border border-beige-300 gap-2 shadow-2xs">
+                <div className="flex items-center space-x-2">
+                  <Star className="w-4 h-4 text-amber-500 fill-amber-500 flex-shrink-0" />
+                  <div>
+                    <span className="text-xs font-montserrat font-bold text-navy uppercase tracking-wide">
+                      Color que aparece primero por defecto:
+                    </span>
+                    <p className="text-[11px] text-navy/60 font-light">
+                      Este color vendrá seleccionado de entrada en la grilla y cuando el cliente abra la prenda.
+                    </p>
+                  </div>
+                </div>
+                <select
+                  value={colorPrincipal}
+                  onChange={(e) => setColorPrincipal(e.target.value)}
+                  className="text-xs bg-white border border-beige-300 rounded-lg px-3 py-2 text-navy font-bold focus:outline-none focus:border-navy cursor-pointer"
+                >
+                  {colores
+                    .filter((c) => c.name.trim())
+                    .map((c) => (
+                      <option key={c.name} value={c.name}>
+                        {c.name} {c.titulo ? `(${c.titulo})` : ''}
+                      </option>
+                    ))}
+                </select>
+              </div>
+            )}
+
             {/* Lista de Colores Configurados */}
             {colores.length === 0 ? (
               <div className="p-4 rounded-xl border border-dashed border-beige-300 text-center text-xs text-navy/50 font-light">
@@ -824,130 +1022,190 @@ export function ProductModal({
               </div>
             ) : (
               <div className="space-y-4">
-                {colores.map((colorItem, cIdx) => (
-                  <div
-                    key={cIdx}
-                    className="p-4 rounded-xl border border-beige-300 bg-beige-50/50 space-y-3"
-                  >
-                    {/* Header de este color */}
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center space-x-2 flex-1">
-                        {/* Selector nativo de color */}
-                        <div className="relative">
+                {colores.map((colorItem, cIdx) => {
+                  const isMainColor =
+                    colorPrincipal.toLowerCase() === colorItem.name.toLowerCase() ||
+                    (!colorPrincipal && cIdx === 0);
+
+                  return (
+                    <div
+                      key={cIdx}
+                      className={`p-4 rounded-xl border transition-all space-y-3 ${
+                        isMainColor
+                          ? 'border-navy bg-white shadow-xs'
+                          : 'border-beige-300 bg-beige-50/50'
+                      }`}
+                    >
+                      {/* Header de este color */}
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center space-x-2 flex-1">
+                          {/* Selector nativo de color */}
+                          <div className="relative">
+                            <input
+                              type="color"
+                              value={colorItem.hex}
+                              onChange={(e) => handleColorChange(cIdx, 'hex', e.target.value)}
+                              className="w-8 h-8 rounded-lg border border-beige-300 cursor-pointer overflow-hidden p-0"
+                              title="Elegir tono"
+                            />
+                          </div>
+
+                          {/* Nombre del color */}
                           <input
-                            type="color"
+                            type="text"
+                            value={colorItem.name}
+                            onChange={(e) => handleColorChange(cIdx, 'name', e.target.value)}
+                            placeholder="Color (ej: Negro)"
+                            className="w-32 sm:w-36 text-xs bg-white border border-beige-300 rounded-lg px-2.5 py-1.5 text-navy font-semibold focus:outline-none focus:border-navy"
+                          />
+
+                          {/* Título en la tienda para este color */}
+                          <input
+                            type="text"
+                            value={colorItem.titulo || ''}
+                            onChange={(e) => handleColorChange(cIdx, 'titulo', e.target.value)}
+                            placeholder={`Título en la web (ej: Conjunto Veelvet ${colorItem.name || ''})`}
+                            title="Título exclusivo para este color en el catálogo y ficha"
+                            className="flex-1 text-xs bg-white border border-beige-300 rounded-lg px-2.5 py-1.5 text-navy focus:outline-none focus:border-navy"
+                          />
+
+                          {/* Código HEX */}
+                          <input
+                            type="text"
                             value={colorItem.hex}
                             onChange={(e) => handleColorChange(cIdx, 'hex', e.target.value)}
-                            className="w-8 h-8 rounded-lg border border-beige-300 cursor-pointer overflow-hidden p-0"
-                            title="Elegir tono"
+                            placeholder="#161616"
+                            className="w-16 sm:w-20 text-xs font-mono bg-white border border-beige-300 rounded-lg px-2 py-1.5 text-navy focus:outline-none focus:border-navy"
                           />
+
+                          {/* Botón / Badge Color Principal */}
+                          {isMainColor ? (
+                            <span
+                              className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-navy text-white shadow-2xs flex-shrink-0"
+                              title="Este color aparece primero por defecto"
+                            >
+                              <Star className="w-3 h-3 text-amber-300 fill-amber-300" />
+                              <span className="hidden sm:inline">Color Primero</span>
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setColorPrincipal(colorItem.name)}
+                              className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold bg-white text-navy/70 border border-beige-300 hover:border-navy hover:text-navy transition-colors cursor-pointer flex-shrink-0"
+                              title="Hacer que este color aparezca primero por defecto"
+                            >
+                              <Star className="w-3 h-3 text-navy/30" />
+                              <span className="hidden sm:inline">Poner primero</span>
+                            </button>
+                          )}
                         </div>
 
-                        {/* Nombre del color */}
-                        <input
-                          type="text"
-                          value={colorItem.name}
-                          onChange={(e) => handleColorChange(cIdx, 'name', e.target.value)}
-                          placeholder="Color (ej: Negro)"
-                          className="w-32 sm:w-36 text-xs bg-white border border-beige-300 rounded-lg px-2.5 py-1.5 text-navy font-semibold focus:outline-none focus:border-navy"
-                        />
-
-                        {/* Título en la tienda para este color */}
-                        <input
-                          type="text"
-                          value={colorItem.titulo || ''}
-                          onChange={(e) => handleColorChange(cIdx, 'titulo', e.target.value)}
-                          placeholder={`Título en la web (ej: Conjunto Veelvet ${colorItem.name || ''})`}
-                          title="Título exclusivo para este color en el catálogo y ficha"
-                          className="flex-1 text-xs bg-white border border-beige-300 rounded-lg px-2.5 py-1.5 text-navy focus:outline-none focus:border-navy"
-                        />
-
-                        {/* Código HEX */}
-                        <input
-                          type="text"
-                          value={colorItem.hex}
-                          onChange={(e) => handleColorChange(cIdx, 'hex', e.target.value)}
-                          placeholder="#161616"
-                          className="w-16 sm:w-20 text-xs font-mono bg-white border border-beige-300 rounded-lg px-2 py-1.5 text-navy focus:outline-none focus:border-navy"
-                        />
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveColor(cIdx)}
-                        className="p-1.5 text-navy/40 hover:text-red-600 rounded-lg transition-colors cursor-pointer"
-                        title="Eliminar este color"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-
-                    {/* URLs de fotos para este color */}
-                    <div className="pl-4 border-l-2 border-beige-300 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-bold uppercase tracking-wider text-navy/70">
-                          Fotos de la prenda en color {colorItem.name || 'este tono'}
-                        </span>
                         <button
                           type="button"
-                          onClick={() => handleAddColorPhoto(cIdx)}
-                          className="text-[11px] font-bold text-navy hover:text-navy-500 inline-flex items-center space-x-1 cursor-pointer"
+                          onClick={() => handleRemoveColor(cIdx)}
+                          className="p-1.5 text-navy/40 hover:text-red-600 rounded-lg transition-colors cursor-pointer"
+                          title="Eliminar este color"
                         >
-                          <Plus className="w-3 h-3" />
-                          <span>Agregar foto a este color</span>
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
 
-                      <div className="space-y-2">
-                        {colorItem.imagenes.map((url, pIdx) => (
-                          <div key={pIdx} className="flex items-center space-x-2">
-                            {/* Thumbnail preview */}
-                            <div className="w-9 h-9 rounded-lg bg-white border border-beige-300 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                              {url.trim() ? (
-                                <img
-                                  src={url}
-                                  alt="Preview color"
-                                  className="w-full h-full object-cover"
-                                  onError={(e) => {
-                                    (e.target as HTMLElement).style.display = 'none';
-                                  }}
+                      {/* URLs de fotos para este color */}
+                      <div className="pl-4 border-l-2 border-beige-300 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-bold uppercase tracking-wider text-navy/70">
+                            Fotos de la prenda en color {colorItem.name || 'este tono'}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleAddColorPhoto(cIdx)}
+                            className="text-[11px] font-bold text-navy hover:text-navy-500 inline-flex items-center space-x-1 cursor-pointer"
+                          >
+                            <Plus className="w-3 h-3" />
+                            <span>Agregar foto a este color</span>
+                          </button>
+                        </div>
+
+                        <div className="space-y-2">
+                          {colorItem.imagenes.map((url, pIdx) => {
+                            const isThisPhotoMain =
+                              url.trim() &&
+                              (url.trim() === imagenPrincipal ||
+                                (!imagenPrincipal && effectivePreviewMainImage === url.trim()));
+
+                            return (
+                              <div key={pIdx} className="flex items-center space-x-2">
+                                {/* Thumbnail preview */}
+                                <div className="w-9 h-9 rounded-lg bg-white border border-beige-300 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                                  {url.trim() ? (
+                                    <img
+                                      src={url}
+                                      alt="Preview color"
+                                      className="w-full h-full object-cover"
+                                      onError={(e) => {
+                                        (e.target as HTMLElement).style.display = 'none';
+                                      }}
+                                    />
+                                  ) : (
+                                    <ImageIcon className="w-3.5 h-3.5 text-navy/30" />
+                                  )}
+                                </div>
+
+                                {/* Input URL */}
+                                <input
+                                  type="url"
+                                  value={url}
+                                  onChange={(e) => handleColorPhotoChange(cIdx, pIdx, e.target.value)}
+                                  placeholder={`https://pub-xxxx.r2.dev/${colorItem.name.toLowerCase().replace(/\s+/g, '-')}-${pIdx + 1}.jpg`}
+                                  className="flex-1 text-xs bg-white border border-beige-300 rounded-lg px-3 py-1.5 text-navy focus:outline-none focus:border-navy"
                                 />
-                              ) : (
-                                <ImageIcon className="w-3.5 h-3.5 text-navy/30" />
-                              )}
-                            </div>
 
-                            {/* Input URL */}
-                            <input
-                              type="url"
-                              value={url}
-                              onChange={(e) => handleColorPhotoChange(cIdx, pIdx, e.target.value)}
-                              placeholder={`https://pub-xxxx.r2.dev/${colorItem.name.toLowerCase().replace(/\s+/g, '-')}-${pIdx + 1}.jpg`}
-                              className="flex-1 text-xs bg-white border border-beige-300 rounded-lg px-3 py-1.5 text-navy focus:outline-none focus:border-navy"
-                            />
+                                {/* Botón marcar portada de grilla */}
+                                {url.trim() && (
+                                  isThisPhotoMain ? (
+                                    <span
+                                      className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-navy text-white flex-shrink-0 shadow-2xs"
+                                      title="Esta foto es la portada principal de la grilla de productos"
+                                    >
+                                      <Star className="w-2.5 h-2.5 text-amber-300 fill-amber-300" />
+                                      <span className="hidden sm:inline">Portada Grilla</span>
+                                    </span>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => setImagenPrincipal(url.trim())}
+                                      className="px-2.5 py-1.5 rounded-lg text-[10px] font-semibold text-navy/70 hover:text-navy bg-white border border-beige-300 hover:border-navy transition-colors cursor-pointer flex-shrink-0"
+                                      title="Usar esta foto como la portada principal en la grilla de productos"
+                                    >
+                                      Hacer portada
+                                    </button>
+                                  )
+                                )}
 
-                            {/* Botón borrar foto de este color */}
-                            {colorItem.imagenes.length > 1 && (
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveColorPhoto(cIdx, pIdx)}
-                                className="p-1.5 text-navy/40 hover:text-red-600 transition-colors cursor-pointer"
-                                title="Eliminar URL"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            )}
-                          </div>
-                        ))}
+                                {/* Botón borrar foto de este color */}
+                                {colorItem.imagenes.length > 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveColorPhoto(cIdx, pIdx)}
+                                    className="p-1.5 text-navy/40 hover:text-red-600 transition-colors cursor-pointer"
+                                    title="Eliminar URL"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
 
-          {/* 9. FOTOS GENERALES / LOOKBOOK (OPCIONAL) */}
+          {/* 10. FOTOS GENERALES / LOOKBOOK (OPCIONAL) */}
           <div className="pt-4 border-t border-beige-200 space-y-2">
             <div className="flex items-center justify-between">
               <div>
@@ -969,43 +1227,72 @@ export function ProductModal({
             </div>
 
             <div className="space-y-2.5 mt-2">
-              {imagenes.map((url, idx) => (
-                <div key={idx} className="flex items-center space-x-2">
-                  <div className="w-10 h-10 rounded-lg bg-beige-100 border border-beige-300 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                    {url.trim() ? (
-                      <img
-                        src={url}
-                        alt="Preview general"
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          (e.target as HTMLElement).style.display = 'none';
-                        }}
-                      />
-                    ) : (
-                      <ImageIcon className="w-4 h-4 text-navy/30" />
+              {imagenes.map((url, idx) => {
+                const isThisPhotoMain =
+                  url.trim() &&
+                  (url.trim() === imagenPrincipal ||
+                    (!imagenPrincipal && effectivePreviewMainImage === url.trim()));
+
+                return (
+                  <div key={idx} className="flex items-center space-x-2">
+                    <div className="w-10 h-10 rounded-lg bg-beige-100 border border-beige-300 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                      {url.trim() ? (
+                        <img
+                          src={url}
+                          alt="Preview general"
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLElement).style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <ImageIcon className="w-4 h-4 text-navy/30" />
+                      )}
+                    </div>
+
+                    <input
+                      type="url"
+                      value={url}
+                      onChange={(e) => handleGeneralImageChange(idx, e.target.value)}
+                      placeholder={`https://pub-xxxx.r2.dev/lookbook-${idx + 1}.jpg`}
+                      className="flex-1 text-xs bg-beige-50 border border-beige-300 rounded-lg px-3 py-2 text-navy focus:outline-none focus:border-navy"
+                    />
+
+                    {/* Botón marcar portada de grilla */}
+                    {url.trim() && (
+                      isThisPhotoMain ? (
+                        <span
+                          className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-navy text-white flex-shrink-0 shadow-2xs"
+                          title="Esta foto es la portada principal de la grilla de productos"
+                        >
+                          <Star className="w-2.5 h-2.5 text-amber-300 fill-amber-300" />
+                          <span className="hidden sm:inline">Portada Grilla</span>
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setImagenPrincipal(url.trim())}
+                          className="px-2.5 py-1.5 rounded-lg text-[10px] font-semibold text-navy/70 hover:text-navy bg-white border border-beige-300 hover:border-navy transition-colors cursor-pointer flex-shrink-0"
+                          title="Usar esta foto como la portada principal en la grilla de productos"
+                        >
+                          Hacer portada
+                        </button>
+                      )
+                    )}
+
+                    {imagenes.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveGeneralImage(idx)}
+                        className="p-2 text-navy/40 hover:text-red-600 transition-colors cursor-pointer"
+                        title="Eliminar URL"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     )}
                   </div>
-
-                  <input
-                    type="url"
-                    value={url}
-                    onChange={(e) => handleGeneralImageChange(idx, e.target.value)}
-                    placeholder={`https://pub-xxxx.r2.dev/lookbook-${idx + 1}.jpg`}
-                    className="flex-1 text-xs bg-beige-50 border border-beige-300 rounded-lg px-3 py-2 text-navy focus:outline-none focus:border-navy"
-                  />
-
-                  {imagenes.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveGeneralImage(idx)}
-                      className="p-2 text-navy/40 hover:text-red-600 transition-colors cursor-pointer"
-                      title="Eliminar URL"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 

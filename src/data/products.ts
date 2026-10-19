@@ -43,6 +43,8 @@ export interface Product {
     secondary: string;
     lookbook?: string;
   };
+  mainGridImage?: string;
+  primaryColor?: string;
   allImages?: string[];
   colors: ProductColor[];
   sizes: string[];

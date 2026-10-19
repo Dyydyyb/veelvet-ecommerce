@@ -194,7 +194,7 @@ export function ProductsManager({
                 </tr>
               ) : (
                 filteredProducts.map((prod) => {
-                  const primaryImg = prod.imagenes_url?.[0];
+                  const primaryImg = prod.imagen_principal || prod.imagenes_url?.[0];
                   return (
                     <tr key={prod.id} className="hover:bg-beige-50/60 transition-colors">
                       {/* Product & Photo */}
@@ -233,6 +233,11 @@ export function ProductsManager({
                                   <span className="text-[10px] text-navy/60 font-semibold">
                                     {prod.colores.length} color(es)
                                   </span>
+                                  {prod.color_principal && (
+                                    <span className="text-[9px] text-navy font-bold bg-beige-200 border border-beige-300 px-1.5 py-0.2 rounded" title="Color que aparece primero">
+                                      1°: {prod.color_principal}
+                                    </span>
+                                  )}
                                   <div className="flex items-center -space-x-1 ml-0.5">
                                     {prod.colores.map((c, i) => (
                                       <span

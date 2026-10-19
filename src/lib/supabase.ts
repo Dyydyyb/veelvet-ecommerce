@@ -59,6 +59,8 @@ export interface Producto {
   precio: number;
   precio_anterior: number | null;
   imagenes_url: string[] | any; // Lista JSON de Cloudflare R2 URLs o payload con { urls, colores, descripcion }
+  imagen_principal?: string | null; // Imagen principal que figura en la grilla de productos
+  color_principal?: string | null;  // Color que aparece primero por defecto
   destacado: boolean;
   stock: number;
   created_at: string;

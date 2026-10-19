@@ -12,6 +12,8 @@ function parseRawProduct(raw: any): Producto {
     raw.permite_transferencia_descuento !== undefined ? Boolean(raw.permite_transferencia_descuento) : true;
   let subcategorias_ids: string[] = Array.isArray(raw.subcategorias_ids) ? [...raw.subcategorias_ids] : [];
   let categorias_ids: string[] = Array.isArray(raw.categorias_ids) ? [...raw.categorias_ids] : [];
+  let imagen_principal: string | null = raw.imagen_principal || null;
+  let color_principal: string | null = raw.color_principal || null;
 
   if (Array.isArray(raw.imagenes_url)) {
     urls = raw.imagenes_url.filter(Boolean);
@@ -40,6 +42,31 @@ function parseRawProduct(raw: any): Producto {
     if (Array.isArray(raw.imagenes_url.categorias_ids)) {
       categorias_ids = Array.from(new Set(raw.imagenes_url.categorias_ids.filter(Boolean)));
     }
+    if (!imagen_principal && raw.imagenes_url.imagen_principal) {
+      imagen_principal = raw.imagenes_url.imagen_principal;
+    }
+    if (!color_principal && raw.imagenes_url.color_principal) {
+      color_principal = raw.imagenes_url.color_principal;
+    }
+  }
+
+  // Fallbacks automáticos
+  if (!imagen_principal && urls.length > 0) {
+    imagen_principal = urls[0];
+  }
+  if (!color_principal && colores.length > 0) {
+    color_principal = colores[0]?.name || null;
+  }
+
+  // Si hay color_principal definido, asegurar que quede al inicio de la lista de variantes
+  if (color_principal && colores.length > 1) {
+    const mainIdx = colores.findIndex(
+      (c) => c.name.toLowerCase() === color_principal?.toLowerCase()
+    );
+    if (mainIdx > 0) {
+      const [matched] = colores.splice(mainIdx, 1);
+      colores.unshift(matched);
+    }
   }
 
   // Solo usar fallback si NO se especificaron listas explícitas
@@ -67,6 +94,8 @@ function parseRawProduct(raw: any): Producto {
   return {
     ...raw,
     imagenes_url: urls,
+    imagen_principal,
+    color_principal,
     descripcion: descripcion || null,
     colores,
     talles: talles.length > 0 ? talles : ['S', 'M', 'L', 'XL'],
@@ -651,6 +680,8 @@ export const SupabaseService = {
     categorias_ids?: string[];
     tipo_oferta_id?: string | null;
     imagenes_url: string[];
+    imagen_principal?: string | null;
+    color_principal?: string | null;
     colores?: ColorVariant[];
     descripcion?: string | null;
     talles?: string[];
@@ -676,6 +707,29 @@ export const SupabaseService = {
       ? Array.from(new Set(payload.categorias_ids.filter(Boolean)))
       : [];
 
+    const effectiveMainImage = payload.imagen_principal?.trim() || cleanUrls[0] || null;
+    const effectiveMainColor = payload.color_principal?.trim() || cleanColores[0]?.name || null;
+
+    if (effectiveMainImage) {
+      const idx = cleanUrls.indexOf(effectiveMainImage);
+      if (idx > 0) {
+        cleanUrls.splice(idx, 1);
+        cleanUrls.unshift(effectiveMainImage);
+      } else if (idx === -1) {
+        cleanUrls.unshift(effectiveMainImage);
+      }
+    }
+
+    if (effectiveMainColor && cleanColores.length > 1) {
+      const cIdx = cleanColores.findIndex(
+        (c) => c.name.toLowerCase() === effectiveMainColor.toLowerCase()
+      );
+      if (cIdx > 0) {
+        const [matched] = cleanColores.splice(cIdx, 1);
+        cleanColores.unshift(matched);
+      }
+    }
+
     const insertObj: any = {
       nombre: payload.nombre.trim(),
       precio: payload.precio,
@@ -693,6 +747,8 @@ export const SupabaseService = {
         permite_transferencia_descuento: permiteTransferencia,
         subcategorias_ids: cleanSubIds,
         categorias_ids: cleanCatIds,
+        imagen_principal: effectiveMainImage,
+        color_principal: effectiveMainColor,
       },
     };
 
@@ -735,6 +791,8 @@ export const SupabaseService = {
       categorias_ids?: string[];
       tipo_oferta_id?: string | null;
       imagenes_url?: string[];
+      imagen_principal?: string | null;
+      color_principal?: string | null;
       colores?: ColorVariant[];
       descripcion?: string | null;
       talles?: string[];
@@ -759,6 +817,8 @@ export const SupabaseService = {
 
     if (
       payload.imagenes_url !== undefined ||
+      payload.imagen_principal !== undefined ||
+      payload.color_principal !== undefined ||
       payload.colores !== undefined ||
       payload.descripcion !== undefined ||
       payload.talles !== undefined ||
@@ -784,6 +844,35 @@ export const SupabaseService = {
         ? Array.from(new Set(payload.categorias_ids.filter(Boolean)))
         : [];
 
+      const effectiveMainImage =
+        payload.imagen_principal !== undefined
+          ? (payload.imagen_principal?.trim() || null)
+          : (cleanUrls[0] || null);
+      const effectiveMainColor =
+        payload.color_principal !== undefined
+          ? (payload.color_principal?.trim() || null)
+          : (cleanColores[0]?.name || null);
+
+      if (effectiveMainImage) {
+        const idx = cleanUrls.indexOf(effectiveMainImage);
+        if (idx > 0) {
+          cleanUrls.splice(idx, 1);
+          cleanUrls.unshift(effectiveMainImage);
+        } else if (idx === -1) {
+          cleanUrls.unshift(effectiveMainImage);
+        }
+      }
+
+      if (effectiveMainColor && cleanColores.length > 1) {
+        const cIdx = cleanColores.findIndex(
+          (c) => c.name.toLowerCase() === effectiveMainColor.toLowerCase()
+        );
+        if (cIdx > 0) {
+          const [matched] = cleanColores.splice(cIdx, 1);
+          cleanColores.unshift(matched);
+        }
+      }
+
       updateObj.imagenes_url = {
         urls: cleanUrls,
         colores: cleanColores,
@@ -793,6 +882,8 @@ export const SupabaseService = {
         permite_transferencia_descuento: permiteTransferencia,
         subcategorias_ids: cleanSubIds,
         categorias_ids: cleanCatIds,
+        imagen_principal: effectiveMainImage,
+        color_principal: effectiveMainColor,
       };
     }
 
@@ -853,12 +944,26 @@ export const SupabaseService = {
       });
     }
 
-    const finalImagesList = allUrls.length > 0 ? allUrls : [defaultImg];
+    let finalImagesList = allUrls.length > 0 ? allUrls : [defaultImg];
+    const mainGridImage = parsed.imagen_principal?.trim() || finalImagesList[0] || defaultImg;
+    if (mainGridImage) {
+      finalImagesList = [mainGridImage, ...finalImagesList.filter((u) => u !== mainGridImage)];
+    }
 
-    // Mapear variedad de colores
-    let productColors: { name: string; hex: string; class: string; images: string[] }[] = [];
+    // Mapear variedad de colores (garantizando que el color principal quede primero)
+    let productColors: { name: string; hex: string; class: string; images: string[]; titulo?: string }[] = [];
     if (parsed.colores && parsed.colores.length > 0) {
-      productColors = parsed.colores.map((c) => ({
+      let sortedColores = [...parsed.colores];
+      if (parsed.color_principal) {
+        const cIdx = sortedColores.findIndex(
+          (c) => c.name.toLowerCase() === parsed.color_principal?.toLowerCase()
+        );
+        if (cIdx > 0) {
+          const [found] = sortedColores.splice(cIdx, 1);
+          sortedColores.unshift(found);
+        }
+      }
+      productColors = sortedColores.map((c) => ({
         name: c.name,
         titulo: c.titulo,
         hex: c.hex,
@@ -1000,10 +1105,12 @@ export const SupabaseService = {
       composition: '100% Algodón peinado pesado 380g con proceso antipilling y teñido reactivo.',
       fit: 'Boxy / Oversized unisex. Recomendamos llevar tu talle habitual para un calce relajado.',
       images: {
-        primary: finalImagesList[0] || defaultImg,
-        secondary: finalImagesList[1] || finalImagesList[0] || defaultImg,
-        lookbook: finalImagesList[2] || finalImagesList[0] || defaultImg,
+        primary: mainGridImage,
+        secondary: finalImagesList[1] || mainGridImage,
+        lookbook: finalImagesList[2] || mainGridImage,
       },
+      mainGridImage,
+      primaryColor: parsed.color_principal || productColors[0]?.name,
       allImages: finalImagesList,
       colors: productColors,
       sizes: parsed.talles && parsed.talles.length > 0 ? parsed.talles : ['S', 'M', 'L', 'XL'],

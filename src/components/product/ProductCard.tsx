@@ -19,11 +19,13 @@ export function ProductCard({ product }: ProductCardProps) {
       ? product.colors?.find((c) => c.name === product.selectedColorVariant) || fallbackColor
       : fallbackColor
   );
+  const [hasUserSwatched, setHasUserSwatched] = useState(false);
   const [isAdded, setIsAdded] = useState(false);
   const { addItem } = useCartStore();
 
   // Sync if product changes
   React.useEffect(() => {
+    setHasUserSwatched(false);
     if (product.selectedColorVariant) {
       const match = product.colors?.find((c) => c.name === product.selectedColorVariant);
       if (match) setSelectedColor(match);
@@ -35,10 +37,16 @@ export function ProductCard({ product }: ProductCardProps) {
     }
   }, [product]);
 
-  const displayPrimaryImage =
-    selectedColor?.images?.[0] || product.images?.primary || '';
-  const displaySecondaryImage =
-    selectedColor?.images?.[1] || product.images?.secondary || displayPrimaryImage;
+  // Si el usuario no hizo clic en un color específico, la imagen principal de la grilla tiene prioridad
+  const displayPrimaryImage = hasUserSwatched
+    ? (selectedColor?.images?.[0] || product.mainGridImage || product.images?.primary || '')
+    : (product.mainGridImage || product.images?.primary || selectedColor?.images?.[0] || '');
+
+  const displaySecondaryImage = hasUserSwatched
+    ? (selectedColor?.images?.[1] || product.images?.secondary || displayPrimaryImage)
+    : (product.images?.secondary && product.images?.secondary !== displayPrimaryImage
+        ? product.images.secondary
+        : (selectedColor?.images?.[1] || displayPrimaryImage));
 
   const productTargetUrl = selectedColor?.name
     ? `/producto/${product.slug}?color=${encodeURIComponent(selectedColor.name)}`
@@ -175,6 +183,7 @@ export function ProductCard({ product }: ProductCardProps) {
                   e.preventDefault();
                   e.stopPropagation();
                   setSelectedColor(color);
+                  setHasUserSwatched(true);
                 }}
                 title={color.name}
                 aria-label={`Color ${color.name}`}
