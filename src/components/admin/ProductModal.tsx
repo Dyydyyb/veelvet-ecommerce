@@ -173,7 +173,39 @@ export function ProductModal({
     setError(null);
   }, [product, subcategorias, categorias, isOpen]);
 
-  if (!isOpen) return null;
+  // Lista unificada de todas las URLs disponibles con origen amigable
+  const allAvailablePhotos = React.useMemo(() => {
+    const list: { url: string; label: string }[] = [];
+    (imagenes || []).forEach((u, i) => {
+      const clean = (typeof u === 'string' ? u : '').trim();
+      if (clean && !list.some((item) => item.url === clean)) {
+        list.push({ url: clean, label: `Foto General #${i + 1}` });
+      }
+    });
+    (colores || []).forEach((c) => {
+      const cName = (c?.name || 'Color').trim();
+      (c?.imagenes || []).forEach((u, i) => {
+        const clean = (typeof u === 'string' ? u : '').trim();
+        if (clean && !list.some((item) => item.url === clean)) {
+          list.push({ url: clean, label: `${cName} (Foto #${i + 1})` });
+        }
+      });
+    });
+    return list;
+  }, [imagenes, colores]);
+
+  const effectivePreviewMainImage = React.useMemo(() => {
+    const mainImgClean = (typeof imagenPrincipal === 'string' ? imagenPrincipal : '').trim();
+    if (mainImgClean) return mainImgClean;
+    if (allAvailablePhotos.length > 0) return allAvailablePhotos[0].url;
+    const firstGeneral = (imagenes || []).find((u) => typeof u === 'string' && u.trim());
+    if (firstGeneral) return firstGeneral.trim();
+    for (const c of colores || []) {
+      const firstColorPhoto = (c?.imagenes || []).find((u) => typeof u === 'string' && u.trim());
+      if (firstColorPhoto) return firstColorPhoto.trim();
+    }
+    return '';
+  }, [imagenPrincipal, allAvailablePhotos, imagenes, colores]);
 
   // Manejo de Talles
   const toggleTalle = (sizeName: string) => {
@@ -339,40 +371,6 @@ export function ProductModal({
     });
   };
 
-  // Lista unificada de todas las URLs disponibles con origen amigable
-  const allAvailablePhotos = React.useMemo(() => {
-    const list: { url: string; label: string }[] = [];
-    (imagenes || []).forEach((u, i) => {
-      const clean = (typeof u === 'string' ? u : '').trim();
-      if (clean && !list.some((item) => item.url === clean)) {
-        list.push({ url: clean, label: `Foto General #${i + 1}` });
-      }
-    });
-    (colores || []).forEach((c) => {
-      const cName = (c?.name || 'Color').trim();
-      (c?.imagenes || []).forEach((u, i) => {
-        const clean = (typeof u === 'string' ? u : '').trim();
-        if (clean && !list.some((item) => item.url === clean)) {
-          list.push({ url: clean, label: `${cName} (Foto #${i + 1})` });
-        }
-      });
-    });
-    return list;
-  }, [imagenes, colores]);
-
-  const effectivePreviewMainImage = React.useMemo(() => {
-    const mainImgClean = (typeof imagenPrincipal === 'string' ? imagenPrincipal : '').trim();
-    if (mainImgClean) return mainImgClean;
-    if (allAvailablePhotos.length > 0) return allAvailablePhotos[0].url;
-    const firstGeneral = (imagenes || []).find((u) => typeof u === 'string' && u.trim());
-    if (firstGeneral) return firstGeneral.trim();
-    for (const c of colores || []) {
-      const firstColorPhoto = (c?.imagenes || []).find((u) => typeof u === 'string' && u.trim());
-      if (firstColorPhoto) return firstColorPhoto.trim();
-    }
-    return '';
-  }, [imagenPrincipal, allAvailablePhotos, imagenes, colores]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!nombre.trim()) {
@@ -470,6 +468,8 @@ export function ProductModal({
       setIsSubmitting(false);
     }
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy/60 backdrop-blur-xs overflow-y-auto">
@@ -795,9 +795,9 @@ export function ProductModal({
 
             {/* Listado de Categorías y sus Subcategorías para seleccionar */}
             <div className="space-y-3 pt-1">
-              {categorias.map((cat) => {
+              {(categorias || []).map((cat) => {
                 const isCatSelected = selectedCategoriasIds.includes(cat.id);
-                const subsOfCat = subcategorias.filter(
+                const subsOfCat = (subcategorias || []).filter(
                   (s) => s.categoria_id === cat.id || s.categorias_ids?.includes(cat.id)
                 );
 
@@ -876,7 +876,7 @@ export function ProductModal({
                 className="w-full sm:w-1/2 text-xs bg-white border border-beige-300 rounded-lg px-3.5 py-2.5 text-navy focus:outline-none focus:border-navy"
               >
                 <option value="">-- Sin oferta especial --</option>
-                {tiposOferta.map((to) => (
+                {(tiposOferta || []).map((to) => (
                   <option key={to.id} value={to.id}>
                     {to.nombre} ({to.etiqueta_badge})
                   </option>

@@ -424,17 +424,19 @@ export function ProductsManager({
       </div>
 
       {/* Modal create / edit */}
-      <AdminErrorBoundary fallbackTitle="Error al abrir editor del producto">
-        <ProductModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          onSave={handleSaveProduct}
-          product={editingProduct}
-          categorias={categorias}
-          subcategorias={subcategorias}
-          tiposOferta={tiposOferta}
-        />
-      </AdminErrorBoundary>
+      {isModalOpen && (
+        <AdminErrorBoundary fallbackTitle="Error al abrir editor del producto">
+          <ProductModal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            onSave={handleSaveProduct}
+            product={editingProduct}
+            categorias={categorias}
+            subcategorias={subcategorias}
+            tiposOferta={tiposOferta}
+          />
+        </AdminErrorBoundary>
+      )}
     </div>
   );
 }
