@@ -25,7 +25,7 @@ import {
   X,
   Check
 } from 'lucide-react';
-import { Pedido, PedidoItem, Producto } from '../../lib/supabase';
+import { supabase, Pedido, PedidoItem, Producto } from '../../lib/supabase';
 import { OrderService } from '../../services/orderService';
 import { getWhatsAppLink } from '../../config/constants';
 
@@ -38,6 +38,8 @@ export function OrdersManager({ productos }: OrdersManagerProps) {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'todos' | 'aprobado' | 'pendiente' | 'rechazado'>('todos');
+  const [rlsBlocked, setRlsBlocked] = useState(false);
+  const [copiedSql, setCopiedSql] = useState(false);
 
   // Modal States
   const [selectedPedido, setSelectedPedido] = useState<Pedido | null>(null);
@@ -75,6 +77,28 @@ export function OrdersManager({ productos }: OrdersManagerProps) {
     const data = await OrderService.getPedidos();
     setPedidos(data);
     setLoading(false);
+
+    // Sonda para verificar si RLS en Supabase bloquea los inserts en la tabla pedidos
+    try {
+      const probeOrder = {
+        order_number: '__probe_' + Date.now(),
+        cliente_nombre: 'probe',
+        cliente_email: 'probe@veelvet.com',
+        metodo_envio: 'probe',
+        items: [],
+        subtotal: 0,
+        total: 0,
+      };
+      const { error } = await supabase.from('pedidos').insert([probeOrder]);
+      if (error && error.code === '42501') {
+        setRlsBlocked(true);
+      } else if (!error) {
+        setRlsBlocked(false);
+        await supabase.from('pedidos').delete().eq('order_number', probeOrder.order_number);
+      }
+    } catch {
+      // Ignorar fallos de red
+    }
   };
 
   useEffect(() => {
@@ -271,6 +295,43 @@ export function OrdersManager({ productos }: OrdersManagerProps) {
           <button onClick={() => setActionSuccess(null)} className="p-1 hover:text-emerald-950">
             <X className="w-4 h-4" />
           </button>
+        </div>
+      )}
+
+      {/* RLS Warning / Setup Banner */}
+      {rlsBlocked && (
+        <div className="p-4 bg-amber-50 border border-amber-300 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-amber-900 shadow-xs animate-fade-in">
+          <div className="flex items-start space-x-3">
+            <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold">Activar sincronización de pedidos en Supabase</p>
+              <p className="text-[11px] text-amber-800/80 mt-0.5">
+                Para que todos los pedidos e intentos de compra se guarden en la base de datos central de Supabase, ejecutá una única vez la siguiente instrucción en tu Supabase SQL Editor.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2 w-full sm:w-auto flex-shrink-0">
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText('ALTER TABLE pedidos DISABLE ROW LEVEL SECURITY;');
+                setCopiedSql(true);
+                setTimeout(() => setCopiedSql(false), 3000);
+              }}
+              className="px-3.5 py-2 bg-amber-200 hover:bg-amber-300 text-amber-900 font-bold rounded-lg transition-colors flex items-center space-x-1.5 text-xs cursor-pointer"
+            >
+              <Copy className="w-3.5 h-3.5" />
+              <span>{copiedSql ? '¡Comando copiado!' : 'Copiar comando SQL'}</span>
+            </button>
+            <a
+              href="https://supabase.com/dashboard/project/ikuwvjvhtbouafjayrvj/sql"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3.5 py-2 bg-navy text-white font-bold rounded-lg hover:bg-navy-500 transition-colors flex items-center space-x-1.5 text-xs"
+            >
+              <span>Abrir Supabase SQL</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+          </div>
         </div>
       )}
 

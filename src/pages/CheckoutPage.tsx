@@ -5,6 +5,7 @@ import { SHIPPING_METHODS, ShippingMethod } from '../data/shippingMethods';
 import { SectionTitle } from '../components/common/SectionTitle';
 import { Truck, MapPin, CheckCircle2, ShieldCheck, CreditCard, ArrowLeft, ArrowRight, Lock, MessageCircle, Clock, Users } from 'lucide-react';
 import { WHATSAPP_DISPLAY, getWhatsAppLink } from '../config/constants';
+import { OrderService } from '../services/orderService';
 import confetti from 'canvas-confetti';
 
 export function CheckoutPage() {
@@ -105,8 +106,45 @@ export function CheckoutPage() {
     setOrderItemsSnapshot(currentItems);
     setupWhatsAppFallback(randomId);
 
+    // 1. Guardar de inmediato el pedido / intento de pedido en el sistema (Supabase + respaldo local)
     try {
-      // 1. Llamar al backend seguro para crear la preferencia oficial de Mercado Pago
+      await OrderService.createPedido({
+        order_number: randomId,
+        cliente_nombre: formData.name,
+        cliente_apellido: formData.lastName,
+        cliente_email: formData.email,
+        cliente_telefono: formData.phone,
+        cliente_dni: formData.dni,
+        direccion_calle: formData.street,
+        direccion_numero: formData.number,
+        direccion_piso_depto: formData.floor,
+        direccion_ciudad: formData.city,
+        direccion_provincia: formData.province,
+        direccion_cp: formData.postalCode,
+        notas: formData.notes,
+        metodo_envio: selectedShipping.name,
+        costo_envio: shippingCost,
+        items: currentItems.map((item) => ({
+          id: item.id,
+          productId: item.product.id,
+          name: item.product.name,
+          size: item.size,
+          colorName: item.colorName,
+          price: item.product.price,
+          quantity: item.quantity,
+          image: item.product.images?.primary || '',
+        })),
+        subtotal,
+        descuento: discount,
+        total: finalTotal,
+        estado_pago: 'pendiente',
+      });
+    } catch (orderSaveErr) {
+      console.warn('Registro preventivo del pedido:', orderSaveErr);
+    }
+
+    try {
+      // 2. Llamar al backend seguro para crear la preferencia oficial de Mercado Pago
       const response = await fetch('/api/create-preference', {
         method: 'POST',
         headers: {
@@ -146,7 +184,7 @@ export function CheckoutPage() {
     } catch (err: any) {
       console.error('Error al procesar el pago con Mercado Pago:', err);
       setSubmitError(
-        'Hubo un inconveniente al conectar con Mercado Pago. Podés intentar nuevamente o coordinar tu compra directamente por WhatsApp.'
+        'Hubo un inconveniente al conectar con Mercado Pago. Tu pedido ya quedó registrado en el sistema. Podés intentar nuevamente o coordinar tu compra directamente por WhatsApp.'
       );
       setIsSubmitting(false);
     }
