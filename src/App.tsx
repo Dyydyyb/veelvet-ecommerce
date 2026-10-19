@@ -23,6 +23,7 @@ import { CheckoutPage } from './pages/CheckoutPage';
 import { OrderConfirmationPage } from './pages/OrderConfirmationPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { AdminPage } from './pages/admin/AdminPage';
+import { AdminErrorBoundary } from './components/admin/AdminErrorBoundary';
 
 // Scroll to top helper on route change
 function ScrollToTop() {
@@ -60,10 +61,12 @@ function AppContent() {
       <ScrollToTop />
 
       {isAdmin ? (
-        <Routes>
-          <Route path="/admin" element={<AdminPage />} />
-          <Route path="/admin/*" element={<AdminPage />} />
-        </Routes>
+        <AdminErrorBoundary fallbackTitle="Error en el panel de administración">
+          <Routes>
+            <Route path="/admin" element={<AdminPage />} />
+            <Route path="/admin/*" element={<AdminPage />} />
+          </Routes>
+        </AdminErrorBoundary>
       ) : (
         <div className="flex flex-col min-h-screen bg-[#f3eee3] text-[#1F2A44] selection:bg-beige-300 selection:text-navy">
           <Header />

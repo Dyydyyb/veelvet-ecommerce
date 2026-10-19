@@ -744,7 +744,7 @@ export function ProductModal({
                 <>
                   {/* Badges de Categorías */}
                   {selectedCategoriasIds.map((catId) => {
-                    const c = categorias.find((cat) => cat.id === catId);
+                    const c = (categorias || []).find((cat) => cat.id === catId);
                     return (
                       <span
                         key={`cat-badge-${catId}`}
@@ -768,7 +768,7 @@ export function ProductModal({
 
                   {/* Badges de Subcategorías */}
                   {selectedSubcategoriasIds.map((subId) => {
-                    const s = subcategorias.find((sub) => sub.id === subId);
+                    const s = (subcategorias || []).find((sub) => sub.id === subId);
                     return (
                       <span
                         key={`sub-badge-${subId}`}
