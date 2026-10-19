@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ShoppingBag, Ruler, Truck, ShieldCheck, Heart, Share2, Plus, Minus, ArrowRight, Check, AlertCircle } from 'lucide-react';
+import { ShoppingBag, Ruler, Truck, ShieldCheck, Heart, Share2, Plus, Minus, ArrowRight, Check, AlertCircle, Sparkles } from 'lucide-react';
 import { Product, ProductColor } from '../data/products';
 import { CatalogService, computeVariantTitle } from '../services/catalogService';
 import { useCartStore } from '../store/cartStore';
@@ -54,6 +54,29 @@ export function ProductDetailPage() {
     return product.name;
   }, [product, selectedColor]);
 
+  // Gestión de Stock de Talles para el Color Seleccionado
+  const selectedColorStockMap = selectedColor.stock_por_talle;
+  const hasColorStockTracking = Boolean(
+    selectedColorStockMap && Object.keys(selectedColorStockMap).length > 0
+  );
+
+  const getSizeStock = (size: string): number | undefined => {
+    if (!hasColorStockTracking || !selectedColorStockMap) return undefined;
+    return typeof selectedColorStockMap[size] === 'number' ? selectedColorStockMap[size] : 0;
+  };
+
+  const isSizeAvailable = (size: string): boolean => {
+    const s = getSizeStock(size);
+    if (s === undefined) return true;
+    return s > 0;
+  };
+
+  const currentSelectedStock = getSizeStock(selectedSize);
+  const isCurrentSelectionInStock = isSizeAvailable(selectedSize);
+  const isEntireColorOutOfStock = Boolean(
+    hasColorStockTracking && product?.sizes && product.sizes.length > 0 && product.sizes.every((s) => getSizeStock(s) === 0)
+  );
+
   // Load product dynamically from Supabase
   React.useEffect(() => {
     if (id) {
@@ -80,7 +103,13 @@ export function ProductDetailPage() {
             setActiveImage(found.images.primary);
           }
 
-          if (found.sizes && found.sizes.length > 0) {
+          // Seleccionar primer talle con stock disponible para este color
+          if (targetColor?.stock_por_talle && found.sizes && found.sizes.length > 0) {
+            const firstAvailable = found.sizes.find(
+              (s) => (targetColor?.stock_por_talle?.[s] ?? 1) > 0
+            );
+            setSelectedSize(firstAvailable || found.sizes[0]);
+          } else if (found.sizes && found.sizes.length > 0) {
             setSelectedSize(found.sizes[0]);
           }
           setQuantity(1);
@@ -109,6 +138,17 @@ export function ProductDetailPage() {
         if (matched.images && matched.images.length > 0) {
           setActiveImage(matched.images[0]);
         }
+        if (matched.stock_por_talle && product.sizes) {
+          const currentHasStock = (matched.stock_por_talle[selectedSize] ?? 1) > 0;
+          if (!currentHasStock) {
+            const firstAvailable = product.sizes.find(
+              (s) => (matched.stock_por_talle?.[s] ?? 1) > 0
+            );
+            if (firstAvailable) {
+              setSelectedSize(firstAvailable);
+            }
+          }
+        }
       }
     }
   }, [colorParam, product]);
@@ -121,6 +161,19 @@ export function ProductDetailPage() {
     } else if (product?.images.primary) {
       setActiveImage(product.images.primary);
     }
+
+    // Si el talle seleccionado no tiene stock en el nuevo color, cambiar al primer disponible
+    if (color.stock_por_talle && product?.sizes) {
+      const currentStock = color.stock_por_talle[selectedSize];
+      if (currentStock === 0) {
+        const firstAvailable = product.sizes.find(
+          (s) => (color.stock_por_talle?.[s] ?? 1) > 0
+        );
+        if (firstAvailable) {
+          setSelectedSize(firstAvailable);
+        }
+      }
+    }
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -132,6 +185,10 @@ export function ProductDetailPage() {
 
   const handleAddToCart = () => {
     if (!product) return;
+    if (!isCurrentSelectionInStock) {
+      showToast(`El talle ${selectedSize} en ${selectedColor.name} está agotado.`);
+      return;
+    }
     addItem(product, selectedSize, selectedColor.name, selectedColor.hex, quantity);
     setIsAdded(true);
     showToast(`¡${currentProductTitle} agregado al carrito!`);
@@ -396,38 +453,108 @@ export function ProductDetailPage() {
             </div>
 
             <div className="flex flex-wrap gap-2">
-              {product.sizes.map((size) => (
-                <button
-                  key={size}
-                  onClick={() => setSelectedSize(size)}
-                  className={`min-w-[50px] py-2.5 px-3.5 text-xs font-montserrat font-bold uppercase tracking-wider rounded-lg border-2 transition-all cursor-pointer ${
-                    selectedSize === size
-                      ? 'bg-navy text-white border-navy shadow-sm'
-                      : 'bg-[#FAF7F0] text-navy border-beige-300 hover:border-beige-400 hover:bg-beige-300'
-                  }`}
-                >
-                  {size}
-                </button>
-              ))}
+              {product.sizes.map((size) => {
+                const stockQty = getSizeStock(size);
+                const isAvailable = isSizeAvailable(size);
+                const isSelected = selectedSize === size;
+
+                return (
+                  <button
+                    key={size}
+                    type="button"
+                    disabled={!isAvailable}
+                    onClick={() => {
+                      if (isAvailable) setSelectedSize(size);
+                    }}
+                    className={`relative min-w-[56px] py-2 px-3 rounded-lg border-2 transition-all flex flex-col items-center justify-center ${
+                      !isAvailable
+                        ? 'opacity-40 bg-beige-100 text-navy/40 border-beige-300 line-through cursor-not-allowed select-none'
+                        : isSelected
+                        ? 'bg-navy text-white border-navy shadow-sm cursor-pointer'
+                        : 'bg-[#FAF7F0] text-navy border-beige-300 hover:border-navy hover:bg-beige-200 cursor-pointer'
+                    }`}
+                  >
+                    <span className="font-montserrat font-bold text-xs uppercase tracking-wider">{size}</span>
+                    {stockQty !== undefined && (
+                      <span
+                        className={`text-[9px] font-mono font-normal tracking-tight mt-0.5 ${
+                          !isAvailable
+                            ? 'text-red-700 font-bold no-underline'
+                            : isSelected
+                            ? 'text-beige-200 font-semibold'
+                            : stockQty <= 3
+                            ? 'text-amber-700 font-bold'
+                            : 'text-navy/60'
+                        }`}
+                      >
+                        {!isAvailable ? 'Agotado' : stockQty <= 3 ? `¡Últimas ${stockQty}!` : `${stockQty} disp.`}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
+
+            {/* Aviso en tiempo real de disponibilidad para este color y talle */}
+            {hasColorStockTracking && (
+              <div className="mt-2.5">
+                {isEntireColorOutOfStock ? (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-center space-x-2">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    <span>Color <strong>{selectedColor.name}</strong> actualmente sin stock en ningún talle.</span>
+                  </div>
+                ) : !isCurrentSelectionInStock ? (
+                  <div className="p-2.5 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700 flex items-center space-x-2">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    <span>El talle <strong>{selectedSize}</strong> en color <strong>{selectedColor.name}</strong> está agotado.</span>
+                  </div>
+                ) : currentSelectedStock !== undefined && currentSelectedStock <= 3 ? (
+                  <div className="text-[11px] text-amber-800 font-bold flex items-center space-x-1.5 p-2 bg-amber-50/70 border border-amber-200 rounded-lg">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
+                    <span>¡Últimas unidades! Quedan solo <strong>{currentSelectedStock} disponibles</strong> en talle {selectedSize} ({selectedColor.name}).</span>
+                  </div>
+                ) : currentSelectedStock !== undefined ? (
+                  <span className="text-[11px] text-navy/70 font-medium block">
+                    ✓ <strong>{currentSelectedStock} unidades disponibles</strong> en talle {selectedSize} ({selectedColor.name}).
+                  </span>
+                ) : null}
+              </div>
+            )}
           </div>
 
           {/* Quantity and Add to Cart */}
           <div className="space-y-3 pt-2">
             <div className="flex space-x-3">
               {/* Quantity Stepper */}
-              <div className="flex items-center border-2 border-beige-300 rounded-lg bg-[#FAF7F0] px-2">
+              <div
+                className={`flex items-center border-2 border-beige-300 rounded-lg bg-[#FAF7F0] px-2 ${
+                  !isCurrentSelectionInStock ? 'opacity-40 cursor-not-allowed' : ''
+                }`}
+              >
                 <button
+                  type="button"
+                  disabled={!isCurrentSelectionInStock || quantity <= 1}
                   onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                  className="p-2 text-navy hover:text-navy-500 transition-colors"
+                  className="p-2 text-navy hover:text-navy-500 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
                   aria-label="Restar cantidad"
                 >
                   <Minus className="w-4 h-4" />
                 </button>
                 <span className="px-3 font-bold text-sm text-navy">{quantity}</span>
                 <button
-                  onClick={() => setQuantity((q) => q + 1)}
-                  className="p-2 text-navy hover:text-navy-500 transition-colors"
+                  type="button"
+                  disabled={
+                    !isCurrentSelectionInStock ||
+                    (currentSelectedStock !== undefined && quantity >= currentSelectedStock)
+                  }
+                  onClick={() =>
+                    setQuantity((q) =>
+                      currentSelectedStock !== undefined
+                        ? Math.min(currentSelectedStock, q + 1)
+                        : q + 1
+                    )
+                  }
+                  className="p-2 text-navy hover:text-navy-500 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
                   aria-label="Sumar cantidad"
                 >
                   <Plus className="w-4 h-4" />
@@ -436,14 +563,23 @@ export function ProductDetailPage() {
 
               {/* Add Button */}
               <button
+                type="button"
+                disabled={!isCurrentSelectionInStock}
                 onClick={handleAddToCart}
                 className={`flex-1 py-4 px-6 rounded-lg font-montserrat font-bold text-xs uppercase tracking-wider flex items-center justify-center space-x-2 transition-all duration-200 shadow-md ${
-                  isAdded
+                  !isCurrentSelectionInStock
+                    ? 'bg-beige-300 text-navy/40 cursor-not-allowed shadow-none'
+                    : isAdded
                     ? 'bg-green-700 text-white'
                     : 'bg-navy hover:bg-navy-500 text-white cursor-pointer'
                 }`}
               >
-                {isAdded ? (
+                {!isCurrentSelectionInStock ? (
+                  <>
+                    <AlertCircle className="w-4 h-4" />
+                    <span>Sin stock en {selectedSize} ({selectedColor.name})</span>
+                  </>
+                ) : isAdded ? (
                   <>
                     <Check className="w-4 h-4 stroke-[2.5]" />
                     <span>¡Agregado a tu bolsa!</span>

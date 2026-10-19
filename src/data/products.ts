@@ -11,6 +11,7 @@ export interface ProductColor {
   hex: string;
   class: string;
   images?: string[];
+  stock_por_talle?: Record<string, number>; // Cantidad disponible por talle, ej: { S: 5, M: 2, L: 0, XL: 3 }
 }
 
 export interface Product {
@@ -49,6 +50,7 @@ export interface Product {
   colors: ProductColor[];
   sizes: string[];
   inStock: boolean;
+  stock?: number;
   tag?: string;
   rating: number;
   reviewsCount: number;

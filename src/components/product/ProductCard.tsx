@@ -26,16 +26,49 @@ export function ProductCard({ product }: ProductCardProps) {
   // Sync if product changes
   React.useEffect(() => {
     setHasUserSwatched(false);
+    let colorCandidate = fallbackColor;
     if (product.selectedColorVariant) {
       const match = product.colors?.find((c) => c.name === product.selectedColorVariant);
-      if (match) setSelectedColor(match);
+      if (match) colorCandidate = match;
     } else if (product.colors?.[0]) {
-      setSelectedColor(product.colors[0]);
+      colorCandidate = product.colors[0];
     }
+    setSelectedColor(colorCandidate);
+
     if (product.sizes?.[0]) {
-      setSelectedSize(product.sizes[0]);
+      if (colorCandidate.stock_por_talle && Object.keys(colorCandidate.stock_por_talle).length > 0) {
+        const available = product.sizes.find((s) => (colorCandidate.stock_por_talle?.[s] ?? 0) > 0);
+        setSelectedSize(available || product.sizes[0]);
+      } else {
+        setSelectedSize(product.sizes[0]);
+      }
     }
   }, [product]);
+
+  // Stock tracking helpers for current color
+  const hasColorStockTracking = Boolean(
+    selectedColor?.stock_por_talle && Object.keys(selectedColor.stock_por_talle).length > 0
+  );
+
+  const getSizeStock = (size: string): number => {
+    if (hasColorStockTracking && selectedColor.stock_por_talle) {
+      return selectedColor.stock_por_talle[size] ?? 0;
+    }
+    return product.inStock ? 99 : 0;
+  };
+
+  const isSizeAvailable = (size: string): boolean => {
+    if (!hasColorStockTracking) return product.inStock;
+    return getSizeStock(size) > 0;
+  };
+
+  const isCurrentSelectionInStock = isSizeAvailable(selectedSize);
+
+  const totalStockInColor = hasColorStockTracking
+    ? Object.values(selectedColor.stock_por_talle || {}).reduce((acc, count) => acc + (Number(count) || 0), 0)
+    : (product.inStock ? 99 : 0);
+
+  const isColorCompletelyOutOfStock = hasColorStockTracking && totalStockInColor === 0;
 
   // Si el usuario no hizo clic en un color específico, la imagen principal de la grilla tiene prioridad
   const displayPrimaryImage = hasUserSwatched
@@ -55,6 +88,7 @@ export function ProductCard({ product }: ProductCardProps) {
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (!isCurrentSelectionInStock) return;
     addItem(product, selectedSize as any, selectedColor.name, selectedColor.hex, 1);
     setIsAdded(true);
     setTimeout(() => setIsAdded(false), 1800);
@@ -112,6 +146,15 @@ export function ProductCard({ product }: ProductCardProps) {
           </div>
         )}
 
+        {/* Agotado Badge for current color */}
+        {isColorCompletelyOutOfStock && (
+          <div className="absolute top-3 right-3 z-10">
+            <span className="bg-red-900/90 backdrop-blur-xs text-white text-[10px] font-bold font-montserrat tracking-wider uppercase px-2 py-0.5 rounded shadow-xs">
+              Agotado
+            </span>
+          </div>
+        )}
+
         {/* Quick Size Selector Overlay sliding up from bottom */}
         <div
           className={`absolute bottom-0 left-0 right-0 p-3 bg-[#f3eee3]/95 backdrop-blur-md border-t border-beige-300/80 transition-all duration-300 transform z-20 ${
@@ -124,35 +167,56 @@ export function ProductCard({ product }: ProductCardProps) {
               Talle rápido:
             </span>
             <div className="flex flex-wrap gap-1">
-              {product.sizes.map((size) => (
-                <button
-                  key={size}
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setSelectedSize(size);
-                  }}
-                  className={`min-w-[24px] h-6 px-1.5 text-[10px] font-bold rounded flex items-center justify-center transition-colors cursor-pointer ${
-                    selectedSize === size
-                      ? 'bg-navy text-white'
-                      : 'bg-beige-100 text-navy hover:bg-beige-200'
-                  }`}
-                >
-                  {size}
-                </button>
-              ))}
+              {product.sizes.map((size) => {
+                const available = isSizeAvailable(size);
+                const stock = getSizeStock(size);
+                const isSelected = selectedSize === size;
+
+                return (
+                  <button
+                    key={size}
+                    type="button"
+                    disabled={!available}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (available) {
+                        setSelectedSize(size);
+                      }
+                    }}
+                    title={
+                      hasColorStockTracking
+                        ? available
+                          ? `${stock} unidades disponibles en ${selectedColor.name}`
+                          : `Sin stock en ${selectedColor.name}`
+                        : undefined
+                    }
+                    className={`min-w-[24px] h-6 px-1.5 text-[10px] font-bold rounded flex items-center justify-center transition-colors ${
+                      !available
+                        ? 'bg-beige-200/50 text-navy/30 line-through cursor-not-allowed opacity-50'
+                        : isSelected
+                        ? 'bg-navy text-white cursor-pointer shadow-xs'
+                        : 'bg-beige-100 text-navy hover:bg-beige-200 cursor-pointer'
+                    }`}
+                  >
+                    {size}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
           {/* Quick Add Button */}
           <button
             type="button"
+            disabled={!isCurrentSelectionInStock || isAdded}
             onClick={handleQuickAdd}
-            className={`w-full py-2 px-3 text-xs font-bold uppercase tracking-wider rounded transition-all duration-200 flex items-center justify-center space-x-1.5 cursor-pointer ${
-              isAdded
-                ? 'bg-green-700 text-white'
-                : 'bg-navy hover:bg-navy-500 text-white'
+            className={`w-full py-2 px-3 text-xs font-bold uppercase tracking-wider rounded transition-all duration-200 flex items-center justify-center space-x-1.5 ${
+              !isCurrentSelectionInStock
+                ? 'bg-beige-300 text-navy/40 cursor-not-allowed'
+                : isAdded
+                ? 'bg-green-700 text-white cursor-default'
+                : 'bg-navy hover:bg-navy-500 text-white cursor-pointer'
             }`}
           >
             {isAdded ? (
@@ -160,6 +224,8 @@ export function ProductCard({ product }: ProductCardProps) {
                 <Check className="w-3.5 h-3.5 stroke-[2.5]" />
                 <span>¡Agregado!</span>
               </>
+            ) : !isCurrentSelectionInStock ? (
+              <span>Sin stock en talle {selectedSize}</span>
             ) : (
               <>
                 <ShoppingBag className="w-3.5 h-3.5" />
@@ -184,6 +250,17 @@ export function ProductCard({ product }: ProductCardProps) {
                   e.stopPropagation();
                   setSelectedColor(color);
                   setHasUserSwatched(true);
+                  if (color.stock_por_talle && Object.keys(color.stock_por_talle).length > 0) {
+                    const currentStock = color.stock_por_talle[selectedSize] ?? 0;
+                    if (currentStock <= 0) {
+                      const firstAvailable = product.sizes.find(
+                        (s) => (color.stock_por_talle?.[s] ?? 0) > 0
+                      );
+                      if (firstAvailable) {
+                        setSelectedSize(firstAvailable);
+                      }
+                    }
+                  }
                 }}
                 title={color.name}
                 aria-label={`Color ${color.name}`}

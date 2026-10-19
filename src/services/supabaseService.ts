@@ -50,6 +50,17 @@ function parseRawProduct(raw: any): Producto {
     }
   }
 
+  // Normalizar variantes de color y su stock por talle
+  if (Array.isArray(colores)) {
+    colores = colores.map((c: any) => ({
+      name: (c?.name || 'Color').trim(),
+      titulo: c?.titulo?.trim() || undefined,
+      hex: c?.hex || '#161616',
+      imagenes: Array.isArray(c?.imagenes) ? c.imagenes.filter(Boolean) : [],
+      stock_por_talle: c?.stock_por_talle && typeof c.stock_por_talle === 'object' ? { ...c.stock_por_talle } : {},
+    }));
+  }
+
   // Fallbacks automáticos
   if (!imagen_principal && urls.length > 0) {
     imagen_principal = urls[0];
@@ -971,6 +982,7 @@ export const SupabaseService = {
         hex: c?.hex || '#161616',
         class: `bg-[${c?.hex || '#161616'}]`,
         images: Array.isArray(c?.imagenes) && c.imagenes.length > 0 ? c.imagenes : finalImagesList,
+        stock_por_talle: c?.stock_por_talle && typeof c.stock_por_talle === 'object' ? { ...c.stock_por_talle } : {},
       }));
     } else {
       productColors = [
@@ -1117,6 +1129,7 @@ export const SupabaseService = {
       colors: productColors,
       sizes: parsed.talles && parsed.talles.length > 0 ? parsed.talles : ['S', 'M', 'L', 'XL'],
       inStock: p.stock > 0,
+      stock: Number(p.stock) || 0,
       tag: p.tipo_oferta?.etiqueta_badge as any,
       rating: 4.9,
       reviewsCount: 34,

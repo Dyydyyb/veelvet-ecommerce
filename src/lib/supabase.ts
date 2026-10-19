@@ -41,6 +41,7 @@ export interface ColorVariant {
   titulo?: string;
   hex: string;
   imagenes: string[];
+  stock_por_talle?: Record<string, number>; // Cantidad de stock por talle, ej: { S: 5, M: 2, L: 0, XL: 3 }
 }
 
 export interface MenuLateralItem {

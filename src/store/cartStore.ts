@@ -46,6 +46,20 @@ export const useCartStore = create<CartState>((set, get) => ({
   lastAddedItem: null,
 
   addItem: (product, size, colorName, colorHex, quantity = 1) => {
+    // Check stock if tracked for this specific color & size
+    const colorObj = product.colors?.find(c => c.name === colorName);
+    const hasColorStockTracking = Boolean(
+      colorObj?.stock_por_talle && Object.keys(colorObj.stock_por_talle).length > 0
+    );
+    const maxStock = hasColorStockTracking
+      ? (colorObj?.stock_por_talle?.[size] ?? 0)
+      : (product.stock ?? 999);
+
+    if (hasColorStockTracking && maxStock <= 0) {
+      // Out of stock, cannot add
+      return;
+    }
+
     const itemId = `${product.id}-${size}-${colorName}`;
     const currentItems = get().items;
     const existingIndex = currentItems.findIndex(item => item.id === itemId);
@@ -55,18 +69,27 @@ export const useCartStore = create<CartState>((set, get) => ({
 
     if (existingIndex > -1) {
       const existing = currentItems[existingIndex];
-      addedItem = { ...existing, quantity: existing.quantity + quantity };
+      const targetQty = existing.quantity + quantity;
+      const finalQty = hasColorStockTracking ? Math.min(targetQty, maxStock) : targetQty;
+
+      if (finalQty === existing.quantity && existing.quantity >= maxStock) {
+        set({ isOpen: true });
+        return;
+      }
+
+      addedItem = { ...existing, quantity: finalQty };
       updatedItems = currentItems.map((item, index) =>
         index === existingIndex ? addedItem : item
       );
     } else {
+      const finalQty = hasColorStockTracking ? Math.min(quantity, maxStock) : quantity;
       addedItem = {
         id: itemId,
         product,
         size,
         colorName,
         colorHex,
-        quantity,
+        quantity: finalQty,
       };
       updatedItems = [...currentItems, addedItem];
     }
@@ -88,7 +111,18 @@ export const useCartStore = create<CartState>((set, get) => ({
     const updated = get().items
       .map(item => {
         if (item.id === id) {
-          const newQty = item.quantity + delta;
+          const colorObj = item.product.colors?.find(c => c.name === item.colorName);
+          const hasColorStockTracking = Boolean(
+            colorObj?.stock_por_talle && Object.keys(colorObj.stock_por_talle).length > 0
+          );
+          const maxStock = hasColorStockTracking
+            ? (colorObj?.stock_por_talle?.[item.size] ?? 0)
+            : (item.product.stock ?? 999);
+
+          let newQty = item.quantity + delta;
+          if (delta > 0 && hasColorStockTracking && newQty > maxStock) {
+            newQty = maxStock;
+          }
           return newQty > 0 ? { ...item, quantity: newQty } : null;
         }
         return item;

@@ -116,82 +116,104 @@ export function CartDrawer() {
                     </button>
                   </div>
                 ) : (
-                  items.map((item) => (
-                    <motion.div
-                      key={item.id}
-                      layout
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="flex space-x-4 p-3 bg-beige-50/60 rounded-xl border border-beige-200"
-                    >
-                      {/* Thumbnail */}
-                      <img
-                        src={item.product.images.primary}
-                        alt={item.product.name}
-                        className="w-20 h-24 object-cover rounded-lg bg-beige-200 border border-beige-300/80 flex-shrink-0"
-                      />
+                  items.map((item) => {
+                    const colorObj = item.product.colors?.find((c) => c.name === item.colorName);
+                    const hasColorStockTracking = Boolean(
+                      colorObj?.stock_por_talle && Object.keys(colorObj.stock_por_talle).length > 0
+                    );
+                    const maxStock = hasColorStockTracking
+                      ? (colorObj?.stock_por_talle?.[item.size] ?? 0)
+                      : (item.product.stock ?? 999);
+                    const isAtMax = hasColorStockTracking && item.quantity >= maxStock;
+                    const itemThumbnail = colorObj?.images?.[0] || item.product.images.primary;
 
-                      {/* Info & Controls */}
-                      <div className="flex-1 flex flex-col justify-between">
-                        <div>
-                          <div className="flex items-start justify-between">
-                            <h3 className="font-montserrat font-bold text-xs uppercase tracking-tight text-navy line-clamp-1">
-                              {item.product.name}
-                            </h3>
-                            <button
-                              onClick={() => removeItem(item.id)}
-                              className="text-navy/40 hover:text-red-600 transition-colors p-1"
-                              aria-label="Eliminar producto"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                    return (
+                      <motion.div
+                        key={item.id}
+                        layout
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="flex space-x-4 p-3 bg-beige-50/60 rounded-xl border border-beige-200"
+                      >
+                        {/* Thumbnail */}
+                        <img
+                          src={itemThumbnail}
+                          alt={item.product.name}
+                          className="w-20 h-24 object-cover rounded-lg bg-beige-200 border border-beige-300/80 flex-shrink-0"
+                        />
+
+                        {/* Info & Controls */}
+                        <div className="flex-1 flex flex-col justify-between">
+                          <div>
+                            <div className="flex items-start justify-between">
+                              <h3 className="font-montserrat font-bold text-xs uppercase tracking-tight text-navy line-clamp-1">
+                                {item.product.name}
+                              </h3>
+                              <button
+                                onClick={() => removeItem(item.id)}
+                                className="text-navy/40 hover:text-red-600 transition-colors p-1"
+                                aria-label="Eliminar producto"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+
+                            {/* Selected attributes */}
+                            <div className="flex items-center space-x-2 mt-1 text-[11px] text-navy/70">
+                              <span className="font-bold bg-white px-1.5 py-0.5 rounded border border-beige-300">
+                                Talle {item.size}
+                              </span>
+                              <span className="flex items-center space-x-1">
+                                <span
+                                  className="w-2.5 h-2.5 rounded-full border border-beige-400 inline-block"
+                                  style={{ backgroundColor: item.colorHex }}
+                                />
+                                <span>{item.colorName}</span>
+                              </span>
+                            </div>
+
+                            {/* Low stock or max stock notice */}
+                            {hasColorStockTracking && isAtMax && (
+                              <p className="text-[10px] text-amber-700 font-semibold mt-1">
+                                Máximo disponible ({maxStock} unid.)
+                              </p>
+                            )}
                           </div>
 
-                          {/* Selected attributes */}
-                          <div className="flex items-center space-x-2 mt-1 text-[11px] text-navy/70">
-                            <span className="font-bold bg-white px-1.5 py-0.5 rounded border border-beige-300">
-                              Talle {item.size}
-                            </span>
-                            <span className="flex items-center space-x-1">
-                              <span
-                                className="w-2.5 h-2.5 rounded-full border border-beige-400 inline-block"
-                                style={{ backgroundColor: item.colorHex }}
-                              />
-                              <span>{item.colorName}</span>
+                          {/* Quantity and Price */}
+                          <div className="flex items-center justify-between mt-3">
+                            <div className="flex items-center border border-beige-300 rounded-md bg-white">
+                              <button
+                                onClick={() => updateQuantity(item.id, -1)}
+                                className="p-1 text-navy/70 hover:text-navy hover:bg-beige-100 transition-colors"
+                                aria-label="Restar una unidad"
+                              >
+                                <Minus className="w-3.5 h-3.5" />
+                              </button>
+                              <span className="px-2.5 text-xs font-bold text-navy">
+                                {item.quantity}
+                              </span>
+                              <button
+                                onClick={() => updateQuantity(item.id, 1)}
+                                disabled={isAtMax}
+                                className={`p-1 text-navy/70 hover:text-navy hover:bg-beige-100 transition-colors ${
+                                  isAtMax ? 'opacity-30 cursor-not-allowed hover:bg-transparent' : ''
+                                }`}
+                                aria-label="Sumar una unidad"
+                              >
+                                <Plus className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+
+                            <span className="font-montserrat font-black text-sm text-navy">
+                              {formatPrice(item.product.price * item.quantity)}
                             </span>
                           </div>
                         </div>
-
-                        {/* Quantity and Price */}
-                        <div className="flex items-center justify-between mt-3">
-                          <div className="flex items-center border border-beige-300 rounded-md bg-white">
-                            <button
-                              onClick={() => updateQuantity(item.id, -1)}
-                              className="p-1 text-navy/70 hover:text-navy hover:bg-beige-100 transition-colors"
-                              aria-label="Restar una unidad"
-                            >
-                              <Minus className="w-3.5 h-3.5" />
-                            </button>
-                            <span className="px-2.5 text-xs font-bold text-navy">
-                              {item.quantity}
-                            </span>
-                            <button
-                              onClick={() => updateQuantity(item.id, 1)}
-                              className="p-1 text-navy/70 hover:text-navy hover:bg-beige-100 transition-colors"
-                              aria-label="Sumar una unidad"
-                            >
-                              <Plus className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-
-                          <span className="font-montserrat font-black text-sm text-navy">
-                            {formatPrice(item.product.price * item.quantity)}
-                          </span>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))
+                      </motion.div>
+                    );
+                  })
                 )}
               </div>
 

@@ -35,6 +35,7 @@ interface ColorItemState {
   titulo?: string;
   hex: string;
   imagenes: string[];
+  stock_por_talle?: Record<string, number>;
 }
 
 const PRESET_COLORS = [
@@ -143,6 +144,10 @@ export function ProductModal({
                   Array.isArray(c.imagenes) && c.imagenes.length > 0
                     ? c.imagenes.filter((u): u is string => typeof u === 'string' && Boolean(u.trim()))
                     : [''],
+                stock_por_talle:
+                  c.stock_por_talle && typeof c.stock_por_talle === 'object'
+                    ? { ...c.stock_por_talle }
+                    : {},
               }))
           : [];
       setColores(rawColors);
@@ -262,7 +267,14 @@ export function ProductModal({
     const pName = (preset.name || '').trim();
     const exists = colores.some((c) => (c?.name || '').trim().toLowerCase() === pName.toLowerCase());
     if (exists) return;
-    const newColores = [...colores, { name: pName, titulo: '', hex: preset.hex || '#161616', imagenes: [''] }];
+    const initialStock: Record<string, number> = {};
+    talles.forEach((t) => {
+      initialStock[t] = 5;
+    });
+    const newColores = [
+      ...colores,
+      { name: pName, titulo: '', hex: preset.hex || '#161616', imagenes: [''], stock_por_talle: initialStock },
+    ];
     setColores(newColores);
     if (!colorPrincipal) {
       setColorPrincipal(pName);
@@ -270,11 +282,57 @@ export function ProductModal({
   };
 
   const handleAddCustomColor = () => {
-    const newColores = [...colores, { name: 'Nuevo Color', titulo: '', hex: '#222222', imagenes: [''] }];
+    const initialStock: Record<string, number> = {};
+    talles.forEach((t) => {
+      initialStock[t] = 5;
+    });
+    const newColores = [
+      ...colores,
+      { name: 'Nuevo Color', titulo: '', hex: '#222222', imagenes: [''], stock_por_talle: initialStock },
+    ];
     setColores(newColores);
     if (!colorPrincipal) {
       setColorPrincipal('Nuevo Color');
     }
+  };
+
+  const handleColorStockChange = (colorIndex: number, size: string, value: number | string) => {
+    const num = typeof value === 'number' ? value : value === '' ? 0 : parseInt(value, 10);
+    const validQty = isNaN(num) ? 0 : Math.max(0, num);
+    setColores((prev) => {
+      const updated = [...prev];
+      const target = { ...updated[colorIndex] };
+      const currentStockMap = { ...(target.stock_por_talle || {}) };
+      currentStockMap[size] = validQty;
+      target.stock_por_talle = currentStockMap;
+      updated[colorIndex] = target;
+      return updated;
+    });
+  };
+
+  const handleSetAllSizesStockForColor = (colorIndex: number, qty: number) => {
+    setColores((prev) => {
+      const updated = [...prev];
+      const target = { ...updated[colorIndex] };
+      const currentStockMap: Record<string, number> = {};
+      talles.forEach((t) => {
+        currentStockMap[t] = qty;
+      });
+      target.stock_por_talle = currentStockMap;
+      updated[colorIndex] = target;
+      return updated;
+    });
+  };
+
+  const handleCopyStockToAllColors = (sourceColorIndex: number) => {
+    const sourceMap = colores[sourceColorIndex]?.stock_por_talle || {};
+    setColores((prev) =>
+      prev.map((c, idx) =>
+        idx === sourceColorIndex
+          ? c
+          : { ...c, stock_por_talle: { ...sourceMap } }
+      )
+    );
   };
 
   const handleRemoveColor = (index: number) => {
@@ -396,14 +454,22 @@ export function ProductModal({
 
     const cleanColores: ColorVariant[] = (colores || [])
       .filter((c) => Boolean(c && (c.name || '').trim()))
-      .map((c) => ({
-        name: c.name.trim(),
-        titulo: c.titulo?.trim() || undefined,
-        hex: c.hex?.trim() || '#161616',
-        imagenes: (c.imagenes || [])
-          .map((u) => (typeof u === 'string' ? u.trim() : ''))
-          .filter(Boolean),
-      }));
+      .map((c) => {
+        const stockMap: Record<string, number> = {};
+        talles.forEach((t) => {
+          const val = c.stock_por_talle?.[t];
+          stockMap[t] = typeof val === 'number' ? Math.max(0, val) : 0;
+        });
+        return {
+          name: c.name.trim(),
+          titulo: c.titulo?.trim() || undefined,
+          hex: c.hex?.trim() || '#161616',
+          imagenes: (c.imagenes || [])
+            .map((u) => (typeof u === 'string' ? u.trim() : ''))
+            .filter(Boolean),
+          stock_por_talle: stockMap,
+        };
+      });
 
     // Priorizar el color_principal al inicio de cleanColores
     const effectiveColorPrincipal = (colorPrincipal || '').trim() || cleanColores[0]?.name || '';
@@ -459,7 +525,12 @@ export function ProductModal({
         permite_cuotas: permiteCuotas,
         permite_transferencia_descuento: permiteTransferencia,
         destacado,
-        stock: Number(stock) || 0,
+        stock: (() => {
+          const sumColorStock = cleanColores.reduce((acc, c) => {
+            return acc + Object.values(c.stock_por_talle || {}).reduce((s, q) => s + (Number(q) || 0), 0);
+          }, 0);
+          return sumColorStock > 0 ? sumColorStock : (Number(stock) || 0);
+        })(),
       });
       onClose();
     } catch (err: any) {
@@ -1152,6 +1223,104 @@ export function ProductModal({
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
+                      </div>
+
+                      {/* Conteo de Talles y Stock Disponible para este Color */}
+                      <div className="p-3 bg-white rounded-xl border border-beige-300 space-y-2.5 shadow-2xs">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                          <div className="flex items-center space-x-1.5">
+                            <Tag className="w-3.5 h-3.5 text-navy" />
+                            <span className="text-[11px] font-bold uppercase tracking-wider text-navy">
+                              Conteo de Talles Disponibles ({colorItem.name || 'este color'})
+                            </span>
+                          </div>
+                          <div className="flex items-center space-x-1.5 text-[10px]">
+                            <button
+                              type="button"
+                              onClick={() => handleSetAllSizesStockForColor(cIdx, 5)}
+                              className="px-2 py-0.5 bg-beige-100 hover:bg-beige-200 text-navy font-semibold rounded border border-beige-300 transition-colors cursor-pointer"
+                              title="Poner 5 unidades a todos los talles de este color"
+                            >
+                              5 u. a todos
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleSetAllSizesStockForColor(cIdx, 0)}
+                              className="px-2 py-0.5 bg-beige-100 hover:bg-red-50 text-red-700 font-semibold rounded border border-beige-300 transition-colors cursor-pointer"
+                              title="Poner 0 unidades (Agotado) a todos los talles de este color"
+                            >
+                              Marcar agotado
+                            </button>
+                            {colores.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => handleCopyStockToAllColors(cIdx)}
+                                className="px-2 py-0.5 bg-navy/10 hover:bg-navy text-navy hover:text-white font-semibold rounded transition-colors cursor-pointer"
+                                title="Copiar este conteo de talles a los demás colores"
+                              >
+                                Copiar a todos
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Grid de talles con su conteo */}
+                        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2 pt-0.5">
+                          {talles.map((size) => {
+                            const currentQty = colorItem.stock_por_talle?.[size] ?? 5;
+                            const isZero = currentQty === 0;
+
+                            return (
+                              <div
+                                key={size}
+                                className={`p-2 rounded-lg border text-center transition-all ${
+                                  isZero
+                                    ? 'bg-red-50/60 border-red-200'
+                                    : 'bg-beige-50/70 border-beige-300 hover:border-navy/40'
+                                }`}
+                              >
+                                <div className="flex items-center justify-between text-[11px] font-bold text-navy mb-1.5">
+                                  <span>Talle {size}</span>
+                                  <span
+                                    className={`text-[9px] px-1 py-0.2 rounded font-bold ${
+                                      isZero
+                                        ? 'bg-red-100 text-red-700'
+                                        : 'bg-green-100 text-green-800'
+                                    }`}
+                                  >
+                                    {isZero ? 'Agotado' : `${currentQty} u.`}
+                                  </span>
+                                </div>
+
+                                <div className="flex items-center justify-center space-x-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleColorStockChange(cIdx, size, Math.max(0, currentQty - 1))}
+                                    className="w-5 h-5 rounded bg-white hover:bg-beige-200 border border-beige-300 flex items-center justify-center text-navy font-bold text-xs cursor-pointer select-none"
+                                    title="Restar 1"
+                                  >
+                                    -
+                                  </button>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    value={currentQty}
+                                    onChange={(e) => handleColorStockChange(cIdx, size, e.target.value)}
+                                    className="w-12 text-center text-xs font-bold bg-white border border-beige-300 rounded py-0.5 text-navy focus:outline-none focus:border-navy"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => handleColorStockChange(cIdx, size, currentQty + 1)}
+                                    className="w-5 h-5 rounded bg-white hover:bg-beige-200 border border-beige-300 flex items-center justify-center text-navy font-bold text-xs cursor-pointer select-none"
+                                    title="Sumar 1"
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
 
                       {/* URLs de fotos para este color */}
