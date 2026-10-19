@@ -138,17 +138,6 @@ export function ProductDetailPage() {
         if (matched.images && matched.images.length > 0) {
           setActiveImage(matched.images[0]);
         }
-        if (matched.stock_por_talle && product.sizes) {
-          const currentHasStock = (matched.stock_por_talle[selectedSize] ?? 1) > 0;
-          if (!currentHasStock) {
-            const firstAvailable = product.sizes.find(
-              (s) => (matched.stock_por_talle?.[s] ?? 1) > 0
-            );
-            if (firstAvailable) {
-              setSelectedSize(firstAvailable);
-            }
-          }
-        }
       }
     }
   }, [colorParam, product]);
@@ -160,19 +149,6 @@ export function ProductDetailPage() {
       setActiveImage(color.images[0]);
     } else if (product?.images.primary) {
       setActiveImage(product.images.primary);
-    }
-
-    // Si el talle seleccionado no tiene stock en el nuevo color, cambiar al primer disponible
-    if (color.stock_por_talle && product?.sizes) {
-      const currentStock = color.stock_por_talle[selectedSize];
-      if (currentStock === 0) {
-        const firstAvailable = product.sizes.find(
-          (s) => (color.stock_por_talle?.[s] ?? 1) > 0
-        );
-        if (firstAvailable) {
-          setSelectedSize(firstAvailable);
-        }
-      }
     }
   };
 
@@ -186,7 +162,7 @@ export function ProductDetailPage() {
   const handleAddToCart = () => {
     if (!product) return;
     if (!isCurrentSelectionInStock) {
-      showToast(`El talle ${selectedSize} en ${selectedColor.name} está agotado.`);
+      showToast(`Agotado: El talle ${selectedSize} en color ${selectedColor.name} no tiene stock disponible.`);
       return;
     }
     addItem(product, selectedSize, selectedColor.name, selectedColor.hex, quantity);
@@ -454,48 +430,26 @@ export function ProductDetailPage() {
 
             <div className="flex flex-wrap gap-2">
               {product.sizes.map((size) => {
-                const stockQty = getSizeStock(size);
-                const isAvailable = isSizeAvailable(size);
                 const isSelected = selectedSize === size;
 
                 return (
                   <button
                     key={size}
                     type="button"
-                    disabled={!isAvailable}
-                    onClick={() => {
-                      if (isAvailable) setSelectedSize(size);
-                    }}
-                    className={`relative min-w-[56px] py-2 px-3 rounded-lg border-2 transition-all flex flex-col items-center justify-center ${
-                      !isAvailable
-                        ? 'opacity-40 bg-beige-100 text-navy/40 border-beige-300 line-through cursor-not-allowed select-none'
-                        : isSelected
-                        ? 'bg-navy text-white border-navy shadow-sm cursor-pointer'
-                        : 'bg-[#FAF7F0] text-navy border-beige-300 hover:border-navy hover:bg-beige-200 cursor-pointer'
+                    onClick={() => setSelectedSize(size)}
+                    className={`relative min-w-[56px] h-11 px-4 rounded-lg border-2 transition-all flex items-center justify-center cursor-pointer ${
+                      isSelected
+                        ? 'bg-navy text-white border-navy shadow-sm'
+                        : 'bg-[#FAF7F0] text-navy border-beige-300 hover:border-navy hover:bg-beige-200'
                     }`}
                   >
                     <span className="font-montserrat font-bold text-xs uppercase tracking-wider">{size}</span>
-                    {stockQty !== undefined && (
-                      <span
-                        className={`text-[9px] font-mono font-normal tracking-tight mt-0.5 ${
-                          !isAvailable
-                            ? 'text-red-700 font-bold no-underline'
-                            : isSelected
-                            ? 'text-beige-200 font-semibold'
-                            : stockQty <= 3
-                            ? 'text-amber-700 font-bold'
-                            : 'text-navy/60'
-                        }`}
-                      >
-                        {!isAvailable ? 'Agotado' : stockQty <= 3 ? `¡Últimas ${stockQty}!` : `${stockQty} disp.`}
-                      </span>
-                    )}
                   </button>
                 );
               })}
             </div>
 
-            {/* Aviso en tiempo real de disponibilidad para este color y talle */}
+            {/* Aviso de agotado al seleccionar color o talle sin stock */}
             {hasColorStockTracking && (
               <div className="mt-2.5">
                 {isEntireColorOutOfStock ? (
@@ -513,10 +467,6 @@ export function ProductDetailPage() {
                     <Sparkles className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
                     <span>¡Últimas unidades! Quedan solo <strong>{currentSelectedStock} disponibles</strong> en talle {selectedSize} ({selectedColor.name}).</span>
                   </div>
-                ) : currentSelectedStock !== undefined ? (
-                  <span className="text-[11px] text-navy/70 font-medium block">
-                    ✓ <strong>{currentSelectedStock} unidades disponibles</strong> en talle {selectedSize} ({selectedColor.name}).
-                  </span>
                 ) : null}
               </div>
             )}
@@ -564,11 +514,10 @@ export function ProductDetailPage() {
               {/* Add Button */}
               <button
                 type="button"
-                disabled={!isCurrentSelectionInStock}
                 onClick={handleAddToCart}
                 className={`flex-1 py-4 px-6 rounded-lg font-montserrat font-bold text-xs uppercase tracking-wider flex items-center justify-center space-x-2 transition-all duration-200 shadow-md ${
                   !isCurrentSelectionInStock
-                    ? 'bg-beige-300 text-navy/40 cursor-not-allowed shadow-none'
+                    ? 'bg-neutral-800 text-white/90 hover:bg-neutral-900 cursor-pointer'
                     : isAdded
                     ? 'bg-green-700 text-white'
                     : 'bg-navy hover:bg-navy-500 text-white cursor-pointer'
@@ -576,8 +525,8 @@ export function ProductDetailPage() {
               >
                 {!isCurrentSelectionInStock ? (
                   <>
-                    <AlertCircle className="w-4 h-4" />
-                    <span>Sin stock en {selectedSize} ({selectedColor.name})</span>
+                    <AlertCircle className="w-4 h-4 text-red-400" />
+                    <span>Agotado</span>
                   </>
                 ) : isAdded ? (
                   <>
