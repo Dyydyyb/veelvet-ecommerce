@@ -273,24 +273,48 @@ export const OrderService = {
   },
 
   /**
-   * Elimina un pedido del sistema
+   * Elimina un pedido del sistema (tanto en Supabase como en almacenamiento local)
    */
-  async deletePedido(id: string): Promise<boolean> {
+  async deletePedido(identifier: { id?: string; order_number?: string } | string): Promise<boolean> {
+    const id = typeof identifier === 'string' ? identifier : identifier.id;
+    const orderNumber =
+      typeof identifier === 'object'
+        ? identifier.order_number
+        : id && id.startsWith('ORD-')
+        ? id
+        : undefined;
+
+    // 1. Eliminar de forma exhaustiva de la caché local
     try {
       const current = getLocalPedidos();
-      saveLocalPedidos(current.filter((p) => p.id !== id));
+      const updated = current.filter((p) => {
+        if (orderNumber && p.order_number === orderNumber) return false;
+        if (id && p.id === id) return false;
+        if (id && p.order_number === id) return false;
+        return true;
+      });
+      saveLocalPedidos(updated);
     } catch (e) {
       console.warn('Error eliminando de local:', e);
     }
 
+    // 2. Eliminar de Supabase tanto por order_number como por id
     try {
-      const { error } = await supabase.from('pedidos').delete().eq('id', id);
-      if (error) {
-        console.warn('Aviso al eliminar pedido en Supabase:', error.message);
+      if (orderNumber) {
+        const { error } = await supabase.from('pedidos').delete().eq('order_number', orderNumber);
+        if (error) {
+          console.warn('Aviso al eliminar pedido por order_number en Supabase:', error.message);
+        }
+      }
+      if (id && id !== orderNumber) {
+        const { error } = await supabase.from('pedidos').delete().eq('id', id);
+        if (error) {
+          console.warn('Aviso al eliminar pedido por id en Supabase:', error.message);
+        }
       }
       return true;
     } catch (err) {
-      console.error('Error al eliminar pedido:', err);
+      console.error('Error al eliminar pedido de Supabase:', err);
       return true;
     }
   },

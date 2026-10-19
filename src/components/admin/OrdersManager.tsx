@@ -182,13 +182,24 @@ export function OrdersManager({ productos }: OrdersManagerProps) {
   };
 
   // Handle delete order
-  const handleDeletePedido = async (id: string, orderNumber: string) => {
-    if (!window.confirm(`¿Seguro que deseás eliminar el pedido #${orderNumber}?`)) return;
-    const ok = await OrderService.deletePedido(id);
+  const handleDeletePedido = async (p: Pedido) => {
+    if (!window.confirm(`¿Seguro que deseás eliminar el pedido #${p.order_number}?`)) return;
+    const ok = await OrderService.deletePedido({ id: p.id, order_number: p.order_number });
     if (ok) {
-      setPedidos((prev) => prev.filter((p) => p.id !== id));
-      if (selectedPedido?.id === id) setSelectedPedido(null);
-      setActionSuccess(`Pedido #${orderNumber} eliminado correctamente`);
+      setPedidos((prev) =>
+        prev.filter((item) => {
+          if (p.order_number && item.order_number === p.order_number) return false;
+          if (p.id && item.id === p.id) return false;
+          return true;
+        })
+      );
+      if (
+        selectedPedido &&
+        (selectedPedido.order_number === p.order_number || (p.id && selectedPedido.id === p.id))
+      ) {
+        setSelectedPedido(null);
+      }
+      setActionSuccess(`Pedido #${p.order_number} eliminado correctamente`);
       setTimeout(() => setActionSuccess(null), 3000);
     }
   };
@@ -580,8 +591,8 @@ export function OrdersManager({ productos }: OrdersManagerProps) {
 
                           {/* Delete */}
                           <button
-                            onClick={() => handleDeletePedido(p.id || '', p.order_number)}
-                            className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors"
+                            onClick={() => handleDeletePedido(p)}
+                            className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors cursor-pointer"
                             title="Eliminar orden"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -730,17 +741,29 @@ export function OrdersManager({ productos }: OrdersManagerProps) {
                 </select>
               </div>
 
-              {selectedPedido.cliente_telefono && (
-                <a
-                  href={getOrderWhatsAppLink(selectedPedido)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center space-x-1.5 bg-[#25D366] text-white text-xs font-bold uppercase tracking-wider px-4 py-2 rounded-lg shadow-xs hover:bg-[#20ba59]"
+              <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  onClick={() => handleDeletePedido(selectedPedido)}
+                  className="inline-flex items-center space-x-1.5 border border-red-200 text-red-600 hover:text-red-800 hover:bg-red-50 text-xs font-bold uppercase tracking-wider px-3 py-2 rounded-lg transition-colors cursor-pointer"
+                  title="Eliminar este pedido"
                 >
-                  <MessageCircle className="w-4 h-4 fill-white" />
-                  <span>Contactar por WhatsApp</span>
-                </a>
-              )}
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Eliminar pedido</span>
+                </button>
+
+                {selectedPedido.cliente_telefono && (
+                  <a
+                    href={getOrderWhatsAppLink(selectedPedido)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center space-x-1.5 bg-[#25D366] text-white text-xs font-bold uppercase tracking-wider px-4 py-2 rounded-lg shadow-xs hover:bg-[#20ba59]"
+                  >
+                    <MessageCircle className="w-4 h-4 fill-white" />
+                    <span>Contactar por WhatsApp</span>
+                  </a>
+                )}
+              </div>
             </div>
           </div>
         </div>
