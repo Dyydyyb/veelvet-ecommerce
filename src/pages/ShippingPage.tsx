@@ -20,7 +20,7 @@ export function ShippingPage() {
       <SectionTitle
         overline="Logística Nacional"
         title="Envíos por Correo Argentino"
-        subtitle="Entregamos tus pedidos de forma rápida y segura en cualquier punto de la República Argentina a través de Correo Argentino. El costo es a calcular según código postal y peso de tu paquete."
+        subtitle="Entregamos tus pedidos de forma rápida y segura en cualquier punto del país a través de Correo Argentino con tarifa fija nacional de $8.999 incluida de forma transparente en tu compra."
         align="center"
       />
 
@@ -30,15 +30,15 @@ export function ShippingPage() {
           <Truck className="w-6 h-6 text-navy flex-shrink-0" />
           <div>
             <p className="font-montserrat font-bold text-sm uppercase">
-              Envíos por Correo Argentino a todo el país
+              Envíos por Correo Argentino a todo el país con Tarifa Fija ($8.999)
             </p>
             <p className="text-xs text-navy/70 mt-0.5">
-              Despachamos tu compra a sucursal o directamente a tu domicilio. El costo final se calcula según el destino y código postal.
+              Despachamos tu compra a domicilio en cualquier punto de Argentina. El valor de $8.999 ya está definido y se suma directo al pago con Mercado Pago sin esperas de cotización.
             </p>
           </div>
         </div>
-        <span className="font-mono text-xs font-bold bg-[#f3eee3] px-3 py-1.5 rounded-full border border-beige-300 whitespace-nowrap">
-          A CALCULAR
+        <span className="font-mono text-xs font-bold bg-[#FAF7F0] text-navy px-3 py-1.5 rounded-full border border-beige-300 whitespace-nowrap shadow-xs">
+          $8.999 FIJO
         </span>
       </div>
 
@@ -144,13 +144,13 @@ export function ShippingPage() {
             </p>
             <div className="flex justify-between items-center p-3 bg-[#FAF7F0] rounded-lg border border-beige-200">
               <div>
-                <span className="font-bold block">Correo Argentino (A Domicilio / Sucursal)</span>
+                <span className="font-bold block">Correo Argentino (A Domicilio en todo el país)</span>
                 <span className="text-[11px] text-navy/60">Plazo estimado: 3 a 6 días hábiles</span>
               </div>
-              <strong className="text-xs bg-beige-200 px-2 py-1 rounded">Costo a calcular</strong>
+              <strong className="text-xs bg-navy text-white px-2.5 py-1 rounded font-mono font-bold">$8.999 Fijo</strong>
             </div>
             <p className="text-[11px] text-navy/60 text-center italic mt-2">
-              Al finalizar tu pedido en la web, coordinaremos la cotización exacta del envío por WhatsApp según las medidas del paquete y tu ubicación.
+              El costo de envío fijo de $8.999 se suma automáticamente al total de tu compra al abonar con Mercado Pago, sin esperas de cotización manual.
             </p>
           </div>
         )}

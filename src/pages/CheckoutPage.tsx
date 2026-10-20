@@ -39,9 +39,8 @@ export function CheckoutPage() {
   const subtotal = getSubtotal();
   const discount = getDiscount();
 
-  const isShippingCalculated = Boolean(selectedShipping.isCalculated);
-  const shippingCost = isShippingCalculated ? 0 : selectedShipping.price;
-  const finalTotal = subtotal - discount + shippingCost;
+  const shippingCost = Math.max(0, Number(selectedShipping.price) || 0);
+  const finalTotal = Math.max(0, subtotal - discount + shippingCost);
 
   const formatPrice = (amount: number) => {
     return new Intl.NumberFormat('es-AR', {
@@ -65,12 +64,12 @@ export function CheckoutPage() {
     const shippingInfo =
       selectedShipping.carrier === 'showroom'
         ? `• Entrega: Retiro en Showroom Quilmes Oeste (Lun a Sáb 9:00 a 17:00 hs, máx. 2 personas)`
-        : `• Entrega: ${formData.street} ${formData.number}${formData.floor ? ' Depto ' + formData.floor : ''}, ${formData.city}, ${formData.province} (CP ${formData.postalCode})`;
+        : `• Dirección de Entrega: ${formData.street} ${formData.number}${formData.floor ? ' Depto ' + formData.floor : ''}, ${formData.city}, ${formData.province} (CP ${formData.postalCode})`;
 
     const shippingLine =
       selectedShipping.carrier === 'showroom'
-        ? `🚚 *Método de Entrega:* Retiro en Showroom Quilmes Oeste (GRATIS - Lunes a Sábado de 9:00 a 17:00 hs, máx. 2 personas)`
-        : `🚚 *Método de Envío:* Correo Argentino (Costo a calcular según destino y CP)`;
+        ? `🚚 *Método de Entrega:* Retiro en Showroom Quilmes Oeste (GRATIS)`
+        : `🚚 *Método de Envío:* Correo Argentino ($8.999 Tarifa Fija Nacional)`;
 
     const orderMessage =
       `*NUEVO PEDIDO VEELVET* 🛍️\n` +
@@ -81,13 +80,14 @@ export function CheckoutPage() {
       `• Teléfono: ${formData.phone}\n` +
       `• Email: ${formData.email}\n` +
       `${shippingInfo}\n` +
-      (formData.notes ? `• Notas: ${formData.notes}\n` : '') +
+      (formData.notes ? `• Aclaraciones de entrega: ${formData.notes}\n` : '') +
       `\n📦 *Prendas del Pedido:*\n${itemsSummary}\n\n` +
       `${shippingLine}\n` +
       `💳 *Medio de Pago:* Mercado Pago\n` +
       (discount > 0 ? `🎟️ *Descuento Cupón:* -${formatPrice(discount)}\n` : '') +
-      `💰 *TOTAL PRENDAS:* ${formatPrice(finalTotal)}${isShippingCalculated ? ' (+ costo de envío Correo Argentino a calcular)' : ''}\n\n` +
-      `¡Hola Veelvet! 👋 Acabo de realizar este pedido en la tienda online. Les envío los datos para coordinar el link de Mercado Pago y el envío. ¡Muchas gracias!`;
+      (shippingCost > 0 ? `📦 *Costo de Envío:* ${formatPrice(shippingCost)}\n` : '') +
+      `💰 *TOTAL FINAL:* ${formatPrice(finalTotal)}\n\n` +
+      `¡Hola Veelvet! 👋 Acabo de realizar este pedido en la tienda online. Les envío los datos para coordinar el despacho. ¡Muchas gracias!`;
 
     const waUrl = getWhatsAppLink(orderMessage);
     setWhatsappOrderUrl(waUrl);
@@ -243,7 +243,7 @@ export function CheckoutPage() {
             <div className="flex justify-between pb-2 border-b border-beige-200">
               <span className="text-navy/70">Método de entrega:</span>
               <strong className="text-right">
-                {selectedShipping.name} {isShippingCalculated ? '(A calcular según CP)' : '(Gratis)'}
+                {selectedShipping.name} ({shippingCost === 0 ? 'Gratis' : formatPrice(shippingCost)})
               </strong>
             </div>
             <div className="flex justify-between pb-2 border-b border-beige-200">
@@ -251,11 +251,8 @@ export function CheckoutPage() {
               <strong className="capitalize">Mercado Pago</strong>
             </div>
             <div className="flex justify-between text-base font-montserrat font-black text-navy pt-2">
-              <span>Total prendas:</span>
-              <span>
-                {formatPrice(finalTotal)}
-                {isShippingCalculated && <span className="text-xs font-normal text-navy/70 ml-1">(+ envío a calcular)</span>}
-              </span>
+              <span>Total abonado:</span>
+              <span>{formatPrice(finalTotal)}</span>
             </div>
           </div>
 
@@ -298,7 +295,7 @@ export function CheckoutPage() {
                 <span>Datos de Contacto</span>
               </h3>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-navy mb-1">
                     Email *
@@ -322,6 +319,19 @@ export function CheckoutPage() {
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     placeholder="11 1234 5678"
+                    className="w-full text-xs bg-beige-50 border border-beige-300 rounded-lg px-3.5 py-2.5 text-navy focus:outline-none focus:border-navy"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-navy mb-1">
+                    DNI del Titular *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.dni}
+                    onChange={(e) => setFormData({ ...formData, dni: e.target.value })}
+                    placeholder="Ej: 38123456"
                     className="w-full text-xs bg-beige-50 border border-beige-300 rounded-lg px-3.5 py-2.5 text-navy focus:outline-none focus:border-navy"
                   />
                 </div>
@@ -539,6 +549,19 @@ export function CheckoutPage() {
                     />
                   </div>
                 </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-navy mb-1">
+                    Aclaraciones para la entrega (opcional)
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.notes}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    placeholder="Ej: Entre calles, timbre blanco, dejar en portería..."
+                    className="w-full text-xs bg-beige-50 border border-beige-300 rounded-lg px-3.5 py-2.5 text-navy focus:outline-none focus:border-navy"
+                  />
+                </div>
               </div>
             )}
 
@@ -630,16 +653,16 @@ export function CheckoutPage() {
                 <div className="flex justify-between">
                   <span>Envío ({selectedShipping.name})</span>
                   <span className="font-semibold text-navy">
-                    {isShippingCalculated ? 'A calcular' : 'GRATIS'}
+                    {shippingCost === 0 ? 'GRATIS' : formatPrice(shippingCost)}
                   </span>
                 </div>
                 <div className="flex justify-between text-lg font-montserrat font-black text-navy pt-3 border-t border-beige-300">
                   <span>Total</span>
                   <span>{formatPrice(finalTotal)}</span>
                 </div>
-                {isShippingCalculated && (
-                  <p className="text-[10px] text-navy/60 italic text-right">
-                    * Costo de envío Correo Argentino a calcular según destino y CP
+                {shippingCost > 0 && (
+                  <p className="text-[10px] text-navy/70 text-right">
+                    * Incluye tarifa fija de envío Correo Argentino ({formatPrice(shippingCost)})
                   </p>
                 )}
               </div>

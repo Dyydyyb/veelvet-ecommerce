@@ -25,7 +25,9 @@ function apiDevPlugin() {
                   process.env.MERCADO_PAGO_ACCESS_TOKEN ||
                   fallbackToken;
 
-                const { items, customer } = parsed;
+                const { items, customer, shipping, discount = 0 } = parsed;
+                const shippingCost = Math.max(0, Number(shipping?.price) || 0);
+                const discountAmount = Math.max(0, Number(discount) || 0);
 
                 const verifiedItems = (items || []).map((item: any) => ({
                   id: String(item.productId || 'item'),
@@ -37,6 +39,33 @@ function apiDevPlugin() {
                   unit_price: Math.max(1, Number(item.price) || 1),
                   picture_url: item.image || undefined,
                 }));
+
+                let discountRemaining = discountAmount;
+                if (discountRemaining > 0 && verifiedItems.length > 0) {
+                  for (let i = 0; i < verifiedItems.length && discountRemaining > 0; i++) {
+                    const itemTotal = verifiedItems[i].unit_price * verifiedItems[i].quantity;
+                    const canDeduct = Math.min(itemTotal - verifiedItems[i].quantity * 1, discountRemaining);
+                    if (canDeduct > 0) {
+                      const deductionPerUnit = Math.floor(canDeduct / verifiedItems[i].quantity);
+                      if (deductionPerUnit > 0) {
+                        verifiedItems[i].unit_price -= deductionPerUnit;
+                        discountRemaining -= deductionPerUnit * verifiedItems[i].quantity;
+                      }
+                    }
+                  }
+                }
+
+                if (shippingCost > 0) {
+                  verifiedItems.push({
+                    id: 'shipping-cost',
+                    title: `Costo de Envío - ${shipping?.name || 'Correo Argentino'}`,
+                    description: `Envío a domicilio para orden #${parsed.orderNumber || ''}`,
+                    category_id: 'shipping',
+                    quantity: 1,
+                    currency_id: 'ARS',
+                    unit_price: shippingCost,
+                  });
+                }
 
                 const orderNumber = parsed.orderNumber || `VVT-${Math.floor(100000 + Math.random() * 900000)}`;
                 // Mercado Pago exige HTTPS para auto_return: 'approved'

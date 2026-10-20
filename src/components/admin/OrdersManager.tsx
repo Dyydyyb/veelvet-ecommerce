@@ -532,9 +532,22 @@ export function OrdersManager({ productos }: OrdersManagerProps) {
                       {/* Shipping */}
                       <td className="py-3.5 px-4">
                         <span className="font-medium text-navy block line-clamp-1">{p.metodo_envio}</span>
-                        {p.direccion_ciudad && (
-                          <span className="text-[10px] text-navy/50 block">
-                            {p.direccion_ciudad}, {p.direccion_provincia || ''}
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          {Number(p.costo_envio) > 0 ? (
+                            <span className="text-[10px] font-bold text-navy bg-beige-200 px-1.5 py-0.5 rounded border border-beige-300">
+                              Envío: {formatPrice(p.costo_envio)}
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-bold text-green-800 bg-green-100 px-1.5 py-0.5 rounded">
+                              Envío Gratis
+                            </span>
+                          )}
+                        </div>
+                        {(p.direccion_calle || p.direccion_ciudad) && (
+                          <span className="text-[10px] text-navy/60 block mt-0.5 line-clamp-1">
+                            {p.direccion_calle ? `${p.direccion_calle} ${p.direccion_numero || ''}` : ''}
+                            {p.direccion_ciudad ? ` • ${p.direccion_ciudad}` : ''}
+                            {p.direccion_cp ? ` (CP ${p.direccion_cp})` : ''}
                           </span>
                         )}
                       </td>
@@ -983,7 +996,15 @@ export function OrdersManager({ productos }: OrdersManagerProps) {
                     <label className="block text-[11px] font-bold uppercase text-navy/70 mb-1">Método de Entrega</label>
                     <select
                       value={manualForm.metodo_envio}
-                      onChange={(e) => setManualForm({ ...manualForm, metodo_envio: e.target.value })}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        const isCorreo = val.includes('Correo Argentino');
+                        setManualForm({
+                          ...manualForm,
+                          metodo_envio: val,
+                          costo_envio: isCorreo ? 8999 : (val.includes('Showroom') ? 0 : manualForm.costo_envio),
+                        });
+                      }}
                       className="w-full bg-beige-50 border border-beige-300 rounded-lg px-3 py-2 text-navy"
                     >
                       <option value="Retiro en Showroom Quilmes Oeste">Retiro en Showroom Quilmes Oeste</option>

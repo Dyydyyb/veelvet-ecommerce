@@ -79,11 +79,44 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       (acc: number, it: any) => acc + it.unit_price * it.quantity,
       0
     );
-    const finalTotal = Math.max(0, verifiedSubtotal - (Number(discount) || 0) + (Number(shipping?.price) || 0));
+
+    const shippingCost = Math.max(0, Number(shipping?.price) || 0);
+    const discountAmount = Math.max(0, Number(discount) || 0);
+    const finalTotal = Math.max(0, verifiedSubtotal - discountAmount + shippingCost);
 
     // Generar o usar número de orden único
     const randomSuffix = Math.floor(100000 + Math.random() * 900000);
     const orderNumber = req.body.orderNumber || `VVT-${randomSuffix}`;
+
+    // Si hay descuento de cupón, aplicarlo proporcionalmente a los ítems para Mercado Pago
+    let discountRemaining = discountAmount;
+    if (discountRemaining > 0 && verifiedItems.length > 0) {
+      for (let i = 0; i < verifiedItems.length && discountRemaining > 0; i++) {
+        const itemTotal = verifiedItems[i].unit_price * verifiedItems[i].quantity;
+        const canDeduct = Math.min(itemTotal - verifiedItems[i].quantity * 1, discountRemaining);
+        if (canDeduct > 0) {
+          const deductionPerUnit = Math.floor(canDeduct / verifiedItems[i].quantity);
+          if (deductionPerUnit > 0) {
+            verifiedItems[i].unit_price -= deductionPerUnit;
+            discountRemaining -= deductionPerUnit * verifiedItems[i].quantity;
+          }
+        }
+      }
+    }
+
+    // Agregar el costo de envío fijo como ítem verificado en Mercado Pago
+    if (shippingCost > 0) {
+      verifiedItems.push({
+        id: 'shipping-cost',
+        title: `Costo de Envío - ${shipping?.name || 'Correo Argentino'}`,
+        description: `Envío a domicilio para orden #${orderNumber}`,
+        category_id: 'shipping',
+        quantity: 1,
+        currency_id: 'ARS',
+        unit_price: shippingCost,
+        picture_url: undefined,
+      });
+    }
 
     // ========================================================
     // SEGURIDAD 2: Registro Inmediato del Pedido en Supabase
