@@ -67,9 +67,65 @@ export function OrderConfirmationPage() {
     }).format(amount);
   };
 
-  const whatsappMessage = `¡Hola Veelvet! 👋 Acabo de abonar mi pedido #${orderNumber || 'Online'} con Mercado Pago.${
-    paymentId ? ` (Comprobante MP: #${paymentId})` : ''
-  } Les escribo para coordinar los detalles de entrega. ¡Muchas gracias!`;
+  const getWhatsAppMessage = () => {
+    const num = orderNumber || pedido?.order_number || 'Online';
+    const nombre = `${pedido?.cliente_nombre || ''} ${pedido?.cliente_apellido || ''}`.trim() || 'Cliente';
+    const dni = pedido?.cliente_dni ? `• DNI: ${pedido.cliente_dni}` : '• DNI: ';
+    const tel = pedido?.cliente_telefono ? `• Teléfono: ${pedido.cliente_telefono}` : '';
+    const email = pedido?.cliente_email ? `• Email: ${pedido.cliente_email}` : '';
+
+    let entrega = '';
+    if (pedido?.metodo_envio?.toLowerCase().includes('showroom')) {
+      entrega = `• Entrega: Retiro en Showroom Quilmes Oeste`;
+    } else if (pedido?.direccion_calle) {
+      entrega = `• Entrega: ${pedido.direccion_calle} ${pedido.direccion_numero || ''}${
+        pedido.direccion_piso_depto ? ' Depto ' + pedido.direccion_piso_depto : ''
+      } , ${pedido.direccion_ciudad || ''}, ${pedido.direccion_provincia || ''} (CP ${pedido.direccion_cp || ''})`;
+    } else {
+      entrega = `• Entrega: A coordinar`;
+    }
+
+    const itemsSummary = (pedido?.items || []).map((item: any) => {
+      const itPrice = (Number(item.price) || 0) * (Number(item.quantity) || 1);
+      return `• ${item.quantity}x ${item.name} (Talle: ${item.size} | Color: ${item.colorName}) - ${formatPrice(itPrice)}`;
+    }).join('\n');
+
+    const metodoEnvio = pedido?.metodo_envio || 'Correo Argentino';
+    const costoEnvio = Number(pedido?.costo_envio) || 0;
+    const subtotal = Number(pedido?.subtotal) || Number(pedido?.total) || 0;
+
+    let shippingLine = '';
+    let totalLine = '';
+
+    if (metodoEnvio.toLowerCase().includes('showroom')) {
+      shippingLine = `🚚 *Método de Entrega:* Retiro en Showroom Quilmes Oeste (GRATIS)`;
+      totalLine = `💰 *TOTAL PRENDAS:* ${formatPrice(subtotal)}`;
+    } else if (costoEnvio > 0) {
+      shippingLine = `🚚 *Método de Envío:* ${metodoEnvio} (${formatPrice(costoEnvio)})`;
+      totalLine = `💰 *TOTAL PRENDAS:* ${formatPrice(subtotal)} (+ ${formatPrice(costoEnvio)} envío = ${formatPrice(pedido?.total || (subtotal + costoEnvio))})`;
+    } else {
+      shippingLine = `🚚 *Método de Envío:* Correo Argentino (Costo a calcular según destino y CP)`;
+      totalLine = `💰 *TOTAL PRENDAS:* ${formatPrice(subtotal)} (+ costo de envío Correo Argentino a calcular)`;
+    }
+
+    return (
+      `*NUEVO PEDIDO VEELVET* 🛍️\n` +
+      `*Orden:* #${num}\n\n` +
+      `👤 *Datos del Comprador:*\n` +
+      `• Nombre: ${nombre}\n` +
+      `${dni}\n` +
+      (tel ? `${tel}\n` : '') +
+      (email ? `${email}\n` : '') +
+      `${entrega}\n` +
+      (pedido?.notas ? `• Notas: ${pedido.notas}\n` : '') +
+      `\n📦 *Prendas del Pedido:*\n` +
+      `${itemsSummary || '• Prendas seleccionadas'}\n\n` +
+      `${shippingLine}\n` +
+      `💳 *Medio de Pago:* Mercado Pago\n` +
+      `${totalLine}\n\n` +
+      `¡Hola Veelvet! 👋 Acabo de realizar este pedido en la tienda online. Les envío los datos para coordinar el link de Mercado Pago y el envío. ¡Muchas gracias!`
+    );
+  };
 
   return (
     <div className="pt-32 pb-24 px-4 sm:px-6 lg:px-8 max-w-3xl mx-auto min-h-screen">
@@ -195,13 +251,13 @@ export function OrderConfirmationPage() {
         {/* WhatsApp & Navigation Actions */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
           <a
-            href={getWhatsAppLink(whatsappMessage)}
+            href={getWhatsAppLink(getWhatsAppMessage())}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 bg-[#25D366] hover:bg-[#20ba59] text-white text-xs font-montserrat font-bold uppercase tracking-wider px-6 py-3.5 rounded-xl shadow-md transition-all cursor-pointer"
+            className="w-full sm:w-auto inline-flex items-center justify-center space-x-2.5 bg-[#25D366] hover:bg-[#20ba59] text-white text-xs sm:text-sm font-montserrat font-bold uppercase tracking-wider px-7 py-4 rounded-xl shadow-lg transition-all cursor-pointer transform hover:scale-[1.01]"
           >
             <MessageCircle className="w-4 h-4 fill-white" />
-            <span>Avisar a WhatsApp Veelvet</span>
+            <span>Finalizar compra</span>
           </a>
 
           <Link

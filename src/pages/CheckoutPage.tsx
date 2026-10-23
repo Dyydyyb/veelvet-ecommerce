@@ -69,7 +69,16 @@ export function CheckoutPage() {
     const shippingLine =
       selectedShipping.carrier === 'showroom'
         ? `🚚 *Método de Entrega:* Retiro en Showroom Quilmes Oeste (GRATIS)`
-        : `🚚 *Método de Envío:* Correo Argentino ($8.999 Tarifa Fija Nacional)`;
+        : shippingCost > 0
+        ? `🚚 *Método de Envío:* Correo Argentino (${formatPrice(shippingCost)})`
+        : `🚚 *Método de Envío:* Correo Argentino (Costo a calcular según destino y CP)`;
+
+    const totalLine =
+      selectedShipping.carrier === 'showroom'
+        ? `💰 *TOTAL PRENDAS:* ${formatPrice(subtotal)}`
+        : shippingCost > 0
+        ? `💰 *TOTAL PRENDAS:* ${formatPrice(subtotal)} (+ ${formatPrice(shippingCost)} envío = ${formatPrice(finalTotal)})`
+        : `💰 *TOTAL PRENDAS:* ${formatPrice(subtotal)} (+ costo de envío Correo Argentino a calcular)`;
 
     const orderMessage =
       `*NUEVO PEDIDO VEELVET* 🛍️\n` +
@@ -80,14 +89,13 @@ export function CheckoutPage() {
       `• Teléfono: ${formData.phone}\n` +
       `• Email: ${formData.email}\n` +
       `${shippingInfo}\n` +
-      (formData.notes ? `• Aclaraciones de entrega: ${formData.notes}\n` : '') +
+      (formData.notes ? `• Notas: ${formData.notes}\n` : '') +
       `\n📦 *Prendas del Pedido:*\n${itemsSummary}\n\n` +
       `${shippingLine}\n` +
       `💳 *Medio de Pago:* Mercado Pago\n` +
       (discount > 0 ? `🎟️ *Descuento Cupón:* -${formatPrice(discount)}\n` : '') +
-      (shippingCost > 0 ? `📦 *Costo de Envío:* ${formatPrice(shippingCost)}\n` : '') +
-      `💰 *TOTAL FINAL:* ${formatPrice(finalTotal)}\n\n` +
-      `¡Hola Veelvet! 👋 Acabo de realizar este pedido en la tienda online. Les envío los datos para coordinar el despacho. ¡Muchas gracias!`;
+      `${totalLine}\n\n` +
+      `¡Hola Veelvet! 👋 Acabo de realizar este pedido en la tienda online. Les envío los datos para coordinar el link de Mercado Pago y el envío. ¡Muchas gracias!`;
 
     const waUrl = getWhatsAppLink(orderMessage);
     setWhatsappOrderUrl(waUrl);
@@ -265,7 +273,7 @@ export function CheckoutPage() {
               className="w-full py-4 px-6 bg-[#25D366] hover:bg-[#20ba5a] text-white text-xs sm:text-sm font-montserrat font-bold uppercase tracking-wider rounded-xl transition-all shadow-lg flex items-center justify-center space-x-2.5 cursor-pointer transform hover:scale-[1.01]"
             >
               <MessageCircle className="w-5 h-5 fill-white stroke-none" />
-              <span>Enviar Pedido a WhatsApp ({WHATSAPP_DISPLAY})</span>
+              <span>Finalizar compra</span>
             </a>
             <p className="text-[11px] text-navy/60 font-light">
               Si no se abrió WhatsApp automáticamente, hacé clic en el botón verde para enviar los datos de tu orden al número oficial de Veelvet.

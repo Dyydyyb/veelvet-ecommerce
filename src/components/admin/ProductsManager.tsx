@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Plus, Search, Edit3, Trash2, Star, Image as ImageIcon, Filter, RefreshCw } from 'lucide-react';
+import { Plus, Search, Edit3, Trash2, Star, Image as ImageIcon, Filter, RefreshCw, SlidersHorizontal, CheckSquare, Square } from 'lucide-react';
 import { Producto, Subcategoria, Categoria, TipoOferta } from '../../lib/supabase';
 import { ProductModal } from './ProductModal';
+import { BulkPriceAdjustModal } from './BulkPriceAdjustModal';
 import { AdminErrorBoundary } from './AdminErrorBoundary';
 import { SupabaseService } from '../../services/supabaseService';
 
@@ -25,6 +26,8 @@ export function ProductsManager({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSubcat, setSelectedSubcat] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isBulkPriceModalOpen, setIsBulkPriceModalOpen] = useState(false);
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const [editingProduct, setEditingProduct] = useState<Producto | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
@@ -159,15 +162,54 @@ export function ProductsManager({
           </button>
         </div>
 
-        {/* New Product Button */}
-        <button
-          onClick={handleOpenCreate}
-          className="inline-flex items-center justify-center space-x-2 bg-navy hover:bg-navy-500 text-white px-5 py-2.5 rounded-lg text-xs font-montserrat font-bold uppercase tracking-wider transition-colors shadow-md cursor-pointer"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Nuevo Producto</span>
-        </button>
+        {/* Actions buttons */}
+        <div className="flex items-center space-x-2">
+          {/* Bulk Price Adjust Button */}
+          <button
+            onClick={() => setIsBulkPriceModalOpen(true)}
+            className="inline-flex items-center justify-center space-x-2 bg-[#00875A] hover:bg-[#00704A] text-white px-4 py-2.5 rounded-lg text-xs font-montserrat font-bold uppercase tracking-wider transition-colors shadow-md cursor-pointer"
+            title="Ajuste masivo de precios por porcentaje o monto fijo"
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+            <span className="hidden sm:inline">Ajustar Precios</span>
+            <span className="sm:hidden">Precios</span>
+          </button>
+
+          {/* New Product Button */}
+          <button
+            onClick={handleOpenCreate}
+            className="inline-flex items-center justify-center space-x-2 bg-navy hover:bg-navy-500 text-white px-5 py-2.5 rounded-lg text-xs font-montserrat font-bold uppercase tracking-wider transition-colors shadow-md cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Nuevo Producto</span>
+          </button>
+        </div>
       </div>
+
+      {/* Selected Products Toolbar */}
+      {selectedProductIds.length > 0 && (
+        <div className="bg-emerald-50 border border-emerald-300 p-3.5 sm:p-4 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center space-x-2 text-xs font-bold text-emerald-950 font-montserrat uppercase tracking-wider">
+            <CheckSquare className="w-4 h-4 text-emerald-700" />
+            <span>{selectedProductIds.length} producto(s) seleccionado(s)</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setIsBulkPriceModalOpen(true)}
+              className="px-4 py-2 bg-[#00875A] hover:bg-[#00704A] text-white text-xs font-montserrat font-bold uppercase tracking-wider rounded-lg shadow-xs cursor-pointer flex items-center space-x-1.5 transition-all"
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              <span>Ajustar Precios Elegidos</span>
+            </button>
+            <button
+              onClick={() => setSelectedProductIds([])}
+              className="px-3 py-2 bg-white border border-beige-300 text-navy/70 hover:text-navy text-xs font-bold rounded-lg cursor-pointer transition-colors"
+            >
+              Deseleccionar
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Table list */}
       <div className="bg-white rounded-2xl border border-beige-300 shadow-xs overflow-hidden">
@@ -175,6 +217,26 @@ export function ProductsManager({
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-beige-200 bg-beige-50 text-[10px] uppercase tracking-wider font-bold text-navy/60">
+                <th className="py-3.5 px-3 w-10 text-center">
+                  <input
+                    type="checkbox"
+                    checked={
+                      filteredProducts.length > 0 &&
+                      filteredProducts.every((p) => selectedProductIds.includes(p.id))
+                    }
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        const allIds = Array.from(new Set([...selectedProductIds, ...filteredProducts.map((p) => p.id)]));
+                        setSelectedProductIds(allIds);
+                      } else {
+                        const filteredIdSet = new Set(filteredProducts.map((p) => p.id));
+                        setSelectedProductIds(selectedProductIds.filter((id) => !filteredIdSet.has(id)));
+                      }
+                    }}
+                    className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500 cursor-pointer"
+                    title="Seleccionar todos los visibles"
+                  />
+                </th>
                 <th className="py-3.5 px-4">Prenda & Fotos (R2)</th>
                 <th className="py-3.5 px-4">Categoría / Subcat.</th>
                 <th className="py-3.5 px-4">Precio ($ ARS)</th>
@@ -187,7 +249,7 @@ export function ProductsManager({
             <tbody className="divide-y divide-beige-100 text-xs text-navy">
               {filteredProducts.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-navy/50 font-light">
+                  <td colSpan={8} className="py-12 text-center text-navy/50 font-light">
                     {productos.length === 0
                       ? 'No hay productos cargados en Supabase todavía. Podés crear uno nuevo o cargar los datos iniciales.'
                       : 'No se encontraron prendas que coincidan con la búsqueda.'}
@@ -196,8 +258,24 @@ export function ProductsManager({
               ) : (
                 filteredProducts.map((prod) => {
                   const primaryImg = prod.imagen_principal || prod.imagenes_url?.[0];
+                  const isSelected = selectedProductIds.includes(prod.id);
                   return (
-                    <tr key={prod.id} className="hover:bg-beige-50/60 transition-colors">
+                    <tr key={prod.id} className={`hover:bg-beige-50/60 transition-colors ${isSelected ? 'bg-emerald-50/30' : ''}`}>
+                      {/* Checkbox */}
+                      <td className="py-3 px-3 text-center">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedProductIds([...selectedProductIds, prod.id]);
+                            } else {
+                              setSelectedProductIds(selectedProductIds.filter((id) => id !== prod.id));
+                            }
+                          }}
+                          className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500 cursor-pointer"
+                        />
+                      </td>
                       {/* Product & Photo */}
                       <td className="py-3 px-4">
                         <div className="flex items-center space-x-3">
@@ -434,6 +512,21 @@ export function ProductsManager({
             categorias={categorias}
             subcategorias={subcategorias}
             tiposOferta={tiposOferta}
+          />
+        </AdminErrorBoundary>
+      )}
+
+      {/* Modal ajuste masivo de precios */}
+      {isBulkPriceModalOpen && (
+        <AdminErrorBoundary fallbackTitle="Error al abrir ajuste masivo de precios">
+          <BulkPriceAdjustModal
+            isOpen={isBulkPriceModalOpen}
+            onClose={() => setIsBulkPriceModalOpen(false)}
+            productos={productos}
+            categorias={categorias}
+            subcategorias={subcategorias}
+            selectedProductIds={selectedProductIds}
+            onRefresh={onRefresh}
           />
         </AdminErrorBoundary>
       )}

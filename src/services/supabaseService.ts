@@ -919,6 +919,47 @@ export const SupabaseService = {
     if (error) throw new Error(error.message);
   },
 
+  async bulkUpdatePrices(
+    updates: {
+      id: string;
+      precio?: number;
+      precio_anterior?: number | null;
+    }[]
+  ): Promise<{ updatedCount: number; errors: string[] }> {
+    const errors: string[] = [];
+    let updatedCount = 0;
+
+    // Procesar en lotes de 6 para óptimo rendimiento y confiabilidad
+    const chunkSize = 6;
+    for (let i = 0; i < updates.length; i += chunkSize) {
+      const chunk = updates.slice(i, i + chunkSize);
+      await Promise.all(
+        chunk.map(async (u) => {
+          try {
+            const updatePayload: any = {};
+            if (u.precio !== undefined) updatePayload.precio = u.precio;
+            if (u.precio_anterior !== undefined) updatePayload.precio_anterior = u.precio_anterior;
+
+            const { error } = await supabase
+              .from('productos')
+              .update(updatePayload)
+              .eq('id', u.id);
+
+            if (error) {
+              errors.push(`Error en prenda ${u.id}: ${error.message}`);
+            } else {
+              updatedCount++;
+            }
+          } catch (err: any) {
+            errors.push(`Error en prenda ${u.id}: ${err.message}`);
+          }
+        })
+      );
+    }
+
+    return { updatedCount, errors };
+  },
+
   async toggleProductoDestacado(id: string, currentState: boolean): Promise<Producto> {
     const { data, error } = await supabase
       .from('productos')
