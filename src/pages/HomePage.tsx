@@ -31,10 +31,37 @@ export function HomePage() {
 
   return (
     <div className="relative overflow-hidden pt-20">
-      {/* 1. HERO SECTION - Solo Logo 3D de fondo */}
-      <section className="relative min-h-[85vh] sm:min-h-[92vh] flex items-center justify-center bg-[#f3eee3] overflow-hidden">
+      {/* 1. HERO SECTION - Logo 3D con botones de acción */}
+      <section className="relative min-h-[85vh] sm:min-h-[92vh] flex flex-col items-center justify-end pb-12 sm:pb-16 px-4 sm:px-6 lg:px-8 bg-[#f3eee3] overflow-hidden text-center">
         {/* 3D Background Logo rotating continuously */}
         <Hero3DBackground speed={0.9} />
+
+        {/* Action Buttons Centered at bottom */}
+        <div className="relative z-10 flex flex-col sm:flex-row items-center justify-center space-y-3 sm:space-y-0 sm:space-x-5 w-full sm:w-auto">
+          <Link to="/tienda" className="w-full sm:w-auto">
+            <Button
+              size="lg"
+              variant="primary"
+              isMagnetic
+              icon={<ArrowRight className="w-4 h-4" />}
+              className="w-full sm:w-auto shadow-lg"
+            >
+              Ver colección
+            </Button>
+          </Link>
+
+          <Link to="/showroom" className="w-full sm:w-auto">
+            <Button
+              size="lg"
+              variant="secondary"
+              icon={<MapPin className="w-4 h-4" />}
+              iconPosition="left"
+              className="w-full sm:w-auto bg-[#f3eee3]/90 backdrop-blur-md"
+            >
+              Reservar showroom
+            </Button>
+          </Link>
+        </div>
       </section>
 
       {/* 2. INFINITE MARQUEE */}

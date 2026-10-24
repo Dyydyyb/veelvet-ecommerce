@@ -50,7 +50,7 @@ function RotatingVeelvetLogo({ speed = 0.9 }: { speed?: number }) {
   });
 
   return (
-    <group ref={groupRef} position={[0, 0, 0]} scale={2.2} dispose={null}>
+    <group ref={groupRef} position={[0, 0.25, 0]} scale={2.1} dispose={null}>
       <Center>
         <primitive object={clonedScene} />
       </Center>
