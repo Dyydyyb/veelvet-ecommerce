@@ -50,7 +50,7 @@ function RotatingVeelvetLogo({ speed = 0.9 }: { speed?: number }) {
   });
 
   return (
-    <group ref={groupRef} position={[0, 0.75, 0]} scale={2.0} dispose={null}>
+    <group ref={groupRef} position={[0, 0, 0]} scale={2.2} dispose={null}>
       <Center>
         <primitive object={clonedScene} />
       </Center>
@@ -63,7 +63,7 @@ export function Hero3DBackground({ className = '', speed = 0.9 }: Hero3DBackgrou
 
   if (hasError) {
     return (
-      <div className={`absolute inset-0 pointer-events-none flex items-center justify-center opacity-30 ${className}`}>
+      <div className={`absolute inset-0 flex items-center justify-center opacity-70 ${className}`}>
         <img
           src="/assets/logo-transparent.png"
           alt="Veelvet 3D Star Fallback"
@@ -75,7 +75,7 @@ export function Hero3DBackground({ className = '', speed = 0.9 }: Hero3DBackgrou
 
   return (
     <div
-      className={`absolute inset-0 pointer-events-none overflow-hidden z-0 select-none ${className}`}
+      className={`absolute inset-0 overflow-hidden z-0 select-none ${className}`}
       aria-hidden="true"
     >
       <Canvas
@@ -85,10 +85,10 @@ export function Hero3DBackground({ className = '', speed = 0.9 }: Hero3DBackgrou
         onError={() => setHasError(true)}
         className="w-full h-full"
       >
-        <ambientLight intensity={0.9} />
-        <directionalLight position={[5, 8, 6]} intensity={1.6} castShadow />
-        <directionalLight position={[-5, -3, -4]} intensity={0.5} />
-        <pointLight position={[0, 2.5, 3]} intensity={0.8} />
+        <ambientLight intensity={1.1} />
+        <directionalLight position={[5, 8, 6]} intensity={1.8} castShadow />
+        <directionalLight position={[-5, -3, -4]} intensity={0.6} />
+        <pointLight position={[0, 2.5, 3]} intensity={0.9} />
 
         <Suspense fallback={null}>
           <Environment preset="studio" />
@@ -96,7 +96,7 @@ export function Hero3DBackground({ className = '', speed = 0.9 }: Hero3DBackgrou
             <RotatingVeelvetLogo speed={speed} />
           </Float>
           <ContactShadows
-            position={[0, -1.05, 0]}
+            position={[0, -1.25, 0]}
             opacity={0.35}
             scale={7}
             blur={2.5}
@@ -105,9 +105,6 @@ export function Hero3DBackground({ className = '', speed = 0.9 }: Hero3DBackgrou
           />
         </Suspense>
       </Canvas>
-
-      {/* Subtle radial depth gradient ensuring high contrast for centered hero text */}
-      <div className="absolute inset-0 bg-radial from-[#f3eee3]/30 via-[#f3eee3]/65 to-[#f3eee3]/95 pointer-events-none" />
     </div>
   );
 }
