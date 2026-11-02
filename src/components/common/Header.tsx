@@ -83,18 +83,55 @@ export function Header() {
         ref={dropdownContainerRef}
         className="fixed top-0 left-0 right-0 z-50 pointer-events-auto"
       >
-        {/* CYBER MONDAY ANNOUNCEMENT BANNER */}
+        {/* CYBER MONDAY CONTINUOUS SLIDING ANNOUNCEMENT BANNER */}
         {isCyberActive && (
-          <div className="bg-[#1A1A1A] text-[#F3EEE3] py-2 px-3 sm:px-4 text-center text-[10px] sm:text-xs font-montserrat font-semibold tracking-wider flex items-center justify-center space-x-2 border-b border-white/10 shadow-sm overflow-x-auto whitespace-nowrap">
-            <span className="bg-[#E53E3E] text-white text-[9px] font-black uppercase px-2 py-0.5 rounded tracking-widest animate-pulse flex-shrink-0">
-              CYBER MONDAY
-            </span>
-            <span className="hidden md:inline text-beige-300">• 2 AL 4 DE NOVIEMBRE •</span>
-            <span className="text-white font-extrabold">20% OFF EN TODA LA TIENDA</span>
-            <span className="opacity-40">|</span>
-            <span className="text-amber-300 font-extrabold">2DA PRENDA AL 50% OFF</span>
-            <span className="opacity-40">|</span>
-            <span className="text-emerald-400 font-black">ENVÍO GRATIS &gt; $70.000</span>
+          <div className="bg-[#1A1A1A] text-[#F3EEE3] py-2 border-b border-white/10 shadow-xs overflow-hidden select-none relative group">
+            <div
+              className="flex w-max will-change-transform animate-marquee hover:[animation-play-state:paused]"
+              style={{ animationDuration: '32s' }}
+            >
+              {[1, 2].map((half) => (
+                <div
+                  key={half}
+                  className="flex items-center space-x-6 shrink-0 pr-6"
+                  aria-hidden={half === 2 ? 'true' : undefined}
+                >
+                  {[1, 2].map((repeat) => (
+                    <React.Fragment key={repeat}>
+                      <div className="flex items-center space-x-1.5 flex-shrink-0">
+                        <span className="bg-[#E53E3E] text-white text-[9px] font-black uppercase px-2 py-0.5 rounded tracking-widest flex-shrink-0 animate-pulse">
+                          CYBER MONDAY
+                        </span>
+                        <span className="text-beige-300 font-bold text-[10px] sm:text-xs font-montserrat tracking-wider">
+                          2 AL 4 DE NOVIEMBRE
+                        </span>
+                      </div>
+                      <span className="text-white/20 select-none">•</span>
+                      <span className="text-white font-extrabold text-[10px] sm:text-xs font-montserrat tracking-wide flex-shrink-0">
+                        🔥 20% OFF EN TODA LA TIENDA
+                      </span>
+                      <span className="text-white/20 select-none">•</span>
+                      <span className="text-amber-300 font-extrabold text-[10px] sm:text-xs font-montserrat tracking-wide flex-shrink-0">
+                        ⚡ 2DA PRENDA AL 50% OFF
+                      </span>
+                      <span className="text-white/20 select-none">•</span>
+                      <span className="text-emerald-400 font-black text-[10px] sm:text-xs font-montserrat tracking-wide flex-shrink-0">
+                        🚚 ENVÍO GRATIS &gt; $70.000
+                      </span>
+                      <span className="text-white/20 select-none">•</span>
+                      <span className="text-beige-200 font-semibold text-[10px] sm:text-xs font-montserrat tracking-wide flex-shrink-0">
+                        💳 3 CUOTAS SIN INTERÉS
+                      </span>
+                      <span className="text-white/20 select-none">•</span>
+                      <span className="text-emerald-300 font-semibold text-[10px] sm:text-xs font-montserrat tracking-wide flex-shrink-0">
+                        🏦 10% OFF EXTRA POR TRANSFERENCIA
+                      </span>
+                      <span className="text-white/20 select-none">•</span>
+                    </React.Fragment>
+                  ))}
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
