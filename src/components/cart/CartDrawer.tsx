@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Trash2, Plus, Minus, ArrowRight, ShoppingBag, Truck, Tag, MessageCircle, Sparkles } from 'lucide-react';
 import { useCartStore } from '../../store/cartStore';
 import { WHATSAPP_BASE_URL } from '../../config/constants';
-import { isCyberMondayActive } from '../../utils/cyberMonday';
+import { isCyberMondayActive, getCyberCartItemsBreakdown } from '../../utils/cyberMonday';
 
 export function CartDrawer() {
   const {
@@ -25,6 +25,7 @@ export function CartDrawer() {
   } = useCartStore();
 
   const isCyber = isCyberMondayActive();
+  const cyberBreakdown = isCyber ? getCyberCartItemsBreakdown(items) : null;
 
   const [inputCode, setInputCode] = useState('');
   const [promoMessage, setPromoMessage] = useState<{ text: string; isError: boolean } | null>(null);
@@ -236,16 +237,37 @@ export function CartDrawer() {
                               </button>
                             </div>
 
-                            <div className="flex flex-col items-end">
-                              <span className="font-montserrat font-black text-sm text-navy">
-                                {formatPrice(isCyber ? Math.round(item.product.price * 0.8) * item.quantity : item.product.price * item.quantity)}
-                              </span>
-                              {isCyber && (
-                                <span className="text-[10px] text-navy/40 line-through">
-                                  {formatPrice(item.product.price * item.quantity)}
-                                </span>
-                              )}
-                            </div>
+                            {(() => {
+                              const breakdown = cyberBreakdown?.get(item.id);
+                              const payableItemTotal = breakdown ? breakdown.payableTotal : (isCyber ? Math.round(item.product.price * 0.8) * item.quantity : item.product.price * item.quantity);
+                              const originalItemTotal = item.product.price * item.quantity;
+
+                              return (
+                                <div className="flex flex-col items-end">
+                                  <div className="flex items-center space-x-1.5">
+                                    {isCyber && breakdown?.badge && (
+                                      <span
+                                        className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded tracking-tight ${
+                                          breakdown.has50Discount
+                                            ? 'bg-amber-400/20 text-amber-800 border border-amber-400/40'
+                                            : 'bg-[#E53E3E]/10 text-[#E53E3E]'
+                                        }`}
+                                      >
+                                        {breakdown.badge}
+                                      </span>
+                                    )}
+                                    <span className="font-montserrat font-black text-sm text-navy">
+                                      {formatPrice(payableItemTotal)}
+                                    </span>
+                                  </div>
+                                  {isCyber && (
+                                    <span className="text-[10px] text-navy/40 line-through">
+                                      {formatPrice(originalItemTotal)}
+                                    </span>
+                                  )}
+                                </div>
+                              );
+                            })()}
                           </div>
                         </div>
                       </motion.div>
