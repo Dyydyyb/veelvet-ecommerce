@@ -8,6 +8,7 @@ import { useCartStore } from '../store/cartStore';
 import { useUIStore } from '../store/uiStore';
 import { Accordion } from '../components/common/Accordion';
 import { ProductCard } from '../components/product/ProductCard';
+import { isCyberMondayActive } from '../utils/cyberMonday';
 
 export function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -210,25 +211,32 @@ export function ProductDetailPage() {
     );
   }
 
+  const isCyber = isCyberMondayActive();
+  const originalPrice = product.price;
+  const cyberPrice = Math.round(originalPrice * 0.8);
+
+  const displayPrice = isCyber ? cyberPrice : originalPrice;
+  const comparePrice = isCyber ? originalPrice : product.compareAtPrice;
+
   const formattedPrice = new Intl.NumberFormat('es-AR', {
     style: 'currency',
     currency: 'ARS',
     maximumFractionDigits: 0,
-  }).format(product.price);
+  }).format(displayPrice);
 
-  const formattedComparePrice = product.compareAtPrice
+  const formattedComparePrice = comparePrice
     ? new Intl.NumberFormat('es-AR', {
         style: 'currency',
         currency: 'ARS',
         maximumFractionDigits: 0,
-      }).format(product.compareAtPrice)
+      }).format(comparePrice)
     : null;
 
   const installmentAmount = new Intl.NumberFormat('es-AR', {
     style: 'currency',
     currency: 'ARS',
     maximumFractionDigits: 0,
-  }).format(Math.round(product.price / 3));
+  }).format(Math.round(displayPrice / 3));
 
   // Accordion data
   const accordionItems = [
@@ -356,18 +364,36 @@ export function ProductDetailPage() {
 
           {/* Price Box */}
           <div className="bg-beige-100/80 p-4 rounded-xl border border-beige-300/80">
-            <div className="flex items-baseline space-x-3">
+            <div className="flex flex-wrap items-center gap-3">
               <span className="font-montserrat font-black text-2xl sm:text-3xl text-navy">
                 {formattedPrice}
               </span>
               {formattedComparePrice && (
-                <span className="text-sm text-navy/40 line-through">
+                <span className="text-base text-navy/40 line-through">
                   {formattedComparePrice}
                 </span>
               )}
+              {isCyber && (
+                <span className="bg-[#E53E3E] text-white text-xs font-black uppercase px-2.5 py-1 rounded-md shadow-xs tracking-wider flex items-center space-x-1">
+                  <span>20% OFF CYBER MONDAY</span>
+                </span>
+              )}
             </div>
+
+            {isCyber && (
+              <div className="mt-2.5 pt-2.5 border-t border-beige-200/90 text-xs text-navy/80 space-y-1">
+                <p className="font-bold text-emerald-800 flex items-center space-x-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+                  <span>Promo 2da al 50%: ¡Llevando 2 o más prendas, la 2da te queda al 50% OFF en el carrito!</span>
+                </p>
+                <p className="text-[11px] text-navy/60 font-light">
+                  🚚 Envío gratis a todo el país superando $70.000.
+                </p>
+              </div>
+            )}
+
             {product.allowInstallments && (
-              <p className="text-xs text-navy/80 font-medium mt-1">
+              <p className="text-xs text-navy/80 font-medium mt-2">
                 Hasta <strong>3 cuotas fijas de {installmentAmount}</strong> sin interés
               </p>
             )}

@@ -1,5 +1,10 @@
 import { create } from 'zustand';
 import type { Product } from '../data/products';
+import {
+  isCyberMondayActive,
+  calculateCyberDiscount,
+  getFreeShippingThreshold,
+} from '../utils/cyberMonday';
 
 export interface CartItem {
   id: string; // unique combo of product.id + size + color
@@ -8,6 +13,13 @@ export interface CartItem {
   colorName: string;
   colorHex: string;
   quantity: number;
+}
+
+export interface DiscountDetail {
+  discount: number;
+  label: string;
+  detail: string;
+  isCyberMonday: boolean;
 }
 
 interface CartState {
@@ -31,6 +43,7 @@ interface CartState {
   // Computed getters
   getSubtotal: () => number;
   getDiscount: () => number;
+  getDiscountDetail: () => DiscountDetail;
   getTotal: () => number;
   getTotalItems: () => number;
   getFreeShippingProgress: () => { threshold: number; remaining: number; percentage: number; isFree: boolean };
@@ -142,14 +155,24 @@ export const useCartStore = create<CartState>((set, get) => ({
 
   applyPromoCode: (code: string) => {
     const trimmed = code.trim().toUpperCase();
+    let percentage = 0;
     if (trimmed === 'VEELVET10' || trimmed === 'SIMPLEMENTE') {
-      set({ promoCode: trimmed, discountPercentage: 0.10 });
-      return { success: true, message: '¡Cupón del 10% OFF aplicado con éxito!' };
+      percentage = 0.10;
     } else if (trimmed === 'SHOWROOM') {
-      set({ promoCode: trimmed, discountPercentage: 0.15 });
-      return { success: true, message: '¡Cupón del 15% OFF Showroom Quilmes Oeste aplicado!' };
+      percentage = 0.15;
+    } else {
+      return { success: false, message: 'El cupón ingresado no es válido o ha expirado.' };
     }
-    return { success: false, message: 'El cupón ingresado no es válido o ha expirado.' };
+
+    set({ promoCode: trimmed, discountPercentage: percentage });
+    const detail = get().getDiscountDetail();
+    if (detail.isCyberMonday) {
+      return {
+        success: true,
+        message: `¡Cupón registrado! La promo automática de Cyber Monday (${detail.label}) te otorga un beneficio mayor o equivalente y fue priorizada.`,
+      };
+    }
+    return { success: true, message: `¡Cupón del ${(percentage * 100).toFixed(0)}% OFF aplicado con éxito!` };
   },
 
   removePromoCode: () => {
@@ -160,13 +183,49 @@ export const useCartStore = create<CartState>((set, get) => ({
     return get().items.reduce((acc, item) => acc + item.product.price * item.quantity, 0);
   },
 
-  getDiscount: () => {
+  getDiscountDetail: (): DiscountDetail => {
+    const items = get().items;
     const subtotal = get().getSubtotal();
-    return subtotal * get().discountPercentage;
+
+    // 1. Descuento Cyber Monday automático
+    const cyberActive = isCyberMondayActive();
+    const cyberResult = cyberActive ? calculateCyberDiscount(items) : null;
+    const cyberDiscount = cyberResult ? cyberResult.discount : 0;
+
+    // 2. Descuento por cupón manual
+    const couponDiscount = Math.round(subtotal * get().discountPercentage);
+
+    // 3. Regla no acumulativa: prevalece el mayor beneficio para el cliente
+    if (cyberDiscount > 0 && cyberDiscount >= couponDiscount) {
+      return {
+        discount: cyberDiscount,
+        label: cyberResult!.label,
+        detail: cyberResult!.detail,
+        isCyberMonday: true,
+      };
+    } else if (couponDiscount > 0) {
+      return {
+        discount: couponDiscount,
+        label: `Cupón ${get().promoCode} (${(get().discountPercentage * 100).toFixed(0)}% OFF)`,
+        detail: 'Descuento aplicado por cupón promocional',
+        isCyberMonday: false,
+      };
+    }
+
+    return {
+      discount: 0,
+      label: '',
+      detail: '',
+      isCyberMonday: false,
+    };
+  },
+
+  getDiscount: () => {
+    return get().getDiscountDetail().discount;
   },
 
   getTotal: () => {
-    return get().getSubtotal() - get().getDiscount();
+    return Math.max(0, get().getSubtotal() - get().getDiscount());
   },
 
   getTotalItems: () => {
@@ -175,13 +234,21 @@ export const useCartStore = create<CartState>((set, get) => ({
 
   getFreeShippingProgress: () => {
     const subtotal = get().getSubtotal();
-    const remaining = Math.max(0, FREE_SHIPPING_THRESHOLD - subtotal);
-    const percentage = Math.min(100, Math.round((subtotal / FREE_SHIPPING_THRESHOLD) * 100));
+    const discount = get().getDiscount();
+    const payableSubtotal = Math.max(0, subtotal - discount);
+    const threshold = getFreeShippingThreshold();
+    const remaining = Math.max(0, threshold - payableSubtotal);
+    const percentage = Math.min(100, Math.round((payableSubtotal / threshold) * 100));
+
     return {
-      threshold: FREE_SHIPPING_THRESHOLD,
+      threshold,
       remaining,
       percentage,
-      isFree: subtotal >= FREE_SHIPPING_THRESHOLD,
+      isFree: payableSubtotal >= threshold && itemsHasGarments(get().items),
     };
   },
 }));
+
+function itemsHasGarments(items: CartItem[]): boolean {
+  return items.length > 0;
+}

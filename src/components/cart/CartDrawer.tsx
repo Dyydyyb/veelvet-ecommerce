@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Trash2, Plus, Minus, ArrowRight, ShoppingBag, Truck, Tag, MessageCircle } from 'lucide-react';
+import { X, Trash2, Plus, Minus, ArrowRight, ShoppingBag, Truck, Tag, MessageCircle, Sparkles } from 'lucide-react';
 import { useCartStore } from '../../store/cartStore';
 import { WHATSAPP_BASE_URL } from '../../config/constants';
+import { isCyberMondayActive } from '../../utils/cyberMonday';
 
 export function CartDrawer() {
   const {
@@ -14,6 +15,7 @@ export function CartDrawer() {
     removeItem,
     getSubtotal,
     getDiscount,
+    getDiscountDetail,
     getTotal,
     promoCode,
     discountPercentage,
@@ -22,11 +24,14 @@ export function CartDrawer() {
     getFreeShippingProgress,
   } = useCartStore();
 
+  const isCyber = isCyberMondayActive();
+
   const [inputCode, setInputCode] = useState('');
   const [promoMessage, setPromoMessage] = useState<{ text: string; isError: boolean } | null>(null);
 
   const subtotal = getSubtotal();
   const discount = getDiscount();
+  const discountDetail = getDiscountDetail();
   const total = getTotal();
   const freeShipping = getFreeShippingProgress();
 
@@ -86,12 +91,37 @@ export function CartDrawer() {
                   </button>
                 </div>
 
-                {/* Shipping Info Notice */}
-                <div className="mt-4 pt-3 border-t border-beige-200">
-                  <div className="flex items-center space-x-1.5 text-[11px] font-semibold text-navy">
-                    <Truck className="w-3.5 h-3.5 text-navy flex-shrink-0" />
-                    <span>Envíos por Correo Argentino (costo a calcular) • Retiro en Showroom</span>
-                  </div>
+                {/* Dynamic Free Shipping Progress Bar */}
+                <div className="mt-3 pt-3 border-t border-beige-200">
+                  {freeShipping.isFree ? (
+                    <div className="flex items-center justify-between bg-emerald-50 border border-emerald-300 px-3 py-2 rounded-lg text-xs font-bold text-emerald-800 shadow-xs">
+                      <span className="flex items-center space-x-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
+                        <span>¡Tenés ENVÍO GRATIS a todo el país!</span>
+                      </span>
+                      <span className="text-[9px] uppercase tracking-wider bg-emerald-600 text-white px-2 py-0.5 rounded font-black">
+                        Bonificado
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between text-[11px] font-semibold text-navy">
+                        <span className="flex items-center space-x-1.5">
+                          <Truck className="w-3.5 h-3.5 text-navy flex-shrink-0" />
+                          <span>Envío gratis superando {formatPrice(freeShipping.threshold)}</span>
+                        </span>
+                        <span className="font-bold text-navy">
+                          ¡Te faltan {formatPrice(freeShipping.remaining)}!
+                        </span>
+                      </div>
+                      <div className="w-full bg-beige-300 h-2 rounded-full overflow-hidden">
+                        <div
+                          className="bg-navy h-full rounded-full transition-all duration-500 ease-out"
+                          style={{ width: `${freeShipping.percentage}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -206,9 +236,16 @@ export function CartDrawer() {
                               </button>
                             </div>
 
-                            <span className="font-montserrat font-black text-sm text-navy">
-                              {formatPrice(item.product.price * item.quantity)}
-                            </span>
+                            <div className="flex flex-col items-end">
+                              <span className="font-montserrat font-black text-sm text-navy">
+                                {formatPrice(isCyber ? Math.round(item.product.price * 0.8) * item.quantity : item.product.price * item.quantity)}
+                              </span>
+                              {isCyber && (
+                                <span className="text-[10px] text-navy/40 line-through">
+                                  {formatPrice(item.product.price * item.quantity)}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </motion.div>
@@ -260,23 +297,43 @@ export function CartDrawer() {
                   </div>
 
                   {/* Price breakdown */}
-                  <div className="space-y-1.5 text-xs text-navy/80 pt-2 border-t border-beige-200">
+                  <div className="space-y-2 text-xs text-navy/80 pt-2 border-t border-beige-200">
                     <div className="flex justify-between">
-                      <span>Subtotal</span>
+                      <span>Subtotal ({items.reduce((acc, i) => acc + i.quantity, 0)} prendas)</span>
                       <span className="font-medium text-navy">{formatPrice(subtotal)}</span>
                     </div>
+
                     {discount > 0 && (
-                      <div className="flex justify-between text-green-700 font-semibold">
-                        <span>Descuento aplicado</span>
-                        <span>-{formatPrice(discount)}</span>
+                      <div className="flex flex-col space-y-0.5 bg-emerald-500/10 border border-emerald-600/20 p-2.5 rounded-lg text-emerald-800">
+                        <div className="flex justify-between items-center font-bold text-xs">
+                          <span className="flex items-center space-x-1.5">
+                            <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>{discountDetail.label}</span>
+                          </span>
+                          <span className="font-montserrat font-black text-emerald-700">-{formatPrice(discount)}</span>
+                        </div>
+                        {discountDetail.detail && (
+                          <span className="text-[10px] text-emerald-700/80 font-normal">
+                            {discountDetail.detail}
+                          </span>
+                        )}
                       </div>
                     )}
-                    <div className="flex justify-between">
-                      <span>Envío</span>
-                      <span className="text-navy/70 font-medium">A calcular al finalizar</span>
+
+                    <div className="flex justify-between items-center">
+                      <span>Envío a domicilio</span>
+                      {freeShipping.isFree ? (
+                        <span className="text-emerald-700 font-bold uppercase flex items-center space-x-1 text-xs">
+                          <span>GRATIS</span>
+                          <span className="text-[9px] bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded border border-emerald-300">Superaste $70.000</span>
+                        </span>
+                      ) : (
+                        <span className="text-navy/70 font-medium">A calcular en el checkout</span>
+                      )}
                     </div>
+
                     <div className="flex justify-between text-base font-montserrat font-black text-navy pt-2 border-t border-beige-300">
-                      <span>Total estimado</span>
+                      <span>Total final</span>
                       <span>{formatPrice(total)}</span>
                     </div>
                   </div>

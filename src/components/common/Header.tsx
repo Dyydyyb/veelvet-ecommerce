@@ -6,6 +6,7 @@ import { useCartStore } from '../../store/cartStore';
 import { InstagramIcon } from './Icons';
 import { MEGA_MENU_DATA, MegaMenuConfig } from '../../data/megaMenuData';
 import { CatalogService } from '../../services/catalogService';
+import { isCyberMondayActive } from '../../utils/cyberMonday';
 
 export function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -13,6 +14,8 @@ export function Header() {
   const [collectionDropdownOpen, setCollectionDropdownOpen] = useState(false);
   const [mobileCollectionOpen, setMobileCollectionOpen] = useState(true);
   const [menuConfig, setMenuConfig] = useState<MegaMenuConfig>(MEGA_MENU_DATA);
+
+  const isCyberActive = isCyberMondayActive();
 
   // Load dynamic mega menu from Supabase
   useEffect(() => {
@@ -78,13 +81,31 @@ export function Header() {
     <>
       <header
         ref={dropdownContainerRef}
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          isScrolled || collectionDropdownOpen
-            ? 'bg-[#f3eee3]/95 backdrop-blur-md shadow-sm border-b border-beige-300/80 py-2 sm:py-3'
-            : 'bg-transparent py-4 sm:py-5'
-        }`}
+        className="fixed top-0 left-0 right-0 z-50 pointer-events-auto"
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+        {/* CYBER MONDAY ANNOUNCEMENT BANNER */}
+        {isCyberActive && (
+          <div className="bg-[#1A1A1A] text-[#F3EEE3] py-2 px-3 sm:px-4 text-center text-[10px] sm:text-xs font-montserrat font-semibold tracking-wider flex items-center justify-center space-x-2 border-b border-white/10 shadow-sm overflow-x-auto whitespace-nowrap">
+            <span className="bg-[#E53E3E] text-white text-[9px] font-black uppercase px-2 py-0.5 rounded tracking-widest animate-pulse flex-shrink-0">
+              CYBER MONDAY
+            </span>
+            <span className="hidden md:inline text-beige-300">• 2 AL 4 DE NOVIEMBRE •</span>
+            <span className="text-white font-extrabold">20% OFF EN TODA LA TIENDA</span>
+            <span className="opacity-40">|</span>
+            <span className="text-amber-300 font-extrabold">2DA PRENDA AL 50% OFF</span>
+            <span className="opacity-40">|</span>
+            <span className="text-emerald-400 font-black">ENVÍO GRATIS &gt; $70.000</span>
+          </div>
+        )}
+
+        <div
+          className={`transition-all duration-300 ${
+            isScrolled || collectionDropdownOpen
+              ? 'bg-[#f3eee3]/95 backdrop-blur-md shadow-sm border-b border-beige-300/80 py-2 sm:py-3'
+              : 'bg-[#f3eee3]/90 sm:bg-transparent backdrop-blur-xs py-3 sm:py-4'
+          }`}
+        >
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
           
           {/* Mobile Menu Button */}
           <button
@@ -218,8 +239,9 @@ export function Header() {
             </button>
           </div>
         </div>
+      </div>
 
-        {/* FULL-WIDTH MEGA MENU (Matching the user's reference image) */}
+      {/* FULL-WIDTH MEGA MENU (Matching the user's reference image) */}
         <AnimatePresence>
           {collectionDropdownOpen && (
             <motion.div

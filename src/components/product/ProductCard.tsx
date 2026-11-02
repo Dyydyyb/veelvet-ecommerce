@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingBag, Check, AlertCircle } from 'lucide-react';
 import { Product } from '../../data/products';
 import { useCartStore } from '../../store/cartStore';
+import { isCyberMondayActive } from '../../utils/cyberMonday';
 
 interface ProductCardProps {
   product: Product;
@@ -93,18 +94,25 @@ export function ProductCard({ product }: ProductCardProps) {
     setTimeout(() => setIsAdded(false), 1800);
   };
 
+  const isCyber = isCyberMondayActive();
+  const originalPrice = product.price;
+  const cyberPrice = Math.round(originalPrice * 0.8);
+
+  const displayPrice = isCyber ? cyberPrice : originalPrice;
+  const comparePrice = isCyber ? originalPrice : product.compareAtPrice;
+
   const formattedPrice = new Intl.NumberFormat('es-AR', {
     style: 'currency',
     currency: 'ARS',
     maximumFractionDigits: 0,
-  }).format(product.price);
+  }).format(displayPrice);
 
-  const formattedComparePrice = product.compareAtPrice
+  const formattedComparePrice = comparePrice
     ? new Intl.NumberFormat('es-AR', {
         style: 'currency',
         currency: 'ARS',
         maximumFractionDigits: 0,
-      }).format(product.compareAtPrice)
+      }).format(comparePrice)
     : null;
 
   return (
@@ -144,6 +152,18 @@ export function ProductCard({ product }: ProductCardProps) {
           <div className="absolute top-3 left-3 z-10">
             <span className="bg-[#f3eee3]/95 backdrop-blur-xs text-navy text-[10px] font-bold font-montserrat tracking-wider uppercase px-2.5 py-1 rounded shadow-xs border border-beige-300/80">
               {product.tag}
+            </span>
+          </div>
+        )}
+
+        {/* Cyber Monday 20% OFF Badge */}
+        {isCyber && (
+          <div className="absolute top-3 right-3 z-10 flex flex-col items-end gap-0.5">
+            <span className="bg-[#E53E3E] text-white text-[10px] font-black uppercase px-2 py-0.5 rounded shadow-sm tracking-wider">
+              20% OFF
+            </span>
+            <span className="bg-[#1A1A1A] text-amber-300 text-[8px] font-bold uppercase px-1.5 py-0.5 rounded tracking-tight shadow-xs">
+              CYBER
             </span>
           </div>
         )}
@@ -270,6 +290,11 @@ export function ProductCard({ product }: ProductCardProps) {
             {formattedComparePrice && (
               <span className="text-xs text-navy/40 line-through">
                 {formattedComparePrice}
+              </span>
+            )}
+            {isCyber && (
+              <span className="text-[10px] font-black text-[#E53E3E] uppercase tracking-wider bg-[#E53E3E]/10 px-1.5 py-0.5 rounded">
+                -20%
               </span>
             )}
           </div>

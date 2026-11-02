@@ -3,14 +3,14 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useCartStore } from '../store/cartStore';
 import { SHIPPING_METHODS, ShippingMethod } from '../data/shippingMethods';
 import { SectionTitle } from '../components/common/SectionTitle';
-import { Truck, MapPin, CheckCircle2, ShieldCheck, CreditCard, ArrowLeft, ArrowRight, Lock, MessageCircle, Clock, Users } from 'lucide-react';
+import { Truck, MapPin, CheckCircle2, ShieldCheck, CreditCard, ArrowLeft, ArrowRight, Lock, MessageCircle, Clock, Users, Sparkles } from 'lucide-react';
 import { WHATSAPP_DISPLAY, getWhatsAppLink } from '../config/constants';
 import { OrderService } from '../services/orderService';
 import confetti from 'canvas-confetti';
 
 export function CheckoutPage() {
   const navigate = useNavigate();
-  const { items, getSubtotal, getDiscount, clearCart } = useCartStore();
+  const { items, getSubtotal, getDiscount, getDiscountDetail, getFreeShippingProgress, clearCart } = useCartStore();
 
   const [selectedShipping, setSelectedShipping] = useState<ShippingMethod>(SHIPPING_METHODS[0]);
   const [paymentMethod, setPaymentMethod] = useState<'mercadopago'>('mercadopago');
@@ -38,8 +38,11 @@ export function CheckoutPage() {
 
   const subtotal = getSubtotal();
   const discount = getDiscount();
+  const discountDetail = getDiscountDetail();
+  const freeShipping = getFreeShippingProgress();
 
-  const shippingCost = Math.max(0, Number(selectedShipping.price) || 0);
+  const isShippingFree = selectedShipping.carrier === 'showroom' || freeShipping.isFree;
+  const shippingCost = isShippingFree ? 0 : Math.max(0, Number(selectedShipping.price) || 0);
   const finalTotal = Math.max(0, subtotal - discount + shippingCost);
 
   const formatPrice = (amount: number) => {
@@ -69,16 +72,14 @@ export function CheckoutPage() {
     const shippingLine =
       selectedShipping.carrier === 'showroom'
         ? `🚚 *Método de Entrega:* Retiro en Showroom Quilmes Oeste (GRATIS)`
-        : shippingCost > 0
-        ? `🚚 *Método de Envío:* Correo Argentino (${formatPrice(shippingCost)})`
-        : `🚚 *Método de Envío:* Correo Argentino (Costo a calcular según destino y CP)`;
+        : isShippingFree
+        ? `🚚 *Método de Envío:* Correo Argentino (GRATIS - Bonificado por compra superior a ${formatPrice(freeShipping.threshold)})`
+        : `🚚 *Método de Envío:* Correo Argentino (${formatPrice(shippingCost)})`;
 
     const totalLine =
-      selectedShipping.carrier === 'showroom'
-        ? `💰 *TOTAL PRENDAS:* ${formatPrice(subtotal)}`
-        : shippingCost > 0
-        ? `💰 *TOTAL PRENDAS:* ${formatPrice(subtotal)} (+ ${formatPrice(shippingCost)} envío = ${formatPrice(finalTotal)})`
-        : `💰 *TOTAL PRENDAS:* ${formatPrice(subtotal)} (+ costo de envío Correo Argentino a calcular)`;
+      discount > 0
+        ? `💰 *SUBTOTAL:* ${formatPrice(subtotal)}\n🏷️ *${discountDetail.label}:* -${formatPrice(discount)}\n🚚 *ENVÍO:* ${shippingCost === 0 ? 'GRATIS' : formatPrice(shippingCost)}\n🔥 *TOTAL A PAGAR:* ${formatPrice(finalTotal)}`
+        : `💰 *TOTAL A PAGAR:* ${formatPrice(finalTotal)} (${shippingCost === 0 ? 'Envío Gratis' : '+ ' + formatPrice(shippingCost) + ' envío'})`;
 
     const orderMessage =
       `*NUEVO PEDIDO VEELVET* 🛍️\n` +
@@ -93,7 +94,7 @@ export function CheckoutPage() {
       `\n📦 *Prendas del Pedido:*\n${itemsSummary}\n\n` +
       `${shippingLine}\n` +
       `💳 *Medio de Pago:* Mercado Pago\n` +
-      (discount > 0 ? `🎟️ *Descuento Cupón:* -${formatPrice(discount)}\n` : '') +
+      (discount > 0 ? `🎟️ *${discountDetail.label}:* -${formatPrice(discount)}\n` : '') +
       `${totalLine}\n\n` +
       `¡Hola Veelvet! 👋 Acabo de realizar este pedido en la tienda online. Les envío los datos para coordinar el link de Mercado Pago y el envío. ¡Muchas gracias!`;
 
@@ -130,7 +131,9 @@ export function CheckoutPage() {
         direccion_provincia: formData.province,
         direccion_cp: formData.postalCode,
         notas: formData.notes,
-        metodo_envio: selectedShipping.name,
+        metodo_envio: isShippingFree && selectedShipping.carrier === 'correo_argentino'
+          ? `${selectedShipping.name} (Envío Gratis)`
+          : selectedShipping.name,
         costo_envio: shippingCost,
         items: currentItems.map((item) => ({
           id: item.id,
@@ -170,7 +173,13 @@ export function CheckoutPage() {
             image: item.product.images?.primary || '',
           })),
           customer: formData,
-          shipping: selectedShipping,
+          shipping: {
+            ...selectedShipping,
+            price: shippingCost,
+            name: isShippingFree && selectedShipping.carrier === 'correo_argentino'
+              ? `${selectedShipping.name} (Envío Gratis)`
+              : selectedShipping.name,
+          },
           discount,
           notes: formData.notes,
         }),
@@ -356,6 +365,14 @@ export function CheckoutPage() {
               <div className="space-y-3">
                 {SHIPPING_METHODS.map((method) => {
                   const isSelected = selectedShipping.id === method.id;
+                  const isFreeForThis = method.carrier === 'showroom' || freeShipping.isFree;
+                  const displayPrice = isFreeForThis ? 0 : method.price;
+                  const badgeText = isFreeForThis && method.carrier === 'correo_argentino'
+                    ? 'CYBER MONDAY: ENVÍO GRATIS'
+                    : method.badge;
+                  const taglineText = isFreeForThis && method.carrier === 'correo_argentino'
+                    ? `¡Envío 100% bonificado por compra superior a ${formatPrice(freeShipping.threshold)}! • Entrega a domicilio`
+                    : `${method.tagline} • Plazo: ${method.deliveryTime}`;
 
                   return (
                     <label
@@ -380,20 +397,30 @@ export function CheckoutPage() {
                             <span className="font-montserrat font-bold text-xs uppercase text-navy">
                               {method.name}
                             </span>
-                            {method.badge && (
-                              <span className="text-[9px] font-bold px-1.5 py-0.2 bg-beige-200 text-navy rounded border border-beige-300">
-                                {method.badge}
+                            {badgeText && (
+                              <span
+                                className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${
+                                  isFreeForThis && method.carrier === 'correo_argentino'
+                                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300 font-black'
+                                    : 'bg-beige-200 text-navy border-beige-300'
+                                }`}
+                              >
+                                {badgeText}
                               </span>
                             )}
                           </div>
                           <p className="text-[11px] text-navy/60 mt-0.5 font-light">
-                            {method.tagline} • Plazo: {method.deliveryTime}
+                            {taglineText}
                           </p>
                         </div>
                       </div>
 
-                      <span className="font-montserrat font-black text-xs text-navy whitespace-nowrap ml-2">
-                        {method.priceLabel || (method.price === 0 ? 'GRATIS' : formatPrice(method.price))}
+                      <span
+                        className={`font-montserrat font-black text-xs whitespace-nowrap ml-2 ${
+                          displayPrice === 0 ? 'text-emerald-700' : 'text-navy'
+                        }`}
+                      >
+                        {displayPrice === 0 ? 'GRATIS' : formatPrice(displayPrice)}
                       </span>
                     </label>
                   );
@@ -649,19 +676,33 @@ export function CheckoutPage() {
               {/* Breakdown */}
               <div className="pt-4 border-t border-beige-300/80 space-y-2 text-xs text-navy/80">
                 <div className="flex justify-between">
-                  <span>Subtotal</span>
+                  <span>Subtotal ({items.reduce((acc, i) => acc + i.quantity, 0)} prendas)</span>
                   <span>{formatPrice(subtotal)}</span>
                 </div>
                 {discount > 0 && (
-                  <div className="flex justify-between text-green-700 font-semibold">
-                    <span>Cupón de descuento</span>
-                    <span>-{formatPrice(discount)}</span>
+                  <div className="flex justify-between text-emerald-700 font-semibold items-center bg-emerald-500/10 border border-emerald-600/20 px-2.5 py-1.5 rounded-lg">
+                    <span className="flex items-center space-x-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>{discountDetail.label}</span>
+                    </span>
+                    <span className="font-montserrat font-bold">-{formatPrice(discount)}</span>
                   </div>
                 )}
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center">
                   <span>Envío ({selectedShipping.name})</span>
-                  <span className="font-semibold text-navy">
-                    {shippingCost === 0 ? 'GRATIS' : formatPrice(shippingCost)}
+                  <span className={shippingCost === 0 ? "font-bold text-emerald-700 uppercase" : "font-semibold text-navy"}>
+                    {shippingCost === 0 ? (
+                      <span className="flex items-center space-x-1">
+                        <span>GRATIS</span>
+                        {freeShipping.isFree && selectedShipping.carrier === 'correo_argentino' && (
+                          <span className="text-[9px] bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded border border-emerald-300">
+                            Superó $70.000
+                          </span>
+                        )}
+                      </span>
+                    ) : (
+                      formatPrice(shippingCost)
+                    )}
                   </span>
                 </div>
                 <div className="flex justify-between text-lg font-montserrat font-black text-navy pt-3 border-t border-beige-300">
@@ -670,7 +711,7 @@ export function CheckoutPage() {
                 </div>
                 {shippingCost > 0 && (
                   <p className="text-[10px] text-navy/70 text-right">
-                    * Incluye tarifa fija de envío Correo Argentino ({formatPrice(shippingCost)})
+                    * Incluye tarifa fija nacional Correo Argentino ({formatPrice(shippingCost)})
                   </p>
                 )}
               </div>
