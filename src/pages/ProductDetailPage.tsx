@@ -387,7 +387,7 @@ export function ProductDetailPage() {
                   <span>Promo 2da al 50%: ¡Llevando 2 o más prendas, la 2da te queda al 50% OFF en el carrito!</span>
                 </p>
                 <p className="text-[11px] text-navy/60 font-light">
-                  🚚 Envío gratis a todo el país superando $70.000.
+                  Envío gratis a todo el país superando $70.000.
                 </p>
               </div>
             )}

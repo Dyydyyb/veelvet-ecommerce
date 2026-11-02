@@ -96,7 +96,7 @@ export function Header() {
                   className="flex items-center space-x-6 shrink-0 pr-6"
                   aria-hidden={half === 2 ? 'true' : undefined}
                 >
-                  {[1, 2].map((repeat) => (
+                  {[1, 2, 3].map((repeat) => (
                     <React.Fragment key={repeat}>
                       <div className="flex items-center space-x-1.5 flex-shrink-0">
                         <span className="bg-[#E53E3E] text-white text-[9px] font-black uppercase px-2 py-0.5 rounded tracking-widest flex-shrink-0 animate-pulse">
@@ -108,23 +108,19 @@ export function Header() {
                       </div>
                       <span className="text-white/20 select-none">•</span>
                       <span className="text-white font-extrabold text-[10px] sm:text-xs font-montserrat tracking-wide flex-shrink-0">
-                        🔥 20% OFF EN TODA LA TIENDA
+                        20% OFF EN TODA LA TIENDA
                       </span>
                       <span className="text-white/20 select-none">•</span>
                       <span className="text-amber-300 font-extrabold text-[10px] sm:text-xs font-montserrat tracking-wide flex-shrink-0">
-                        ⚡ 2DA PRENDA AL 50% OFF
+                        2DA PRENDA AL 50% OFF
                       </span>
                       <span className="text-white/20 select-none">•</span>
                       <span className="text-emerald-400 font-black text-[10px] sm:text-xs font-montserrat tracking-wide flex-shrink-0">
-                        🚚 ENVÍO GRATIS &gt; $70.000
+                        ENVÍO GRATIS &gt; $70.000
                       </span>
                       <span className="text-white/20 select-none">•</span>
                       <span className="text-beige-200 font-semibold text-[10px] sm:text-xs font-montserrat tracking-wide flex-shrink-0">
-                        💳 3 CUOTAS SIN INTERÉS
-                      </span>
-                      <span className="text-white/20 select-none">•</span>
-                      <span className="text-emerald-300 font-semibold text-[10px] sm:text-xs font-montserrat tracking-wide flex-shrink-0">
-                        🏦 10% OFF EXTRA POR TRANSFERENCIA
+                        3 CUOTAS SIN INTERÉS
                       </span>
                       <span className="text-white/20 select-none">•</span>
                     </React.Fragment>
